@@ -53,6 +53,10 @@ public:
 		float bone_count;
 	};
 
+	struct Walk_mesh_vertex {
+		Vector3 position;
+	};
+
 	/// Face of a mesh. It's always a triangle.
 	struct Face {
 		uint16_t vertex_indices[3];
@@ -202,7 +206,7 @@ public:
 	class Walk_mesh : public Packet {
 	public:
 		Walk_mesh_header header;
-		std::vector<Vector3> verts;
+		std::vector<Walk_mesh_vertex> verts;
 		std::vector<Walk_mesh_face> faces;
 
 		void read(std::ifstream& in) override;
@@ -262,6 +266,7 @@ private:
 	static_assert(sizeof(Skin_vertex) == 84);
 	static_assert(sizeof(Walk_mesh_face) == 10);
 	static_assert(sizeof(Walk_mesh_header) == 52);
+	static_assert(sizeof(Walk_mesh_vertex) == 12);
 
 	std::ifstream in;
 	bool is_good_;
