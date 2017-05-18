@@ -9,4 +9,5 @@ Subprojects
 
 - nwn2mdk-lib: C++ library used to develop software (like the other tools of
   this kit).
-- fbxconverter: Converter from MDB/GR2 to FBX and back.
+- mdb2fbx: Command-line based utility to convert MDB/GR2 to FBX.
+- fbx2mdb: Command-line based utility to convert FBX to MDB/GR2.
