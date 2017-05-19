@@ -330,8 +330,8 @@ static FbxNode* create_node(FbxScene* scene, FbxMesh *mesh, const char* name)
 	return node;
 }
 
-static void export_collision_mesh(const MDB_file::Collision_mesh& cm,
-                                  FbxManager* manager, FbxScene* scene)
+static void export_collision_mesh_2(const MDB_file::Collision_mesh& cm,
+                                    FbxManager* manager, FbxScene* scene)
 {
 	string name(cm.header.name, 32);
 
@@ -347,8 +347,40 @@ static void export_collision_mesh(const MDB_file::Collision_mesh& cm,
 
 	auto material =
 	    create_material(manager, node, cm.header.material, name.c_str());
-	material->TransparentColor.Set(FbxDouble3(0.5, 0.5, 0.5));
+	material->Diffuse.Set(FbxDouble3(0.9, 0.4, 0.09));
+	material->DiffuseFactor.Set(0.8);
+	material->TransparentColor.Set(FbxDouble3(0.9, 0.4, 0.09));
 	material->TransparencyFactor.Set(0.5);
+	material->Specular.Set(FbxDouble3(0, 0, 0));
+	material->SpecularFactor.Set(0);
+	material->Shininess.Set(2);
+	node->AddMaterial(material);
+}
+
+static void export_collision_mesh_3(const MDB_file::Collision_mesh& cm,
+                                    FbxManager* manager, FbxScene* scene)
+{
+	string name(cm.header.name, 32);
+
+	auto mesh = FbxMesh::Create(scene, name.c_str());
+
+	export_vertices(mesh, cm.verts);
+	export_normals(mesh, cm.verts);
+	export_uv(mesh, cm.verts);
+	export_faces(mesh, cm.faces);
+
+	auto node = create_node(scene, mesh, name.c_str());
+	scene->GetRootNode()->AddChild(node);
+
+	auto material =
+	    create_material(manager, node, cm.header.material, name.c_str());
+	material->Diffuse.Set(FbxDouble3(0.76, 0.11, 0.09));
+	material->DiffuseFactor.Set(0.8);
+	material->TransparentColor.Set(FbxDouble3(0.76, 0.11, 0.09));
+	material->TransparencyFactor.Set(0.5);
+	material->Specular.Set(FbxDouble3(0, 0, 0));
+	material->SpecularFactor.Set(0);
+	material->Shininess.Set(2);
 	node->AddMaterial(material);
 }
 
@@ -424,8 +456,12 @@ static void export_packet(const MDB_file::Packet* packet, FbxManager* manager,
 
 	switch (packet->type) {
 	case MDB_file::COL2:
+		export_collision_mesh_2(
+		    *static_cast<const MDB_file::Collision_mesh*>(packet),
+		    manager, scene);
+		break;
 	case MDB_file::COL3:
-		export_collision_mesh(
+		export_collision_mesh_3(
 		    *static_cast<const MDB_file::Collision_mesh*>(packet),
 		    manager, scene);
 		break;
