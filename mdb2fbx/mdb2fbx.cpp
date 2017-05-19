@@ -205,6 +205,21 @@ static void print_mdb(const MDB_file& mdb)
 		print_packet(mdb.packet(i));
 }
 
+static FbxSurfacePhong *create_material(FbxManager* manager, FbxNode* node,
+                            const MDB_file::Material& mdb_material,
+                            const char* name)
+{
+	FbxSurfacePhong* material = FbxSurfacePhong::Create(manager, name);
+	material->Diffuse.Set(FbxDouble3(mdb_material.diffuse_color.x,
+	                                 mdb_material.diffuse_color.y,
+	                                 mdb_material.diffuse_color.z));
+	material->Specular.Set(FbxDouble3(mdb_material.specular_color.x,
+	                                  mdb_material.specular_color.y,
+	                                  mdb_material.specular_color.z));
+
+	return material;
+}
+
 static FbxFileTexture* export_texture(FbxManager* manager, const char* name)
 {
 	FbxFileTexture* texture = FbxFileTexture::Create(manager, "");
@@ -235,18 +250,9 @@ static void export_map(FbxManager* manager, FbxPropertyT<T>& property,
 		property.ConnectSrcObject(export_texture(manager, map_name));
 }
 
-static FbxSurfacePhong *export_material(FbxManager* manager, FbxNode* node,
-                            const MDB_file::Material& mdb_material,
-                            const char* name)
+static void export_maps(FbxManager* manager, FbxSurfacePhong* material,
+                        const MDB_file::Material& mdb_material)
 {
-	FbxSurfacePhong* material = FbxSurfacePhong::Create(manager, name);
-	material->Diffuse.Set(FbxDouble3(mdb_material.diffuse_color.x,
-	                                 mdb_material.diffuse_color.y,
-	                                 mdb_material.diffuse_color.z));
-	material->Specular.Set(FbxDouble3(mdb_material.specular_color.x,
-	                                  mdb_material.specular_color.y,
-	                                  mdb_material.specular_color.z));
-
 	export_map(manager, material->Diffuse,
 	           string(mdb_material.diffuse_map_name, 32).c_str());
 	export_map(manager, material->NormalMap,
@@ -255,10 +261,6 @@ static FbxSurfacePhong *export_material(FbxManager* manager, FbxNode* node,
 	           string(mdb_material.tint_map_name, 32).c_str());
 	export_map(manager, material->EmissiveFactor,
 	           string(mdb_material.glow_map_name, 32).c_str());
-
-	node->AddMaterial(material);
-
-	return material;
 }
 
 template <class T>
@@ -344,9 +346,10 @@ static void export_collision_mesh(const MDB_file::Collision_mesh& cm,
 	scene->GetRootNode()->AddChild(node);
 
 	auto material =
-	    export_material(manager, node, cm.header.material, name.c_str());
+	    create_material(manager, node, cm.header.material, name.c_str());
 	material->TransparentColor.Set(FbxDouble3(0.5, 0.5, 0.5));
 	material->TransparencyFactor.Set(0.5);
+	node->AddMaterial(material);
 }
 
 static void export_rigid_mesh(const MDB_file::Rigid_mesh& rm,
@@ -364,7 +367,10 @@ static void export_rigid_mesh(const MDB_file::Rigid_mesh& rm,
 	auto node = create_node(scene, mesh, name.c_str());
 	scene->GetRootNode()->AddChild(node);
 
-	export_material(manager, node, rm.header.material, name.c_str());
+	auto material =
+	    create_material(manager, node, rm.header.material, name.c_str());
+	export_maps(manager, material, rm.header.material);
+	node->AddMaterial(material);
 }
 
 static void export_skin(const MDB_file::Skin& skin, FbxManager* manager,
@@ -382,7 +388,10 @@ static void export_skin(const MDB_file::Skin& skin, FbxManager* manager,
 	auto node = create_node(scene, mesh, name.c_str());
 	scene->GetRootNode()->AddChild(node);
 
-	export_material(manager, node, skin.header.material, name.c_str());
+	auto material =
+	    create_material(manager, node, skin.header.material, name.c_str());
+	export_maps(manager, material, skin.header.material);
+	node->AddMaterial(material);
 }
 
 static void export_walk_mesh(const MDB_file::Walk_mesh& wm, FbxManager* manager,
