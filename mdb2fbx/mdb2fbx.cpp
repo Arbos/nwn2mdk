@@ -59,12 +59,29 @@ static void print_material(const MDB_file::Material& material)
 	cout << "Specular Value: " << material.specular_value << endl;
 }
 
+#ifdef VERBOSE
+
 template <typename T>
 static void print_verts(const std::vector<T>& verts)
 {
 	for (auto& vert : verts) {
 		cout << "v ";
 		print_vector3(vert.position);
+	}
+}
+
+template <>
+void print_verts(const std::vector<MDB_file::Rigid_mesh_vertex>& verts)
+{
+	for (auto& vert : verts) {
+		cout << "v   ";
+		print_vector3(vert.position);
+		cout << "vn  ";
+		print_vector3(vert.normal);
+		cout << "vta ";
+		print_vector3(vert.tangent);
+		cout << "vbi ";
+		print_vector3(vert.binormal);
 	}
 }
 
@@ -77,6 +94,8 @@ static void print_faces(const std::vector<T>& faces)
 		     << endl;
 	}
 }
+
+#endif
 
 static void print_collision_mesh(const MDB_file::Collision_mesh& cm)
 {
