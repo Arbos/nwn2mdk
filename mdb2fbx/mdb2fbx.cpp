@@ -323,6 +323,38 @@ static void export_normals(FbxMesh* mesh, const std::vector<T>& verts)
 }
 
 template <class T>
+static void export_tangents(FbxMesh* mesh, const std::vector<T>& verts)
+{
+	FbxGeometryElementTangent* element_tangent = mesh->CreateElementTangent();
+	// One tangent for each vertex.
+	element_tangent->SetMappingMode(FbxGeometryElement::eByControlPoint);
+	// Map information in DirectArray.
+	element_tangent->SetReferenceMode(FbxGeometryElement::eDirect);
+
+	for (uint32_t i = 0; i < verts.size(); ++i) {
+		FbxVector4 n(verts[i].tangent.x, verts[i].tangent.y,
+		             verts[i].tangent.z);
+		element_tangent->GetDirectArray().Add(n);
+	}
+}
+
+template <class T>
+static void export_binormals(FbxMesh* mesh, const std::vector<T>& verts)
+{
+	FbxGeometryElementBinormal* element_binormal = mesh->CreateElementBinormal();
+	// One binormal for each vertex.
+	element_binormal->SetMappingMode(FbxGeometryElement::eByControlPoint);
+	// Map information in DirectArray.
+	element_binormal->SetReferenceMode(FbxGeometryElement::eDirect);
+
+	for (uint32_t i = 0; i < verts.size(); ++i) {
+		FbxVector4 n(verts[i].binormal.x, verts[i].binormal.y,
+		             verts[i].binormal.z);
+		element_binormal->GetDirectArray().Add(n);
+	}
+}
+
+template <class T>
 static void export_uv(FbxMesh* mesh, const std::vector<T>& verts)
 {
 	FbxGeometryElementUV* element_uv = mesh->CreateElementUV("UVMap");
@@ -412,6 +444,8 @@ static void export_rigid_mesh(const MDB_file::Rigid_mesh& rm,
 
 	export_vertices(mesh, rm.verts);
 	export_normals(mesh, rm.verts);
+	export_tangents(mesh, rm.verts);
+	export_binormals(mesh, rm.verts);
 	export_uv(mesh, rm.verts);
 	export_faces(mesh, rm.faces);
 
@@ -433,6 +467,8 @@ static void export_skin(const MDB_file::Skin& skin, FbxManager* manager,
 
 	export_vertices(mesh, skin.verts);
 	export_normals(mesh, skin.verts);
+	export_tangents(mesh, skin.verts);
+	export_binormals(mesh, skin.verts);
 	export_uv(mesh, skin.verts);
 	export_faces(mesh, skin.faces);
 
