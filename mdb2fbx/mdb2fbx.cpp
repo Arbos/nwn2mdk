@@ -41,6 +41,27 @@ static void print_vector3(const MDB_file::Vector3& v)
 	cout << v.x << ", " << v.y << ", " << v.z << endl;
 }
 
+static void print_material_flags(uint32_t flags)
+{
+	cout << "Flags:          0x" << hex << flags << dec << endl;
+	if(flags & MDB_file::ALPHA_TEST)
+		cout << "                ALPHA_TEST\n";
+	if(flags & MDB_file::ALPHA_BLEND)
+		cout << "                ALPHA_BLEND\n";
+	if(flags & MDB_file::ADDITIVE_BLEND)
+		cout << "                ADDITIVE_BLEND\n";
+	if(flags & MDB_file::ENVIRONMENT_MAPPING)
+		cout << "                ENVIRONMENT_MAPPING\n";
+	if(flags & MDB_file::CUTSCENE_MESH)
+		cout << "                CUTSCENE_MESH\n";
+	if(flags & MDB_file::GLOW)
+		cout << "                GLOW\n";
+	if(flags & MDB_file::CAST_NO_SHADOWS)
+		cout << "                CAST_NO_SHADOWS\n";
+	if(flags & MDB_file::PROJECTED_TEXTURES)
+		cout << "                PROJECTED_TEXTURES\n";
+}
+
 static void print_material(const MDB_file::Material& material)
 {
 	cout << "Diffuse Map:    " << string(material.diffuse_map_name, 32)
@@ -57,6 +78,7 @@ static void print_material(const MDB_file::Material& material)
 	print_vector3(material.specular_color);
 	cout << "Specular Power: " << material.specular_power << endl;
 	cout << "Specular Value: " << material.specular_value << endl;
+	print_material_flags(material.flags);
 }
 
 #ifdef VERBOSE

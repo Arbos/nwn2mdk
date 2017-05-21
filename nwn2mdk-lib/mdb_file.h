@@ -67,6 +67,27 @@ public:
 		uint16_t flags[2];
 	};
 
+	enum Material_flags {
+		/// Alpha map values from the diffuse map below 50% grey are not
+		/// drawn.
+		ALPHA_TEST = 0x01,
+		/// Should not be used, performance or not implemented ?
+		ALPHA_BLEND = 0x02,
+		/// Should not be used, performance or not implemented ?
+		ADDITIVE_BLEND = 0x04,
+		/// Creates a mirroring effect on the object.
+		ENVIRONMENT_MAPPING = 0x08,
+		/// Likely for highest resolution meshes only used in cutscenes.
+		CUTSCENE_MESH = 0x10,
+		/// Enables the illumination map to create a glowing effect.
+		GLOW = 0x20,
+		/// Does not cast shadows.
+		CAST_NO_SHADOWS = 0x40,
+		/// The model will accept UI projected textures such as the
+		/// spell targeting cursor.
+		PROJECTED_TEXTURES = 0x80
+	};
+
 	struct Material {
 		/// Same as filename but without extension. Don't assume it's null terminated.
 		char diffuse_map_name[32];
@@ -80,7 +101,6 @@ public:
 		Vector3 specular_color;
 		float specular_power;
 		float specular_value;
-		/// @todo Create a class for the flags?
 		uint32_t flags;
 	};
 
