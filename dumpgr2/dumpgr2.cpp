@@ -1,20 +1,21 @@
 #include <iostream>
-#include <sstream>
 #include <set>
+#include <sstream>
 
-#include "targetver.h"
 #include "gr2_file.h"
+#include "targetver.h"
 
 using namespace std;
 
-void print_keys(GR2_property_key *k, std::set<GR2_property_key*> &printed,
-	int padding_size);
+void print_keys(GR2_property_key* k, std::set<GR2_property_key*>& printed,
+                int padding_size);
 
-void print_key(GR2_property_key *k, std::set<GR2_property_key*> &printed,
-	int padding_size)
+void print_key(GR2_property_key* k, std::set<GR2_property_key*>& printed,
+               int padding_size)
 {
 	cout << string(padding_size, ' ').c_str();
-	cout << k->name << ": " << k->type << " (" << property_type_to_str(k->type) << ')';
+	cout << k->name << ": " << k->type << " ("
+	     << property_type_to_str(k->type) << ')';
 	if (k->length > 0)
 		cout << " [" << k->length << ']';
 	cout << endl;
@@ -24,8 +25,8 @@ void print_key(GR2_property_key *k, std::set<GR2_property_key*> &printed,
 		print_keys(k->keys, printed, padding_size + 2);
 }
 
-void print_keys(GR2_property_key *k, std::set<GR2_property_key*> &printed,
-	int padding_size)
+void print_keys(GR2_property_key* k, std::set<GR2_property_key*>& printed,
+                int padding_size)
 {
 	if (printed.find(k) != printed.end())
 		return;
@@ -38,7 +39,7 @@ void print_keys(GR2_property_key *k, std::set<GR2_property_key*> &printed,
 	}
 }
 
-void print_keys(GR2_property_key *k)
+void print_keys(GR2_property_key* k)
 {
 	if (!k)
 		return;
@@ -47,8 +48,8 @@ void print_keys(GR2_property_key *k)
 	cout << "=====\n";
 
 	// This set keeps tracks of keys already printed so we don't print
-	// the same key more than once. This is needed because keys have circular
-	// references.
+	// the same key more than once. This is needed because keys have
+	// circular references.
 	std::set<GR2_property_key*> printed;
 	print_keys(k, printed, 0);
 
@@ -57,7 +58,8 @@ void print_keys(GR2_property_key *k)
 
 void print_float4(float q[4])
 {
-	cout << '[' << q[0] << ", " << q[1] << ", " << q[2] << ", " << q[3] << ']';
+	cout << '[' << q[0] << ", " << q[1] << ", " << q[2] << ", " << q[3]
+	     << ']';
 }
 
 template <typename T>
@@ -69,16 +71,19 @@ void print_vector(const Vector3<T>& v)
 template <typename T>
 void print_vector(const Vector4<T>& v)
 {
-	cout << '[' << +v.x << ", " << +v.y << ", " << +v.z << ", " << +v.w << ']';
+	cout << '[' << +v.x << ", " << +v.y << ", " << +v.z << ", " << +v.w
+	     << ']';
 }
 
-void print_art_tool_info(GR2_art_tool_info *ArtToolInfo)
+void print_art_tool_info(GR2_art_tool_info* ArtToolInfo)
 {
 	cout << "Art Tool Info\n";
 	cout << "=============\n";
 	cout << "Name:            " << ArtToolInfo->from_art_tool_name << endl;
-	cout << "Major Revision:  " << ArtToolInfo->art_tool_major_revision << endl;
-	cout << "Minor Revision:  " << ArtToolInfo->art_tool_minor_revision << endl;
+	cout << "Major Revision:  " << ArtToolInfo->art_tool_major_revision
+	     << endl;
+	cout << "Minor Revision:  " << ArtToolInfo->art_tool_minor_revision
+	     << endl;
 	cout << "Units per meter: " << ArtToolInfo->units_per_meter << endl;
 	cout << "Origin:          ";
 	print_vector(ArtToolInfo->origin);
@@ -95,19 +100,23 @@ void print_art_tool_info(GR2_art_tool_info *ArtToolInfo)
 	cout << endl;
 }
 
-void print_exporter_info(GR2_exporter_info *ExporterInfo)
+void print_exporter_info(GR2_exporter_info* ExporterInfo)
 {
 	cout << "Exporter Info\n";
 	cout << "=============\n";
 	cout << "Name:           " << ExporterInfo->exporter_name << endl;
-	cout << "Major Revision: " << ExporterInfo->exporter_major_revision << endl;
-	cout << "Minor Revision: " << ExporterInfo->exporter_minor_revision << endl;
-	cout << "Customization:  " << ExporterInfo->exporter_customization << endl;
-	cout << "Build Number:   " << ExporterInfo->exporter_build_number << endl;
+	cout << "Major Revision: " << ExporterInfo->exporter_major_revision
+	     << endl;
+	cout << "Minor Revision: " << ExporterInfo->exporter_minor_revision
+	     << endl;
+	cout << "Customization:  " << ExporterInfo->exporter_customization
+	     << endl;
+	cout << "Build Number:   " << ExporterInfo->exporter_build_number
+	     << endl;
 	cout << endl;
 }
 
-void print_file_info(GR2_file_info *info)
+void print_file_info(GR2_file_info* info)
 {
 	cout << "File Info\n";
 	cout << "==========\n";
@@ -124,7 +133,7 @@ void print_file_info(GR2_file_info *info)
 	cout << endl;
 }
 
-void print_transform(GR2_transform &Transform)
+void print_transform(GR2_transform& Transform)
 {
 	cout << "  Transform:\n";
 	cout << "    Flags: " << Transform.flags << endl;
@@ -134,12 +143,18 @@ void print_transform(GR2_transform &Transform)
 	cout << "    Rotation: ";
 	print_vector(Transform.rotation);
 	cout << endl;
-	cout << "    ScaleShear: [" << Transform.scale_shear[0] << ", " << Transform.scale_shear[3] << ", " << Transform.scale_shear[6] << endl;
-	cout << "                 " << Transform.scale_shear[1] << ", " << Transform.scale_shear[4] << ", " << Transform.scale_shear[7] << endl;
-	cout << "                 " << Transform.scale_shear[2] << ", " << Transform.scale_shear[5] << ", " << Transform.scale_shear[8] << ']' << endl;
+	cout << "    ScaleShear: [" << Transform.scale_shear[0] << ", "
+	     << Transform.scale_shear[3] << ", " << Transform.scale_shear[6]
+	     << endl;
+	cout << "                 " << Transform.scale_shear[1] << ", "
+	     << Transform.scale_shear[4] << ", " << Transform.scale_shear[7]
+	     << endl;
+	cout << "                 " << Transform.scale_shear[2] << ", "
+	     << Transform.scale_shear[5] << ", " << Transform.scale_shear[8]
+	     << ']' << endl;
 }
 
-void print_extended_data_value(GR2_extended_data &extended_data, int k, int v)
+void print_extended_data_value(GR2_extended_data& extended_data, int k, int v)
 {
 	switch (extended_data.keys[k].type) {
 	case GR2_type_int32:
@@ -154,17 +169,20 @@ void print_extended_data_value(GR2_extended_data &extended_data, int k, int v)
 	}
 }
 
-void print_extended_data(GR2_extended_data &extended_data)
+void print_extended_data(GR2_extended_data& extended_data)
 {
-	if (!extended_data.keys) return;
+	if (!extended_data.keys)
+		return;
 
 	cout << "    ExtendedData:\n";
 
-	for (int k = 0, v = 0; extended_data.keys[k].type != GR2_type_none; ++k) {
+	for (int k = 0, v = 0; extended_data.keys[k].type != GR2_type_none;
+	     ++k) {
 		cout << "      " << extended_data.keys[k].name << ':';
 
 		int n = extended_data.keys[k].length;
-		if (n == 0) n = 1;
+		if (n == 0)
+			n = 1;
 
 		while (n > 0) {
 			cout << ' ';
@@ -177,7 +195,7 @@ void print_extended_data(GR2_extended_data &extended_data)
 	}
 }
 
-void print_bone(GR2_bone &bone)
+void print_bone(GR2_bone& bone)
 {
 	cout << "- Name: " << bone.name << endl;
 	cout << "  ParentIndex: " << bone.parent_index << endl;
@@ -185,7 +203,7 @@ void print_bone(GR2_bone &bone)
 	print_extended_data(bone.extended_data);
 }
 
-void print_bones(GR2_skeleton *skel)
+void print_bones(GR2_skeleton* skel)
 {
 	for (int i = 0; i < skel->bones_count; ++i) {
 		cout << "# " << i << endl;
@@ -193,7 +211,7 @@ void print_bones(GR2_skeleton *skel)
 	}
 }
 
-void print_skeleton(GR2_skeleton *skel)
+void print_skeleton(GR2_skeleton* skel)
 {
 	cout << "Skeleton\n";
 	cout << "========\n";
@@ -203,7 +221,7 @@ void print_skeleton(GR2_skeleton *skel)
 	cout << endl;
 }
 
-void print_skeletons(GR2_file_info *info)
+void print_skeletons(GR2_file_info* info)
 {
 	for (int i = 0; i < info->skeletons_count; ++i)
 		print_skeleton(info->skeletons[i]);
@@ -235,16 +253,17 @@ void print_selectors(uint16_t selectors[4])
 }
 
 template <typename T>
-void print_knots(const T &view)
+void print_knots(const T& view)
 {
 	cout << "    Knots: # " << view.knots().size() << endl;
 	for (unsigned i = 0; i < view.knots().size(); ++i) {
-		cout << "      - " << +view.encoded_knots()[i] << " # " << view.knots()[i] << endl;
+		cout << "      - " << +view.encoded_knots()[i] << " # "
+		     << view.knots()[i] << endl;
 	}
 }
 
 template <typename T>
-void print_controls(const T &view)
+void print_controls(const T& view)
 {
 	cout << "    Controls: # " << view.controls().size() << endl;
 	for (unsigned i = 0; i < view.controls().size(); ++i) {
@@ -256,7 +275,7 @@ void print_controls(const T &view)
 	}
 }
 
-void print_curve_data(GR2_curve_data_DaK32fC32f *data)
+void print_curve_data(GR2_curve_data_DaK32fC32f* data)
 {
 	cout << "    Padding: " << data->padding << endl;
 	cout << "    Knots: # " << data->knots_count << endl;
@@ -269,7 +288,8 @@ void print_curve_data(GR2_curve_data_DaK32fC32f *data)
 			float x = data->controls[i * 3 + 0];
 			float y = data->controls[i * 3 + 1];
 			float z = data->controls[i * 3 + 2];
-			cout << "      - [" << x << ", " << y << ", " << z << "]\n";
+			cout << "      - [" << x << ", " << y << ", " << z
+			     << "]\n";
 		}
 	}
 	else if (data->knots_count * 4 == data->controls_count) { // Quaternions
@@ -278,7 +298,8 @@ void print_curve_data(GR2_curve_data_DaK32fC32f *data)
 			float y = data->controls[i * 4 + 1];
 			float z = data->controls[i * 4 + 2];
 			float w = data->controls[i * 4 + 3];
-			cout << "      - [" << x << ", " << y << ", " << z << ", " << w << "]\n";
+			cout << "      - [" << x << ", " << y << ", " << z
+			     << ", " << w << "]\n";
 		}
 	}
 	else {
@@ -286,80 +307,100 @@ void print_curve_data(GR2_curve_data_DaK32fC32f *data)
 	}
 }
 
-void print_curve_data(GR2_curve_data_D4nK16uC15u *data)
+void print_curve_data(GR2_curve_data_D4nK16uC15u* data)
 {
-	cout << "    ScaleOffsetTableEntries: " << data->scale_offset_table_entries << endl;
+	cout << "    ScaleOffsetTableEntries: "
+	     << data->scale_offset_table_entries << endl;
 
 	GR2_D4nK16uC15u_view view(*data);
-	
-	print_selectors(view.selectors);	
-	print_scales(view.scales);
-	print_offsets(view.offsets);
-	cout << "    OneOverKnotScale: " << data->one_over_knot_scale << endl;
-	cout << "    KnotsControls_count: " << data->knots_controls_count << endl;
 
-	print_knots(view);
-	print_controls(view);
-}
-
-void print_curve_data(GR2_curve_data_D4nK8uC7u *data)
-{
-	cout << "    ScaleOffsetTableEntries: " << data->scale_offset_table_entries << endl;
-
-	GR2_D4nK8uC7u_view view(*data);
-	
 	print_selectors(view.selectors);
 	print_scales(view.scales);
 	print_offsets(view.offsets);
 	cout << "    OneOverKnotScale: " << data->one_over_knot_scale << endl;
-	cout << "    KnotsControls_count: " << data->knots_controls_count << endl;
+	cout << "    KnotsControls_count: " << data->knots_controls_count
+	     << endl;
 
-	print_knots(view);	
+	print_knots(view);
 	print_controls(view);
 }
 
-void print_curve_data(GR2_curve_data_D3K8uC8u *data)
+void print_curve_data(GR2_curve_data_D4nK8uC7u* data)
 {
-	cout << "    OneOverKnotScaleTrunc: " << data->one_over_knot_scale_trunc << endl;
-	cout << "    ControlScales: [" << data->control_scales[0] << ", " << data->control_scales[1] << ", " << data->control_scales[2] << "]\n";
-	cout << "    ControlOffsets: [" << data->control_offsets[0] << ", " << data->control_offsets[1] << ", " << data->control_offsets[2] << "]\n";
-	cout << "    KnotsControls_count: " << data->knots_controls_count << endl;
+	cout << "    ScaleOffsetTableEntries: "
+	     << data->scale_offset_table_entries << endl;
 
-	GR2_D3K8uC8u_view view(*data);
-	
+	GR2_D4nK8uC7u_view view(*data);
+
+	print_selectors(view.selectors);
+	print_scales(view.scales);
+	print_offsets(view.offsets);
+	cout << "    OneOverKnotScale: " << data->one_over_knot_scale << endl;
+	cout << "    KnotsControls_count: " << data->knots_controls_count
+	     << endl;
+
 	print_knots(view);
-	print_controls(view);	
+	print_controls(view);
 }
 
-void print_curve(GR2_curve &curve)
-{	
-	cout << "    Format: " << +curve.curve_data->curve_data_header.format;
-	cout << " (" << curve_format_to_str(curve.curve_data->curve_data_header.format) << ")\n";
-	cout << "    Degree: " << +curve.curve_data->curve_data_header.degree << endl;
+void print_curve_data(GR2_curve_data_D3K8uC8u* data)
+{
+	cout << "    OneOverKnotScaleTrunc: " << data->one_over_knot_scale_trunc
+	     << endl;
+	cout << "    ControlScales: [" << data->control_scales[0] << ", "
+	     << data->control_scales[1] << ", " << data->control_scales[2]
+	     << "]\n";
+	cout << "    ControlOffsets: [" << data->control_offsets[0] << ", "
+	     << data->control_offsets[1] << ", " << data->control_offsets[2]
+	     << "]\n";
+	cout << "    KnotsControls_count: " << data->knots_controls_count
+	     << endl;
 
-	if (curve.curve_data->curve_data_header.format == DaK32fC32f) {		
-		GR2_curve_data_DaK32fC32f *data = (GR2_curve_data_DaK32fC32f *)curve.curve_data;
-		print_curve_data(data);	
+	GR2_D3K8uC8u_view view(*data);
+
+	print_knots(view);
+	print_controls(view);
+}
+
+void print_curve(GR2_curve& curve)
+{
+	cout << "    Format: " << +curve.curve_data->curve_data_header.format;
+	cout << " ("
+	     << curve_format_to_str(curve.curve_data->curve_data_header.format)
+	     << ")\n";
+	cout << "    Degree: " << +curve.curve_data->curve_data_header.degree
+	     << endl;
+
+	if (curve.curve_data->curve_data_header.format == DaK32fC32f) {
+		GR2_curve_data_DaK32fC32f* data =
+		    (GR2_curve_data_DaK32fC32f*)curve.curve_data;
+		print_curve_data(data);
 	}
-	else if (curve.curve_data->curve_data_header.format == DaIdentity) {		
-		GR2_curve_data_DaIdentity *data = (GR2_curve_data_DaIdentity *)curve.curve_data;
+	else if (curve.curve_data->curve_data_header.format == DaIdentity) {
+		GR2_curve_data_DaIdentity* data =
+		    (GR2_curve_data_DaIdentity*)curve.curve_data;
 		cout << "    Dimension: " << data->dimension << endl;
 	}
-	else if (curve.curve_data->curve_data_header.format == D3Constant32f) {		
-		GR2_curve_data_D3Constant32f *data = (GR2_curve_data_D3Constant32f *)curve.curve_data;
+	else if (curve.curve_data->curve_data_header.format == D3Constant32f) {
+		GR2_curve_data_D3Constant32f* data =
+		    (GR2_curve_data_D3Constant32f*)curve.curve_data;
 		cout << "    Padding: " << data->padding << endl;
-		cout << "    Controls: [" << data->controls[0] << ", " << data->controls[1] << ", " << data->controls[2] << "]\n";
+		cout << "    Controls: [" << data->controls[0] << ", "
+		     << data->controls[1] << ", " << data->controls[2] << "]\n";
 	}
-	else if (curve.curve_data->curve_data_header.format == D4nK16uC15u) {		
-		GR2_curve_data_D4nK16uC15u *data = (GR2_curve_data_D4nK16uC15u *)curve.curve_data;
+	else if (curve.curve_data->curve_data_header.format == D4nK16uC15u) {
+		GR2_curve_data_D4nK16uC15u* data =
+		    (GR2_curve_data_D4nK16uC15u*)curve.curve_data;
 		print_curve_data(data);
 	}
-	else if (curve.curve_data->curve_data_header.format == D4nK8uC7u) {		
-		GR2_curve_data_D4nK8uC7u *data = (GR2_curve_data_D4nK8uC7u *)curve.curve_data;
+	else if (curve.curve_data->curve_data_header.format == D4nK8uC7u) {
+		GR2_curve_data_D4nK8uC7u* data =
+		    (GR2_curve_data_D4nK8uC7u*)curve.curve_data;
 		print_curve_data(data);
 	}
-	else if (curve.curve_data->curve_data_header.format == D3K8uC8u) {		
-		GR2_curve_data_D3K8uC8u *data = (GR2_curve_data_D3K8uC8u *)curve.curve_data;
+	else if (curve.curve_data->curve_data_header.format == D3K8uC8u) {
+		GR2_curve_data_D3K8uC8u* data =
+		    (GR2_curve_data_D3K8uC8u*)curve.curve_data;
 		print_curve_data(data);
 	}
 	else {
@@ -367,15 +408,16 @@ void print_curve(GR2_curve &curve)
 	}
 }
 
-void print_vector_tracks(GR2_track_group *track_group)
+void print_vector_tracks(GR2_track_group* track_group)
 {
-	cout << "VectorTracks Count: " << track_group->vector_tracks_count << endl;
+	cout << "VectorTracks Count: " << track_group->vector_tracks_count
+	     << endl;
 
 	for (int32_t i = 0; i < track_group->vector_tracks_count; ++i) {
-		auto &vector_track = track_group->vector_tracks[i];
+		auto& vector_track = track_group->vector_tracks[i];
 		cout << "- Name: " << vector_track.name << endl;
 		cout << "  Dimension: " << vector_track.dimension << endl;
-		//print_curve(vector_track.ValueCurve);
+		// print_curve(vector_track.ValueCurve);
 	}
 }
 
@@ -392,23 +434,25 @@ void print_transform_track(GR2_transform_track& tt)
 		cout << "    # WARNING: Format != DaIdentity\n";
 }
 
-void print_transform_tracks(GR2_track_group *track_group)
+void print_transform_tracks(GR2_track_group* track_group)
 {
-	cout << "TransformTracks Count: " << track_group->transform_tracks_count << endl;
+	cout << "TransformTracks Count: " << track_group->transform_tracks_count
+	     << endl;
 
 	for (int32_t i = 0; i < track_group->transform_tracks_count; ++i)
-		print_transform_track(track_group->transform_tracks[i]);		
+		print_transform_track(track_group->transform_tracks[i]);
 }
 
-void print_transform_LOD_errors(GR2_track_group *track_group)
+void print_transform_LOD_errors(GR2_track_group* track_group)
 {
-	cout << "TransformLODErrors Count: " << track_group->transform_LOD_errors_count << endl;
+	cout << "TransformLODErrors Count: "
+	     << track_group->transform_LOD_errors_count << endl;
 
 	for (int32_t i = 0; i < track_group->transform_LOD_errors_count; ++i)
 		cout << "- " << track_group->transform_LOD_errors[i] << endl;
 }
 
-void print_trackgroup(GR2_track_group *track_group)
+void print_trackgroup(GR2_track_group* track_group)
 {
 	cout << "TrackGroup\n";
 	cout << "----------\n";
@@ -420,15 +464,15 @@ void print_trackgroup(GR2_track_group *track_group)
 	cout << endl;
 }
 
-void print_trackgroups(GR2_file_info *info)
+void print_trackgroups(GR2_file_info* info)
 {
-	for (int i = 0; i < info->track_groups_count; ++i) {		
+	for (int i = 0; i < info->track_groups_count; ++i) {
 		cout << endl;
 		print_trackgroup(info->track_groups[i]);
 	}
 }
 
-void print_animation(GR2_animation *animation)
+void print_animation(GR2_animation* animation)
 {
 	cout << "Animation\n";
 	cout << "=========\n";
@@ -445,13 +489,13 @@ void print_animation(GR2_animation *animation)
 	cout << endl;
 }
 
-void print_animations(GR2_file_info *info)
+void print_animations(GR2_file_info* info)
 {
 	for (int i = 0; i < info->animations_count; ++i)
 		print_animation(info->animations[i]);
 }
 
-void print_header(GR2_file &gr2)
+void print_header(GR2_file& gr2)
 {
 	cout << "Header\n";
 	cout << "======\n";
@@ -461,25 +505,27 @@ void print_header(GR2_file &gr2)
 	cout << endl;
 	cout << "Header size:     " << gr2.header.size << endl;
 	cout << "Format:          " << gr2.header.format << endl;
-	cout << "Reserved:        " << gr2.header.reserved[0] << ' ' << gr2.header.reserved[1] << endl;
+	cout << "Reserved:        " << gr2.header.reserved[0] << ' '
+	     << gr2.header.reserved[1] << endl;
 	cout << "Version:         " << gr2.header.info.version << endl;
 	cout << "File size:       " << gr2.header.info.file_size << endl;
-	cout << "CRC32:           " << hex << gr2.header.info.crc32 << dec << endl;
+	cout << "CRC32:           " << hex << gr2.header.info.crc32 << dec
+	     << endl;
 	cout << "Sections offset: " << gr2.header.info.sections_offset << endl;
 	cout << "Sections:        " << gr2.header.info.sections_count << endl;
 	cout << "Type section:    " << gr2.header.info.type_section << endl;
 	cout << "Type offset:     " << gr2.header.info.type_offset << endl;
 	cout << "Root section:    " << gr2.header.info.root_section << endl;
 	cout << "Root offset:     " << gr2.header.info.root_offset << endl;
-	cout << "Tag:             0x" << hex << gr2.header.info.tag << dec << endl;
-	cout << "Extra:           " << gr2.header.info.extra[0]
-		<< ' ' << gr2.header.info.extra[1]
-		<< ' ' << gr2.header.info.extra[2]
-		<< ' ' << gr2.header.info.extra[3] << endl;
+	cout << "Tag:             0x" << hex << gr2.header.info.tag << dec
+	     << endl;
+	cout << "Extra:           " << gr2.header.info.extra[0] << ' '
+	     << gr2.header.info.extra[1] << ' ' << gr2.header.info.extra[2]
+	     << ' ' << gr2.header.info.extra[3] << endl;
 	cout << endl;
 }
 
-void print_section(GR2_file::Section_header &section)
+void print_section(GR2_file::Section_header& section)
 {
 	cout << "Section\n";
 	cout << "=======\n";
@@ -497,13 +543,13 @@ void print_section(GR2_file::Section_header &section)
 	cout << endl;
 }
 
-void print_sections(GR2_file &gr2)
+void print_sections(GR2_file& gr2)
 {
-	for (auto &section : gr2.section_headers)
+	for (auto& section : gr2.section_headers)
 		print_section(section);
 }
 
-void print_gr2(GR2_file &gr2)
+void print_gr2(GR2_file& gr2)
 {
 	print_header(gr2);
 	print_sections(gr2);
@@ -515,7 +561,7 @@ void print_gr2(GR2_file &gr2)
 	print_animations(gr2.file_info);
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
 	if (argc < 2) {
 		cout << "Usage: dumpgr2 <file>\n";
@@ -529,6 +575,6 @@ int main(int argc, char *argv[])
 	}
 
 	print_gr2(gr2);
-	
-    return 0;
+
+	return 0;
 }
