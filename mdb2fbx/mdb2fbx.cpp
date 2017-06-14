@@ -591,7 +591,7 @@ static bool export_mdb(const MDB_file& mdb, const char* filename)
 	path p = path("output") / filename;
 	p += ".fbx";
 	auto exporter = FbxExporter::Create(manager, "");
-	if (!exporter->Initialize(p.c_str(), -1, manager->GetIOSettings())) {
+	if (!exporter->Initialize(p.string().c_str(), -1, manager->GetIOSettings())) {
 		cout << exporter->GetStatus().GetErrorString() << endl;
 		return false;
 	}
@@ -676,7 +676,7 @@ static void extract_dependency(const char* str,
 		path p = path("output") / str;
 
 		if (!archives.extract_file(r.archive_index, r.file_index,
-		                           p.c_str())) {
+		                           p.string().c_str())) {
 			cout << "cannot extract " << str << endl;
 		}
 	}
@@ -707,7 +707,7 @@ static Archive_container get_model_archives(const Config& config)
 	for (unsigned i = 0; i < sizeof(files) / sizeof(char*); ++i) {
 		cout << "Indexing " << files[i] << " ...";
 		path p = path(config.nwn2_home) / path(files[i]);
-		if (!model_archives.add_archive(p.c_str())) {
+		if (!model_archives.add_archive(p.string().c_str())) {
 			cout << " Cannot open zip";
 		}
 		cout << endl;
@@ -737,7 +737,7 @@ static Archive_container get_material_archives(const Config& config)
 	for (unsigned i = 0; i < sizeof(files) / sizeof(char*); ++i) {
 		cout << "Indexing " << files[i] << " ...";
 		path p = path(config.nwn2_home) / path(files[i]);
-		if (!material_archives.add_archive(p.c_str())) {
+		if (!material_archives.add_archive(p.string().c_str())) {
 			cout << " Cannot open zip";
 		}
 		cout << endl;
@@ -779,12 +779,12 @@ int main(int argc, char* argv[])
 		p = path("output") / p.filename();
 
 		if (!model_archives.extract_file(r.archive_index, r.file_index,
-		                                 p.c_str())) {
+		                                 p.string().c_str())) {
 			cout << "Cannot extract\n";
 			return 1;
 		}
 
-		filename = p.c_str();
+		filename = p.string().c_str();
 	}
 
 	MDB_file mdb(filename.c_str());
@@ -794,7 +794,7 @@ int main(int argc, char* argv[])
 	}
 
 	print_mdb(mdb);
-	if (!export_mdb(mdb, path(filename).stem().c_str())) {
+	if (!export_mdb(mdb, path(filename).stem().string().c_str())) {
 		cout << "Cannot export to FBX\n";
 		return 1;
 	}
