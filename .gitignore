@@ -1,0 +1,8 @@
+# User-specific files
+*.user
+
+# Build results
+[Dd]ebug/
+
+# Visual Studio 2015 cache/options directory
+.vs/
