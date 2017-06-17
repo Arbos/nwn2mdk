@@ -240,6 +240,11 @@ static void print_packet(const MDB_file::Packet* packet)
 
 static void print_mdb(const MDB_file& mdb)
 {
+	cout << endl;
+	cout << "===\n";
+	cout << "MDB\n";
+	cout << "===\n";
+
 	print_header(mdb);
 
 	for (uint32_t i = 0; i < mdb.packet_count(); ++i)
@@ -567,7 +572,7 @@ static bool export_mdb(const MDB_file& mdb, const char* filename)
 {
 	auto manager = FbxManager::Create();
 	if (!manager) {
-		cout << "unable to create FBX manager\n";
+		cout << "Unable to create FBX manager\n";
 		return false;
 	}
 
@@ -580,7 +585,7 @@ static bool export_mdb(const MDB_file& mdb, const char* filename)
 	// from/to files.
 	auto scene = FbxScene::Create(manager, "Scene");
 	if (!scene) {
-		cout << "unable to create FBX scene\n";
+		cout << "Unable to create FBX scene\n";
 		return false;
 	}
 
@@ -588,10 +593,8 @@ static bool export_mdb(const MDB_file& mdb, const char* filename)
 		export_packet(mdb.packet(i), manager, scene);
 
 	// Create an exporter.
-	path p = path("output") / filename;
-	p += ".fbx";
 	auto exporter = FbxExporter::Create(manager, "");
-	if (!exporter->Initialize(p.string().c_str(), -1, manager->GetIOSettings())) {
+	if (!exporter->Initialize(filename, -1, manager->GetIOSettings())) {
 		cout << exporter->GetStatus().GetErrorString() << endl;
 		return false;
 	}
@@ -674,10 +677,12 @@ static void extract_dependency(const char* str,
 	auto r = archives.find_file(str);
 	if (r.matches > 0) {
 		path p = path("output") / str;
+	
+		cout << "Extracting: " << p.string() << endl; 
 
 		if (!archives.extract_file(r.archive_index, r.file_index,
 		                           p.string().c_str())) {
-			cout << "cannot extract " << str << endl;
+			cout << "Cannot extract " << str << endl;
 		}
 	}
 	else
@@ -705,15 +710,13 @@ static Archive_container get_model_archives(const Config& config)
 
 	Archive_container model_archives;
 	for (unsigned i = 0; i < sizeof(files) / sizeof(char*); ++i) {
-		cout << "Indexing " << files[i] << " ...";
+		cout << "Indexing: " << files[i];
 		path p = path(config.nwn2_home) / path(files[i]);
 		if (!model_archives.add_archive(p.string().c_str())) {
-			cout << " Cannot open zip";
+			cout << " : Cannot open zip";
 		}
 		cout << endl;
 	}
-
-	cout << endl;
 
 	return model_archives;
 }
@@ -735,17 +738,38 @@ static Archive_container get_material_archives(const Config& config)
 
 	Archive_container material_archives;
 	for (unsigned i = 0; i < sizeof(files) / sizeof(char*); ++i) {
-		cout << "Indexing " << files[i] << " ...";
+		cout << "Indexing: " << files[i];
 		path p = path(config.nwn2_home) / path(files[i]);
 		if (!material_archives.add_archive(p.string().c_str())) {
-			cout << " Cannot open zip";
+			cout << " : Cannot open zip";
 		}
 		cout << endl;
 	}
 
-	cout << endl;
-
 	return material_archives;
+}
+
+bool find_and_extract_mdb(const Config& config, const char* pattern,
+                          std::string& filename)
+{
+	auto model_archives = get_model_archives(config);
+	auto r = model_archives.find_file(pattern);
+	if (r.matches != 1)
+		return false;
+
+	path p(model_archives.filename(r.archive_index, r.file_index));
+	p = path("output") / p.filename();
+	filename = p.string();
+
+	cout << "Extracting: " << filename << endl; 
+
+	if (!model_archives.extract_file(r.archive_index, r.file_index,
+	                                 filename.c_str())) {
+		cout << "Cannot extract\n";
+		return false;
+	}
+
+	return true;
 }
 
 int main(int argc, char* argv[])
@@ -769,22 +793,8 @@ int main(int argc, char* argv[])
 	string filename = argv[1];
 
 	if(!exists(filename)) {
-		auto model_archives = get_model_archives(config);
-		auto r = model_archives.find_file(filename.c_str());
-		if (r.matches != 1) {
+		if(!find_and_extract_mdb(config, filename.c_str(), filename))
 			return 1;
-		}
-
-		path p(model_archives.filename(r.archive_index, r.file_index));
-		p = path("output") / p.filename();
-
-		if (!model_archives.extract_file(r.archive_index, r.file_index,
-		                                 p.string().c_str())) {
-			cout << "Cannot extract\n";
-			return 1;
-		}
-
-		filename = p.string().c_str();
 	}
 
 	MDB_file mdb(filename.c_str());
@@ -794,9 +804,13 @@ int main(int argc, char* argv[])
 	}
 
 	print_mdb(mdb);
-	if (!export_mdb(mdb, path(filename).stem().string().c_str())) {
+	extract_dependencies(mdb, get_material_archives(config));
+
+	auto fbx_filename =
+	    (path("output") / path(filename).stem()).concat(".fbx").string();
+	cout << "Converting: " << filename << " -> " << fbx_filename << endl;
+	if (!export_mdb(mdb, fbx_filename.c_str())) {
 		cout << "Cannot export to FBX\n";
 		return 1;
 	}
-	extract_dependencies(mdb, get_material_archives(config));
 }

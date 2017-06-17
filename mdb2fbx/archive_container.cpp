@@ -80,9 +80,7 @@ std::string Archive_container::filename(unsigned archive_index,
 Archive_container::Find_result
 Archive_container::find_file(const char* str) const
 {
-	cout << string(78, '=') << endl;
-	cout << "Searching for \"" << str << "\" ...\n";
-	cout << string(78, '=') << endl << endl;
+	cout << "Searching: \"" << str << "\"\n";
 
 	Find_result res;
 	res.matches = 0;
@@ -92,6 +90,7 @@ Archive_container::find_file(const char* str) const
 
 	for (unsigned i = 0; i < archives.size(); ++i) {
 		auto& entry = archives[i];
+		cout << "  - " << entry.filename << endl;
 		auto r = find_file(entry, str_uppercase.c_str());
 
 		if (r.first > 0) {
@@ -101,13 +100,11 @@ Archive_container::find_file(const char* str) const
 				res.file_index = r.second;
 			}
 
-			cout << r.first << " matches found in ";
-			cout << entry.filename << endl << endl;
-			cout << string(78, '-') << endl << endl;
+			cout << "    # " << r.first << " matches\n";
 		}
 	}
 
-	cout << res.matches << " total matches found\n\n";
+	cout << "  # " << res.matches << " total matches\n";
 
 	return res;
 }
@@ -130,7 +127,7 @@ Archive_container::find_file(const Archive_entry& entry, const char* str) const
 		if (f.find(str) != string::npos) {
 			file_index = i;
 			++match_count;
-			cout << file_stat.m_filename << endl;
+			cout << "    " << file_stat.m_filename << endl;
 		}
 	}
 
