@@ -11,6 +11,11 @@ public:
 		this->y = y;
 		this->z = z;
 	}
+
+	T &operator[](unsigned i)
+	{
+		return (&x)[i];
+	}
 };
 
 template <typename T>
