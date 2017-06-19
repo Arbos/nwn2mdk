@@ -608,29 +608,26 @@ static bool export_mdb(const MDB_file& mdb, const char* filename)
 	return true;
 }
 
-static Archive_container get_model_archives(const Config& config)
+static Archive_container get_lod_archives(const Config& config)
 {
 	const char* files[] = {
-	    "Data/NWN2_Models_X2_v121.zip", "Data/NWN2_Models_X2.zip",
-	    "Data/NWN2_Models_X1_v121.zip", "Data/NWN2_Models_X1.zip",
-	    "Data/NWN2_Models_v121.zip",    "Data/NWN2_Models_v112.zip",
-	    "Data/NWN2_Models_v107.zip",    "Data/NWN2_Models_v106.zip",
-	    "Data/NWN2_Models_v105.zip",    "Data/NWN2_Models_v104.zip",
-	    "Data/NWN2_Models_v103x1.zip",  "Data/NWN2_Models.zip"};
+	    "Data/lod-merged_X2_v121.zip", "Data/lod-merged_X2.zip",
+	    "Data/lod-merged_X1_v121.zip", "Data/lod-merged_X1.zip",
+	    "Data/lod-merged_v121.zip",    "Data/lod-merged_v107.zip",
+	    "Data/lod-merged_v101.zip",    "Data/lod-merged.zip"};
 
-	Archive_container model_archives;
+	Archive_container archives;
 	for (unsigned i = 0; i < sizeof(files) / sizeof(char*); ++i) {
 		cout << "Indexing: " << files[i];
 		path p = path(config.nwn2_home) / path(files[i]);
-		if (!model_archives.add_archive(p.string().c_str())) {
+		if (!archives.add_archive(p.string().c_str())) {
 			cout << " : Cannot open zip";
 		}
 		cout << endl;
 	}
 
-	return model_archives;
+	return archives;
 }
-
 static Archive_container get_material_archives(const Config& config)
 {
 	const char* files[] = {"Data/NWN2_Materials_X2.zip",
@@ -646,28 +643,62 @@ static Archive_container get_material_archives(const Config& config)
 	                       "Data/NWN2_Materials_v103x1.zip",
 	                       "Data/NWN2_Materials.zip"};
 
-	Archive_container material_archives;
+	Archive_container archives;
 	for (unsigned i = 0; i < sizeof(files) / sizeof(char*); ++i) {
 		cout << "Indexing: " << files[i];
 		path p = path(config.nwn2_home) / path(files[i]);
-		if (!material_archives.add_archive(p.string().c_str())) {
+		if (!archives.add_archive(p.string().c_str())) {
 			cout << " : Cannot open zip";
 		}
 		cout << endl;
 	}
 
-	return material_archives;
+	return archives;
+}
+
+static Archive_container get_model_archives(const Config& config)
+{
+	const char* files[] = {
+	    "Data/NWN2_Models_X2_v121.zip", "Data/NWN2_Models_X2.zip",
+	    "Data/NWN2_Models_X1_v121.zip", "Data/NWN2_Models_X1.zip",
+	    "Data/NWN2_Models_v121.zip",    "Data/NWN2_Models_v112.zip",
+	    "Data/NWN2_Models_v107.zip",    "Data/NWN2_Models_v106.zip",
+	    "Data/NWN2_Models_v105.zip",    "Data/NWN2_Models_v104.zip",
+	    "Data/NWN2_Models_v103x1.zip",  "Data/NWN2_Models.zip"};
+
+	Archive_container archives;
+	for (unsigned i = 0; i < sizeof(files) / sizeof(char*); ++i) {
+		cout << "Indexing: " << files[i];
+		path p = path(config.nwn2_home) / path(files[i]);
+		if (!archives.add_archive(p.string().c_str())) {
+			cout << " : Cannot open zip";
+		}
+		cout << endl;
+	}
+
+	return archives;
 }
 
 static void extract_dependency(const char* str,
-                               const Archive_container& archives)
+                               const Archive_container& archives,
+                               set<std::string>& extracted)
 {
+	if(extracted.find(str) != extracted.end())
+		return;
+
+	extracted.insert(str);
+
 	auto r = archives.find_file(str);
 	if (r.matches > 0) {
 		path p(archives.filename(r.archive_index, r.file_index));
 		p = path("output") / p.filename();
 	
 		cout << "Extracting: " << p.string() << endl; 
+
+		if(exists(p)) {
+			cout << "  Already exists in destination. Don't overwrite.\n";
+			return;
+		}
 
 		if (!archives.extract_file(r.archive_index, r.file_index,
 		                           p.string().c_str())) {
@@ -679,39 +710,47 @@ static void extract_dependency(const char* str,
 }
 
 static void extract_textures(const MDB_file::Material& material,
-                             const Archive_container& archives)
+                             const Archive_container& archives,
+                             set<std::string>& extracted)
 {
 	string diffuse_map = string(material.diffuse_map_name, 32).c_str();
 	if (!diffuse_map.empty())
-		extract_dependency((diffuse_map + '.').c_str(), archives);
+		extract_dependency((diffuse_map + '.').c_str(), archives,
+		                   extracted);
 
 	string normal_map = string(material.normal_map_name, 32).c_str();
 	if (!normal_map.empty())
-		extract_dependency((normal_map + '.').c_str(), archives);
+		extract_dependency((normal_map + '.').c_str(), archives,
+		                   extracted);
 
 	string tint_map = string(material.tint_map_name, 32).c_str();
 	if (!tint_map.empty())
-		extract_dependency((tint_map + '.').c_str(), archives);
+		extract_dependency((tint_map + '.').c_str(), archives,
+		                   extracted);
 
 	string glow_map = string(material.glow_map_name, 32).c_str();
 	if (!glow_map.empty())
-		extract_dependency((glow_map + '.').c_str(), archives);
+		extract_dependency((glow_map + '.').c_str(), archives,
+		                   extracted);
 }
 
 static void extract_textures(const MDB_file::Rigid_mesh& rm,
-                             const Archive_container& archives)
+                             const Archive_container& archives,
+                             set<std::string>& extracted)
 {
-	extract_textures(rm.header.material, archives);
+	extract_textures(rm.header.material, archives, extracted);
 }
 
 static void extract_textures(const MDB_file::Skin& skin,
-                             const Archive_container& archives)
+                             const Archive_container& archives,
+                             set<std::string>& extracted)
 {
-	extract_textures(skin.header.material, archives);
+	extract_textures(skin.header.material, archives, extracted);
 }
 
 static void extract_textures(const MDB_file::Packet* packet,
-                             const Archive_container& archives)
+                             const Archive_container& archives,
+                             set<std::string>& extracted)
 {
 	if (!packet)
 		return;
@@ -720,29 +759,70 @@ static void extract_textures(const MDB_file::Packet* packet,
 	case MDB_file::RIGD:
 		extract_textures(
 		    *static_cast<const MDB_file::Rigid_mesh*>(packet),
-		    archives);
+		    archives, extracted);
 		break;
 	case MDB_file::SKIN:
 		extract_textures(*static_cast<const MDB_file::Skin*>(packet),
-		                 archives);
+		                 archives, extracted);
 		break;
 	default:
 		break;
 	}
 }
 
-static void extract_textures(const MDB_file& mdb, const Config &config)
+static void extract_textures(const MDB_file& mdb, const Config& config,
+                             set<std::string>& extracted)
 {
 	auto archives = get_material_archives(config);
 
 	for (uint32_t i = 0; i < mdb.packet_count(); ++i)
-		extract_textures(mdb.packet(i), archives);
+		extract_textures(mdb.packet(i), archives, extracted);
+}
+
+static void extract_skeleton(const MDB_file::Skin& skin,
+                             const Archive_container& archives,
+                             set<std::string>& extracted)
+{
+	string skeleton = string(skin.header.skeleton_name, 32).c_str();
+	if (!skeleton.empty())
+		extract_dependency((skeleton + '.').c_str(), archives,
+		                   extracted);
+}
+
+static void extract_skeleton(const MDB_file::Packet* packet,
+                             const Archive_container& archives,
+                             set<std::string>& extracted)
+{
+	if (!packet)
+		return;
+
+	switch (packet->type) {
+	case MDB_file::SKIN:
+		extract_skeleton(*static_cast<const MDB_file::Skin*>(packet),
+		                 archives, extracted);
+		break;
+	default:
+		break;
+	}
+}
+
+static void extract_skeletons(const MDB_file& mdb, const Config& config,
+                              set<std::string>& extracted)
+{
+	auto archives = get_lod_archives(config);
+
+	for (uint32_t i = 0; i < mdb.packet_count(); ++i)
+		extract_skeleton(mdb.packet(i), archives, extracted);
 }
 
 static void extract_dependencies(const MDB_file& mdb,
                                  const Config &config)
 {
-	extract_textures(mdb, config);
+	// Keeps track of dependencies already extracted.
+	set<std::string> extracted;
+
+	extract_textures(mdb, config, extracted);
+	extract_skeletons(mdb, config, extracted);
 }
 
 bool find_and_extract_mdb(const Config& config, const char* pattern,
