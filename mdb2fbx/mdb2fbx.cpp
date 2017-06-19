@@ -608,96 +608,6 @@ static bool export_mdb(const MDB_file& mdb, const char* filename)
 	return true;
 }
 
-static void gather_dependencies(const MDB_file::Material& material,
-                                std::set<std::string>& dependencies)
-{
-	string diffuse_map = string(material.diffuse_map_name, 32).c_str();
-	if (!diffuse_map.empty())
-		dependencies.insert(diffuse_map + ".dds");
-
-	string normal_map = string(material.normal_map_name, 32).c_str();
-	if (!normal_map.empty())
-		dependencies.insert(normal_map + ".dds");
-
-	string tint_map = string(material.tint_map_name, 32).c_str();
-	if (!tint_map.empty())
-		dependencies.insert(tint_map + ".dds");
-
-	string glow_map = string(material.glow_map_name, 32).c_str();
-	if (!glow_map.empty())
-		dependencies.insert(glow_map + ".dds");
-}
-
-static void gather_dependencies(const MDB_file::Rigid_mesh& rm,
-                                std::set<std::string>& dependencies)
-{
-	gather_dependencies(rm.header.material, dependencies);
-}
-
-static void gather_dependencies(const MDB_file::Skin& skin,
-                                std::set<std::string>& dependencies)
-{
-	gather_dependencies(skin.header.material, dependencies);
-}
-
-static void gather_dependencies(const MDB_file::Packet* packet,
-                                std::set<std::string>& dependencies)
-{
-	if (!packet)
-		return;
-
-	switch (packet->type) {
-	case MDB_file::RIGD:
-		gather_dependencies(
-		    *static_cast<const MDB_file::Rigid_mesh*>(packet),
-		    dependencies);
-		break;
-	case MDB_file::SKIN:
-		gather_dependencies(*static_cast<const MDB_file::Skin*>(packet),
-		                    dependencies);
-		break;
-	default:
-		break;
-	}
-}
-
-static std::set<std::string> gather_dependencies(const MDB_file& mdb)
-{
-	set<string> dependencies;
-
-	for (uint32_t i = 0; i < mdb.packet_count(); ++i)
-		gather_dependencies(mdb.packet(i), dependencies);
-
-	return dependencies;
-}
-
-static void extract_dependency(const char* str,
-                               const Archive_container& archives)
-{
-	auto r = archives.find_file(str);
-	if (r.matches > 0) {
-		path p = path("output") / str;
-	
-		cout << "Extracting: " << p.string() << endl; 
-
-		if (!archives.extract_file(r.archive_index, r.file_index,
-		                           p.string().c_str())) {
-			cout << "Cannot extract " << str << endl;
-		}
-	}
-	else
-		cout << str << " not found\n";
-}
-
-static void extract_dependencies(const MDB_file& mdb,
-                                 const Archive_container& archives)
-{
-	auto dependencies = gather_dependencies(mdb);
-
-	for (auto& str : dependencies)
-		extract_dependency(str.c_str(), archives);
-}
-
 static Archive_container get_model_archives(const Config& config)
 {
 	const char* files[] = {
@@ -747,6 +657,92 @@ static Archive_container get_material_archives(const Config& config)
 	}
 
 	return material_archives;
+}
+
+static void extract_dependency(const char* str,
+                               const Archive_container& archives)
+{
+	auto r = archives.find_file(str);
+	if (r.matches > 0) {
+		path p(archives.filename(r.archive_index, r.file_index));
+		p = path("output") / p.filename();
+	
+		cout << "Extracting: " << p.string() << endl; 
+
+		if (!archives.extract_file(r.archive_index, r.file_index,
+		                           p.string().c_str())) {
+			cout << "Cannot extract " << str << endl;
+		}
+	}
+	else
+		cout << str << " not found\n";
+}
+
+static void extract_textures(const MDB_file::Material& material,
+                             const Archive_container& archives)
+{
+	string diffuse_map = string(material.diffuse_map_name, 32).c_str();
+	if (!diffuse_map.empty())
+		extract_dependency((diffuse_map + '.').c_str(), archives);
+
+	string normal_map = string(material.normal_map_name, 32).c_str();
+	if (!normal_map.empty())
+		extract_dependency((normal_map + '.').c_str(), archives);
+
+	string tint_map = string(material.tint_map_name, 32).c_str();
+	if (!tint_map.empty())
+		extract_dependency((tint_map + '.').c_str(), archives);
+
+	string glow_map = string(material.glow_map_name, 32).c_str();
+	if (!glow_map.empty())
+		extract_dependency((glow_map + '.').c_str(), archives);
+}
+
+static void extract_textures(const MDB_file::Rigid_mesh& rm,
+                             const Archive_container& archives)
+{
+	extract_textures(rm.header.material, archives);
+}
+
+static void extract_textures(const MDB_file::Skin& skin,
+                             const Archive_container& archives)
+{
+	extract_textures(skin.header.material, archives);
+}
+
+static void extract_textures(const MDB_file::Packet* packet,
+                             const Archive_container& archives)
+{
+	if (!packet)
+		return;
+
+	switch (packet->type) {
+	case MDB_file::RIGD:
+		extract_textures(
+		    *static_cast<const MDB_file::Rigid_mesh*>(packet),
+		    archives);
+		break;
+	case MDB_file::SKIN:
+		extract_textures(*static_cast<const MDB_file::Skin*>(packet),
+		                 archives);
+		break;
+	default:
+		break;
+	}
+}
+
+static void extract_textures(const MDB_file& mdb, const Config &config)
+{
+	auto archives = get_material_archives(config);
+
+	for (uint32_t i = 0; i < mdb.packet_count(); ++i)
+		extract_textures(mdb.packet(i), archives);
+}
+
+static void extract_dependencies(const MDB_file& mdb,
+                                 const Config &config)
+{
+	extract_textures(mdb, config);
 }
 
 bool find_and_extract_mdb(const Config& config, const char* pattern,
@@ -804,7 +800,7 @@ int main(int argc, char* argv[])
 	}
 
 	print_mdb(mdb);
-	extract_dependencies(mdb, get_material_archives(config));
+	extract_dependencies(mdb, config);
 
 	auto fbx_filename =
 	    (path("output") / path(filename).stem()).concat(".fbx").string();
