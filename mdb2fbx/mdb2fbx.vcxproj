@@ -145,11 +145,15 @@
   <ItemGroup>
     <ClInclude Include="archive_container.h" />
     <ClInclude Include="config.h" />
+    <ClInclude Include="export_gr2.h" />
+    <ClInclude Include="export_mdb.h" />
     <ClInclude Include="miniz.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="archive_container.cpp" />
     <ClCompile Include="config.cpp" />
+    <ClCompile Include="export_gr2.cpp" />
+    <ClCompile Include="export_mdb.cpp" />
     <ClCompile Include="mdb2fbx.cpp" />
     <ClCompile Include="miniz.c" />
   </ItemGroup>
