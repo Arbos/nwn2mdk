@@ -288,12 +288,14 @@ static void export_skin(Export_info &export_info, const MDB_file::Skin& skin)
 	export_maps(export_info, material, skin.header.material);
 	node->AddMaterial(material);
 
+#ifdef _WIN32 // Export GR2 only on Windows
 	auto dep = export_info.dependencies.find(skin.header.skeleton_name);
 	if (dep != export_info.dependencies.end() && dep->second.extracted &&
 		!dep->second.exported) {
 		dep->second.exported = true;
 		export_gr2(dep->second.extracted_path.c_str(), export_info.scene);		
 	}
+#endif
 }
 
 static void export_walk_mesh(Export_info &export_info, const MDB_file::Walk_mesh& wm)
