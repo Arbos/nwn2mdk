@@ -34,7 +34,7 @@ static void print_header(const MDB_file& mdb)
 	cout << endl;
 }
 
-static void print_vector3(const MDB_file::Vector3& v)
+static void print_vector3(const Vector3<float>& v)
 {
 	cout << v.x << ", " << v.y << ", " << v.z << endl;
 }

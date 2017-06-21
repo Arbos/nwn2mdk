@@ -18,43 +18,38 @@
 #include <memory>
 #include <vector>
 
+#include "cgmath.h"
+
 /// Represents a MDB file.
 class MDB_file {
 public:
-	/// 3D vector.
-	struct Vector3 {
-		float x;
-		float y;
-		float z;
-	};
-
 	struct Rigid_mesh_vertex {
-		Vector3 position;
-		Vector3 normal;
-		Vector3 tangent;
-		Vector3 binormal;
-		Vector3 uvw; ///< Texture coordinates.
+		Vector3<float> position;
+		Vector3<float> normal;
+		Vector3<float> tangent;
+		Vector3<float> binormal;
+		Vector3<float> uvw; ///< Texture coordinates.
 	};
 
 	struct Collision_mesh_vertex {
-		Vector3 position;
-		Vector3 normal;
-		Vector3 uvw; ///< Texture coordinates.
+		Vector3<float> position;
+		Vector3<float> normal;
+		Vector3<float> uvw; ///< Texture coordinates.
 	};
 
 	struct Skin_vertex {
-		Vector3 position;
-		Vector3 normal;
+		Vector3<float> position;
+		Vector3<float> normal;
 		float bone_weights[4];
 		unsigned char bone_indices[4];
-		Vector3 tangent;
-		Vector3 binormal;
-		Vector3 uvw; ///< Texture coordinates.
+		Vector3<float> tangent;
+		Vector3<float> binormal;
+		Vector3<float> uvw; ///< Texture coordinates.
 		float bone_count;
 	};
 
 	struct Walk_mesh_vertex {
-		Vector3 position;
+		Vector3<float> position;
 	};
 
 	/// Face of a mesh. It's always a triangle.
@@ -97,8 +92,8 @@ public:
 		char tint_map_name[32];
 		/// Same as filename but without extension. Don't assume it's null terminated.
 		char glow_map_name[32];
-		Vector3 diffuse_color;
-		Vector3 specular_color;
+		Vector3<float> diffuse_color;
+		Vector3<float> specular_color;
 		float specular_power;
 		float specular_value;
 		uint32_t flags;
@@ -146,7 +141,7 @@ public:
 		uint16_t point_type;
 		/// Unknown.
 		uint16_t point_size;
-		Vector3 position;
+		Vector3<float> position;
 		/// 3x3 matrix.
 		/// @todo By row or by column?
 		float orientation[3][3];
@@ -279,7 +274,6 @@ private:
 	static_assert(sizeof(Hook_header) == 92);
 	static_assert(sizeof(Material) == 164);
 	static_assert(sizeof(Packet_key) == 8);
-	static_assert(sizeof(Vector3) == 12);
 	static_assert(sizeof(Rigid_mesh_header) == 212);
 	static_assert(sizeof(Rigid_mesh_vertex) == 60);
 	static_assert(sizeof(Skin_header) == 244);
