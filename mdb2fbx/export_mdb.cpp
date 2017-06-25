@@ -335,9 +335,9 @@ static void export_skin(Export_info& export_info, const MDB_file::Skin& skin)
 	export_maps(export_info, material, skin.header.material);
 	node->AddMaterial(material);
 
-<<<<<<< HEAD
+#ifdef _WIN32 // Export skinning only on Windows	
 	export_skinning(export_info, skin, mesh);	
->>>>>>> 1a96069ec8980094940942b5c659b59cf7995592
+#endif
 }
 
 static void export_walk_mesh(Export_info& export_info, const MDB_file::Walk_mesh& wm)
