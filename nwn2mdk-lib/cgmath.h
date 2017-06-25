@@ -12,11 +12,17 @@ public:
 		this->z = z;
 	}
 
+	Vector3() : Vector3(0, 0, 0)
+	{
+	}
+
 	T &operator[](unsigned i)
 	{
 		return (&x)[i];
 	}
 };
+
+static_assert(sizeof(Vector3<float>) == 12);
 
 template <typename T>
 class Vector4 {
