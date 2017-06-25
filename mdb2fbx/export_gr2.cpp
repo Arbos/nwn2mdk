@@ -14,10 +14,10 @@ static FbxVector4 quat_to_euler(FbxQuaternion &q)
 }
 
 void export_bones(FbxScene *scene, FbxNode *parent_node, GR2_skeleton *skel,
-	int32_t parent_index);
+	int32_t parent_index, std::vector<FbxNode*> &fbx_bones);
 
 static void export_bone(FbxScene *scene, FbxNode *parent_node, GR2_skeleton *skel,
-	int32_t bone_index)
+	int32_t bone_index, std::vector<FbxNode*> &fbx_bones)
 {
 	GR2_bone &bone = skel->bones[bone_index];
 	cout << "    Exporting bone: " << bone.name << endl;
@@ -39,24 +39,48 @@ static void export_bone(FbxScene *scene, FbxNode *parent_node, GR2_skeleton *ske
 	node->SetNodeAttribute(skel_attr);
 
 	parent_node->AddChild(node);
-	export_bones(scene, node, skel, bone_index);	
+	fbx_bones[bone_index] = node;
+
+	export_bones(scene, node, skel, bone_index, fbx_bones);	
 }
 
 static void export_bones(FbxScene *scene, FbxNode *parent_node, GR2_skeleton *skel,
-	int32_t parent_index)
+	int32_t parent_index, std::vector<FbxNode*> &fbx_bones)
 {
-	bool has_children = false;
+	fbx_bones.resize(skel->bones_count);
 
 	for (int32_t i = 0; i < skel->bones_count; ++i) {
 		GR2_bone &bone = skel->bones[i];
 		if (bone.parent_index == parent_index) {
-			export_bone(scene, parent_node, skel, i);
-			has_children = true;
+			export_bone(scene, parent_node, skel, i, fbx_bones);			
 		}
 	}
 }
 
-static void export_skeleton(FbxScene *scene, GR2_skeleton *skel)
+static void process_fbx_bones(std::vector<FbxNode*> &fbx_bones)
+{
+	FbxNode *ribcage = nullptr;
+	for (auto it = fbx_bones.begin(); it != fbx_bones.end();) {
+		if (strncmp((*it)->GetName(), "ap_", 3) == 0) {
+			// Remove "ap_..." bones as they are not used in skinning.
+			it = fbx_bones.erase(it);
+		}
+		else if (strcmp((*it)->GetName(), "Ribcage") == 0) {
+			// Erase "Ribcage" bone and keep it to reinsert later.
+			ribcage = *it;
+			it = fbx_bones.erase(it);
+		}
+		else
+			++it;
+	}
+
+	// Reinsert "Ribcage bone"
+	if (ribcage)
+		fbx_bones.insert(fbx_bones.begin() + 53, ribcage);
+}
+
+static void export_skeleton(FbxScene *scene, GR2_skeleton *skel,
+	std::vector<FbxNode*> &fbx_bones)
 {
 	cout << "  Exporting: " << skel->name << endl;
 
@@ -67,19 +91,23 @@ static void export_skeleton(FbxScene *scene, GR2_skeleton *skel)
 	auto null_attr = FbxNull::Create(scene, skel->name);
 	node->SetNodeAttribute(null_attr);
 
-	scene->GetRootNode()->AddChild(node);
+	scene->GetRootNode()->AddChild(node);	
 
-	export_bones(scene, node, skel, -1);
+	export_bones(scene, node, skel, -1, fbx_bones);
+
+	process_fbx_bones(fbx_bones);
 }
 
-static void export_skeletons(FbxScene *scene, GR2_file_info *info)
+static void export_skeletons(FbxScene *scene, GR2_file_info *info,
+	std::vector<FbxNode*> &fbx_bones)
 {
 	for (int i = 0; i < info->skeletons_count; ++i) {
-		export_skeleton(scene, info->skeletons[i]);
+		export_skeleton(scene, info->skeletons[i], fbx_bones);
 	}
 }
 
-void export_gr2(const char *filename, FbxScene *scene)
+void export_gr2(const char *filename, FbxScene *scene,
+	std::vector<FbxNode*> &fbx_bones)
 {
 	GR2_file gr2(filename);
 	if (!gr2) {
@@ -93,6 +121,7 @@ void export_gr2(const char *filename, FbxScene *scene)
 	cout << "===\n\n";
 
 	cout << "Skeletons: " << gr2.file_info->skeletons_count << endl;
+	cout << endl;
 
-	export_skeletons(scene, gr2.file_info);
+	export_skeletons(scene, gr2.file_info, fbx_bones);
 }

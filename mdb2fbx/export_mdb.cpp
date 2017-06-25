@@ -14,6 +14,7 @@ struct Dependency {
 	bool extracted;
 	std::string extracted_path;
 	bool exported;
+	std::vector<FbxNode*> fbx_bones;
 };
 
 struct Export_info {
@@ -27,7 +28,6 @@ struct Export_info {
 
 using namespace std;
 using namespace std::experimental::filesystem::v1;
-
 
 static FbxSurfacePhong *create_material(FbxScene* scene, FbxNode* node,
 	const MDB_file::Material& mdb_material,
@@ -67,14 +67,14 @@ static FbxFileTexture* create_texture(FbxScene* scene, const char* name)
 }
 
 template <typename T>
-static void export_map(Export_info &export_info, FbxPropertyT<T>& property,
+static void export_map(Export_info& export_info, FbxPropertyT<T>& property,
 	const char* map_name)
 {
 	if (strlen(map_name) > 0)
 		property.ConnectSrcObject(create_texture(export_info.scene, map_name));
 }
 
-static void export_maps(Export_info &export_info, FbxSurfacePhong* material,
+static void export_maps(Export_info& export_info, FbxSurfacePhong* material,
 	const MDB_file::Material& mdb_material)
 {
 	export_map(export_info, material->Diffuse,
@@ -186,7 +186,7 @@ static FbxNode* create_node(FbxScene* scene, FbxMesh *mesh, const char* name)
 	return node;
 }
 
-static void export_collision_mesh_2(Export_info &export_info,
+static void export_collision_mesh_2(Export_info& export_info,
 	const MDB_file::Collision_mesh& cm)
 {	
 	string name(cm.header.name, 32);
@@ -214,7 +214,7 @@ static void export_collision_mesh_2(Export_info &export_info,
 	node->AddMaterial(material);
 }
 
-static void export_collision_mesh_3(Export_info &export_info,
+static void export_collision_mesh_3(Export_info& export_info,
 	const MDB_file::Collision_mesh& cm)
 {
 	string name(cm.header.name, 32);
@@ -242,7 +242,7 @@ static void export_collision_mesh_3(Export_info &export_info,
 	node->AddMaterial(material);
 }
 
-static void export_rigid_mesh(Export_info &export_info,
+static void export_rigid_mesh(Export_info& export_info,
 	const MDB_file::Rigid_mesh& rm)
 {
 	string name(rm.header.name, 32);
@@ -266,7 +266,54 @@ static void export_rigid_mesh(Export_info &export_info,
 	node->AddMaterial(material);
 }
 
-static void export_skin(Export_info &export_info, const MDB_file::Skin& skin)
+static void export_skinning(Export_info& export_info,
+	const MDB_file::Skin& skin, FbxMesh* mesh)
+{
+	auto dep = export_info.dependencies.find(skin.header.skeleton_name);
+	if (dep == export_info.dependencies.end() || !dep->second.extracted)
+		return;
+
+	if (!dep->second.exported) {
+		dep->second.exported = true;
+		export_gr2(dep->second.extracted_path.c_str(), export_info.scene,
+			dep->second.fbx_bones);
+	}
+
+	FbxSkin *fbx_skin = FbxSkin::Create(export_info.scene, "");
+	fbx_skin->SetSkinningType(FbxSkin::eRigid);
+
+	std::vector<FbxCluster*> clusters(dep->second.fbx_bones.size());
+	for (unsigned i = 0; i < clusters.size(); ++i) {
+		clusters[i] = FbxCluster::Create(export_info.scene, "");
+		clusters[i]->SetLink(dep->second.fbx_bones[i]);
+		clusters[i]->SetLinkMode(FbxCluster::eNormalize);
+		FbxAMatrix m;
+		m.SetT(FbxVector4(0, 0, 0));
+		m.SetR(FbxVector4(-90, 0, 0));
+		m.SetS(FbxVector4(100, 100, 100));
+		clusters[i]->SetTransformMatrix(m);
+		clusters[i]->SetTransformLinkMatrix(dep->second.fbx_bones[i]->EvaluateGlobalTransform());
+	}
+
+	for (unsigned i = 0; i < skin.verts.size(); ++i) {
+		auto &v = skin.verts[i];
+		assert(v.bone_count == 4);
+		for (unsigned j = 0; j < 4; ++j) {
+			if (v.bone_weights[j] > 0) {
+				auto bone_index = v.bone_indices[j];
+				assert(bone_index < clusters.size());
+				clusters[bone_index]->AddControlPointIndex(i, v.bone_weights[j]);
+			}
+		}
+	}
+
+	for (unsigned i = 0; i < clusters.size(); ++i)
+		fbx_skin->AddCluster(clusters[i]);
+
+	mesh->AddDeformer(fbx_skin);
+}
+
+static void export_skin(Export_info& export_info, const MDB_file::Skin& skin)
 {
 	string name(skin.header.name, 32);
 	cout << "  Exporting: " << name.c_str() << endl;
@@ -288,15 +335,10 @@ static void export_skin(Export_info &export_info, const MDB_file::Skin& skin)
 	export_maps(export_info, material, skin.header.material);
 	node->AddMaterial(material);
 
-	auto dep = export_info.dependencies.find(skin.header.skeleton_name);
-	if (dep != export_info.dependencies.end() && dep->second.extracted &&
-		!dep->second.exported) {
-		dep->second.exported = true;
-		export_gr2(dep->second.extracted_path.c_str(), export_info.scene);		
-	}
+	export_skinning(export_info, skin, mesh);	
 }
 
-static void export_walk_mesh(Export_info &export_info, const MDB_file::Walk_mesh& wm)
+static void export_walk_mesh(Export_info& export_info, const MDB_file::Walk_mesh& wm)
 {
 	string name(wm.header.name, 32);
 	cout << "  Exporting: " << name.c_str() << endl;
@@ -318,7 +360,7 @@ static void export_walk_mesh(Export_info &export_info, const MDB_file::Walk_mesh
 	export_info.scene->GetRootNode()->AddChild(node);
 }
 
-static void export_packet(Export_info &export_info,
+static void export_packet(Export_info& export_info,
 	const MDB_file::Packet* packet)
 {
 	if (!packet)
@@ -401,7 +443,7 @@ static Archive_container get_material_archives(const Config& config)
 	return archives;
 }
 
-static void extract_dependency(Export_info &export_info, const char* str,
+static void extract_dependency(Export_info& export_info, const char* str,
 	const Archive_container& archives)
 {
 	if (export_info.dependencies.find(str) != export_info.dependencies.end())
@@ -436,7 +478,7 @@ static void extract_dependency(Export_info &export_info, const char* str,
 		cout << str << " not found\n";
 }
 
-static void extract_textures(Export_info &export_info,
+static void extract_textures(Export_info& export_info,
 	const MDB_file::Material& material)
 {
 	string diffuse_map = string(material.diffuse_map_name, 32).c_str();
@@ -456,19 +498,19 @@ static void extract_textures(Export_info &export_info,
 		extract_dependency(export_info, glow_map.c_str(), export_info.materials);
 }
 
-static void extract_textures(Export_info &export_info,
+static void extract_textures(Export_info& export_info,
 	const MDB_file::Rigid_mesh& rm)
 {
 	extract_textures(export_info, rm.header.material);
 }
 
-static void extract_textures(Export_info &export_info,
+static void extract_textures(Export_info& export_info,
 	const MDB_file::Skin& skin)
 {
 	extract_textures(export_info, skin.header.material);
 }
 
-static void extract_textures(Export_info &export_info,
+static void extract_textures(Export_info& export_info,
 	const MDB_file::Packet* packet)
 {
 	if (!packet)
@@ -488,20 +530,20 @@ static void extract_textures(Export_info &export_info,
 	}
 }
 
-static void extract_textures(Export_info &export_info)
+static void extract_textures(Export_info& export_info)
 {	
 	for (uint32_t i = 0; i < export_info.mdb.packet_count(); ++i)
 		extract_textures(export_info, export_info.mdb.packet(i));
 }
 
-static void extract_skeleton(Export_info &export_info, const MDB_file::Skin& skin)
+static void extract_skeleton(Export_info& export_info, const MDB_file::Skin& skin)
 {
 	string skeleton = string(skin.header.skeleton_name, 32).c_str();
 	if (!skeleton.empty())
 		extract_dependency(export_info, skeleton.c_str(), export_info.lod_merge);
 }
 
-static void extract_skeleton(Export_info &export_info,
+static void extract_skeleton(Export_info& export_info,
 	const MDB_file::Packet* packet)
 {
 	if (!packet)
@@ -517,13 +559,13 @@ static void extract_skeleton(Export_info &export_info,
 	}
 }
 
-static void extract_skeletons(Export_info &export_info)
+static void extract_skeletons(Export_info& export_info)
 {
 	for (uint32_t i = 0; i < export_info.mdb.packet_count(); ++i)
 		extract_skeleton(export_info, export_info.mdb.packet(i));
 }
 
-static void extract_dependencies(Export_info &export_info)
+static void extract_dependencies(Export_info& export_info)
 {
 	extract_textures(export_info);
 	extract_skeletons(export_info);
