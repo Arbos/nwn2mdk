@@ -17,7 +17,9 @@
 
 #include "archive_container.h"
 #include "config.h"
+#include "export_gr2.h"
 #include "export_mdb.h"
+#include "fbxsdk.h"
 #include "mdb_file.h"
 
 // Uncomment for print extra info
@@ -257,7 +259,60 @@ static Archive_container get_model_archives(const Config& config)
 		"Data/NWN2_Models_v121.zip",    "Data/NWN2_Models_v112.zip",
 		"Data/NWN2_Models_v107.zip",    "Data/NWN2_Models_v106.zip",
 		"Data/NWN2_Models_v105.zip",    "Data/NWN2_Models_v104.zip",
-		"Data/NWN2_Models_v103x1.zip",  "Data/NWN2_Models.zip" };
+		"Data/NWN2_Models_v103x1.zip",  "Data/NWN2_Models.zip",
+		"Data/lod-merged_X2_v121.zip", "Data/lod-merged_X2.zip",
+		"Data/lod-merged_X1_v121.zip", "Data/lod-merged_X1.zip",
+		"Data/lod-merged_v121.zip",    "Data/lod-merged_v107.zip",
+		"Data/lod-merged_v101.zip",    "Data/lod-merged.zip" };
+
+	Archive_container archives;
+	for (unsigned i = 0; i < sizeof(files) / sizeof(char*); ++i) {
+		cout << "Indexing: " << files[i];
+		path p = path(config.nwn2_home) / path(files[i]);
+		if (!archives.add_archive(p.string().c_str())) {
+			cout << " : Cannot open zip";
+		}
+		cout << endl;
+	}
+
+	return archives;
+}
+
+static Archive_container get_lod_archives(const Config& config)
+{
+	const char* files[] = {
+		"Data/lod-merged_X2_v121.zip", "Data/lod-merged_X2.zip",
+		"Data/lod-merged_X1_v121.zip", "Data/lod-merged_X1.zip",
+		"Data/lod-merged_v121.zip",    "Data/lod-merged_v107.zip",
+		"Data/lod-merged_v101.zip",    "Data/lod-merged.zip" };
+
+	Archive_container archives;
+	for (unsigned i = 0; i < sizeof(files) / sizeof(char*); ++i) {
+		cout << "Indexing: " << files[i];
+		path p = path(config.nwn2_home) / path(files[i]);
+		if (!archives.add_archive(p.string().c_str())) {
+			cout << " : Cannot open zip";
+		}
+		cout << endl;
+	}
+
+	return archives;
+}
+
+static Archive_container get_material_archives(const Config& config)
+{
+	const char* files[] = { "Data/NWN2_Materials_X2.zip",
+		"Data/NWN2_Materials_X1_v121.zip",
+		"Data/NWN2_Materials_X1_v113.zip",
+		"Data/NWN2_Materials_X1.zip",
+		"Data/NWN2_Materials_v121.zip",
+		"Data/NWN2_Materials_v112.zip",
+		"Data/NWN2_Materials_v110.zip",
+		"Data/NWN2_Materials_v107.zip",
+		"Data/NWN2_Materials_v106.zip",
+		"Data/NWN2_Materials_v104.zip",
+		"Data/NWN2_Materials_v103x1.zip",
+		"Data/NWN2_Materials.zip" };
 
 	Archive_container archives;
 	for (unsigned i = 0; i < sizeof(files) / sizeof(char*); ++i) {
@@ -295,6 +350,65 @@ bool find_and_extract_mdb(const Config& config, const char* pattern,
 	return true;
 }
 
+static bool process_arg(const Config& config, char *arg,
+	std::vector<std::string> &filenames)
+{
+	if (exists(arg)) {
+		filenames.push_back(arg);
+		return true;
+	}
+
+	static auto model_archives = get_model_archives(config);
+	auto r = model_archives.find_file(arg);
+	if (r.matches != 1)
+		return false;
+
+	path p(model_archives.filename(r.archive_index, r.file_index));
+	p = path("output") / p.filename();
+	string filename = p.string();
+
+	cout << "Extracting: " << filename << endl;
+
+	if (!model_archives.extract_file(r.archive_index, r.file_index,
+		filename.c_str())) {
+		cout << "  Cannot extract\n";
+		return false;
+	}
+
+	filenames.push_back(filename);
+	
+	return true;
+}
+
+bool process_args(const Config& config, int argc, char* argv[],
+	std::vector<std::string> &filenames)
+{
+	for (int i = 1; i < argc; ++i) {
+		if (!process_arg(config, argv[i], filenames))
+			return false;
+	}
+
+	return true;
+}
+
+bool export_mdb(Export_info& export_info, const char* filename)
+{
+	MDB_file mdb(filename);
+	if (!mdb) {
+		cout << mdb.error_str() << endl;
+		return false;
+	}
+
+	print_mdb(mdb);
+
+	if (!export_mdb(export_info, mdb)) {
+		cout << "Cannot export MDB\n";
+		return false;
+	}
+
+	return true;
+}
+
 int main(int argc, char* argv[])
 {
 	Config config;
@@ -313,25 +427,57 @@ int main(int argc, char* argv[])
 
 	create_directory("output");
 
-	string filename = argv[1];
+	vector<std::string> filenames;
+	if (!process_args(config, argc, argv, filenames))
+		return 1;	
 
-	if(!exists(filename)) {
-		if(!find_and_extract_mdb(config, filename.c_str(), filename))
-			return 1;
-	}
-
-	MDB_file mdb(filename.c_str());
-	if (!mdb) {
-		cout << mdb.error_str() << endl;
+	auto manager = FbxManager::Create();
+	if (!manager) {
+		cout << "Unable to create FBX manager\n";
 		return 1;
 	}
 
-	print_mdb(mdb);	
+	// Create an IOSettings object. This object holds all import/export
+	// settings.
+	auto ios = FbxIOSettings::Create(manager, IOSROOT);
+	manager->SetIOSettings(ios);
 
+	// Create an FBX scene. This object holds most objects imported/exported
+	// from/to files.
+	auto scene = FbxScene::Create(manager, "Scene");
+	if (!scene) {
+		cout << "Unable to create FBX scene\n";
+		return 1;
+	}
+
+	Export_info export_info = { config,
+		get_material_archives(config),
+		get_lod_archives(config), nullptr, scene };
+
+	for (auto &filename : filenames) {
+		auto ext = path(filename).extension().string();
+		if (_stricmp(ext.c_str(), ".MDB") == 0) {
+			if (!export_mdb(export_info, filename.c_str()))
+				return 1;
+		}
+		else if (_stricmp(ext.c_str(), ".GR2") == 0) {
+			vector<FbxNode*> fbx_bones;
+			export_gr2(filename.c_str(), scene, fbx_bones);
+		}
+	}
+
+	// Create an exporter.
+	auto exporter = FbxExporter::Create(manager, "");
 	auto fbx_filename =
-	    (path("output") / path(filename).stem()).concat(".fbx").string();	
-	if (!export_mdb(mdb, fbx_filename.c_str(), config)) {
-		cout << "Cannot export to FBX\n";
-		return 1;
+		(path("output") / path(filenames[0]).stem()).concat(".fbx").string();
+	if (!exporter->Initialize(fbx_filename.c_str(), -1, manager->GetIOSettings())) {
+		cout << exporter->GetStatus().GetErrorString() << endl;
+		return false;
 	}
+	exporter->SetFileExportVersion(
+		FBX_2014_00_COMPATIBLE); // Blender needs this version
+	exporter->Export(scene);
+	exporter->Destroy();
+
+	manager->Destroy();
 }

@@ -232,9 +232,33 @@ struct GR2_curve_data_DaK32fC32f {
 	float* controls;
 };
 
+class GR2_DaK32fC32f_view {
+public:
+	GR2_DaK32fC32f_view(GR2_curve_data_DaK32fC32f& data);
+	
+	const std::vector<float>& knots() const;
+	const std::vector<Vector4<float>>& controls() const;
+
+private:
+	std::vector<float> knots_;
+	std::vector<Vector4<float>> controls_;
+};
+
 struct GR2_curve {
 	GR2_property_key* keys;
 	GR2_curve_data* curve_data;
+};
+
+class GR2_curve_view {
+public:
+	GR2_curve_view(GR2_curve& curve);
+
+	const std::vector<float>& knots() const;
+	const std::vector<Vector4<float>>& controls() const;
+
+private:
+	std::vector<float> knots_;
+	std::vector<Vector4<float>> controls_;
 };
 
 struct GR2_vector_track {

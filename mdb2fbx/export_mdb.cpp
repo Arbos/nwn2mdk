@@ -1,30 +1,11 @@
 #include <iostream>
 #include <algorithm>
-#include <map>
 #include <experimental/filesystem>
 
-#include "archive_container.h"
 #include "config.h"
 #include "export_gr2.h"
 #include "export_mdb.h"
-#include "fbxsdk.h"
 #include "mdb_file.h"
-
-struct Dependency {
-	bool extracted;
-	std::string extracted_path;
-	bool exported;
-	std::vector<FbxNode*> fbx_bones;
-};
-
-struct Export_info {
-	const Config &config;
-	Archive_container materials;
-	Archive_container lod_merge;
-	const MDB_file &mdb;
-	FbxScene *scene;
-	std::map<std::string, Dependency> dependencies;
-};
 
 using namespace std;
 using namespace std::experimental::filesystem::v1;
@@ -396,55 +377,6 @@ static void export_packet(Export_info& export_info,
 	}
 }
 
-static Archive_container get_lod_archives(const Config& config)
-{
-	const char* files[] = {
-		"Data/lod-merged_X2_v121.zip", "Data/lod-merged_X2.zip",
-		"Data/lod-merged_X1_v121.zip", "Data/lod-merged_X1.zip",
-		"Data/lod-merged_v121.zip",    "Data/lod-merged_v107.zip",
-		"Data/lod-merged_v101.zip",    "Data/lod-merged.zip" };
-
-	Archive_container archives;
-	for (unsigned i = 0; i < sizeof(files) / sizeof(char*); ++i) {
-		cout << "Indexing: " << files[i];
-		path p = path(config.nwn2_home) / path(files[i]);
-		if (!archives.add_archive(p.string().c_str())) {
-			cout << " : Cannot open zip";
-		}
-		cout << endl;
-	}
-
-	return archives;
-}
-
-static Archive_container get_material_archives(const Config& config)
-{
-	const char* files[] = { "Data/NWN2_Materials_X2.zip",
-		"Data/NWN2_Materials_X1_v121.zip",
-		"Data/NWN2_Materials_X1_v113.zip",
-		"Data/NWN2_Materials_X1.zip",
-		"Data/NWN2_Materials_v121.zip",
-		"Data/NWN2_Materials_v112.zip",
-		"Data/NWN2_Materials_v110.zip",
-		"Data/NWN2_Materials_v107.zip",
-		"Data/NWN2_Materials_v106.zip",
-		"Data/NWN2_Materials_v104.zip",
-		"Data/NWN2_Materials_v103x1.zip",
-		"Data/NWN2_Materials.zip" };
-
-	Archive_container archives;
-	for (unsigned i = 0; i < sizeof(files) / sizeof(char*); ++i) {
-		cout << "Indexing: " << files[i];
-		path p = path(config.nwn2_home) / path(files[i]);
-		if (!archives.add_archive(p.string().c_str())) {
-			cout << " : Cannot open zip";
-		}
-		cout << endl;
-	}
-
-	return archives;
-}
-
 static void extract_dependency(Export_info& export_info, const char* str,
 	const Archive_container& archives)
 {
@@ -534,8 +466,8 @@ static void extract_textures(Export_info& export_info,
 
 static void extract_textures(Export_info& export_info)
 {	
-	for (uint32_t i = 0; i < export_info.mdb.packet_count(); ++i)
-		extract_textures(export_info, export_info.mdb.packet(i));
+	for (uint32_t i = 0; i < export_info.mdb->packet_count(); ++i)
+		extract_textures(export_info, export_info.mdb->packet(i));
 }
 
 static void extract_skeleton(Export_info& export_info, const MDB_file::Skin& skin)
@@ -563,8 +495,8 @@ static void extract_skeleton(Export_info& export_info,
 
 static void extract_skeletons(Export_info& export_info)
 {
-	for (uint32_t i = 0; i < export_info.mdb.packet_count(); ++i)
-		extract_skeleton(export_info, export_info.mdb.packet(i));
+	for (uint32_t i = 0; i < export_info.mdb->packet_count(); ++i)
+		extract_skeleton(export_info, export_info.mdb->packet(i));
 }
 
 static void extract_dependencies(Export_info& export_info)
@@ -573,50 +505,18 @@ static void extract_dependencies(Export_info& export_info)
 	extract_skeletons(export_info);
 }
 
-bool export_mdb(const MDB_file& mdb, const char* filename, const Config& config)
+bool export_mdb(Export_info& export_info, const MDB_file& mdb)
 {
-	auto manager = FbxManager::Create();
-	if (!manager) {
-		cout << "Unable to create FBX manager\n";
-		return false;
-	}
+	export_info.mdb = &mdb;
 
-	// Create an IOSettings object. This object holds all import/export
-	// settings.
-	auto ios = FbxIOSettings::Create(manager, IOSROOT);
-	manager->SetIOSettings(ios);
-
-	// Create an FBX scene. This object holds most objects imported/exported
-	// from/to files.
-	auto scene = FbxScene::Create(manager, "Scene");
-	if (!scene) {
-		cout << "Unable to create FBX scene\n";
-		return false;
-	}
-
-	Export_info export_info = { config,
-		get_material_archives(config),
-		get_lod_archives(config), mdb, scene };
-
-	extract_dependencies(export_info);
-
-	cout << "Converting: " << filename << " -> " << filename << endl;
+	extract_dependencies(export_info);	
 
 	for (uint32_t i = 0; i < mdb.packet_count(); ++i)
-		export_packet(export_info, mdb.packet(i));	
+		export_packet(export_info, mdb.packet(i));
 
-	// Create an exporter.
-	auto exporter = FbxExporter::Create(manager, "");
-	if (!exporter->Initialize(filename, -1, manager->GetIOSettings())) {
-		cout << exporter->GetStatus().GetErrorString() << endl;
-		return false;
-	}
-	exporter->SetFileExportVersion(
-		FBX_2014_00_COMPATIBLE); // Blender needs this version
-	exporter->Export(scene);
-	exporter->Destroy();
-
-	manager->Destroy();
-
+	//std::vector<FbxNode*> fbx_bones;
+	//export_gr2("P_HHM_UnA_run.gr2", scene, fbx_bones);
+	//export_gr2("c_wolf_Una_run.gr2", scene, fbx_bones);
+	
 	return true;
 }
