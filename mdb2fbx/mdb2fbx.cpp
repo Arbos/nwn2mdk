@@ -456,11 +456,12 @@ int main(int argc, char* argv[])
 
 	for (auto &filename : filenames) {
 		auto ext = path(filename).extension().string();
-		if (_stricmp(ext.c_str(), ".MDB") == 0) {
+		transform(ext.begin(), ext.end(), ext.begin(), toupper);
+		if (ext == ".MDB") {
 			if (!export_mdb(export_info, filename.c_str()))
 				return 1;
 		}
-		else if (_stricmp(ext.c_str(), ".GR2") == 0) {
+		else if (ext == ".GR2") {
 			vector<FbxNode*> fbx_bones;
 			export_gr2(filename.c_str(), scene, fbx_bones);
 		}
