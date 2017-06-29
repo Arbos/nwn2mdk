@@ -225,9 +225,9 @@ static void export_animation(FbxScene *scene, GR2_track_group *track_group,
 
 static void export_animation(FbxScene *scene, GR2_animation *anim)
 {
-	auto anim_stack = FbxAnimStack::Create(scene, "Skeleton");
-	auto anim_layer = FbxAnimLayer::Create(scene, "Action");
-	anim_stack->AddMember(anim_layer);	
+	auto anim_stack = FbxAnimStack::Create(scene, anim->name);
+	auto anim_layer = FbxAnimLayer::Create(scene, "Layer");
+	anim_stack->AddMember(anim_layer);
 
 	for (int i = 0; i < anim->track_groups_count; ++i)
 		export_animation(scene, anim->track_groups[i], anim_layer);
