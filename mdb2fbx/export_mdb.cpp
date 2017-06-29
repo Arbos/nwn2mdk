@@ -247,6 +247,7 @@ static void export_rigid_mesh(Export_info& export_info,
 	node->AddMaterial(material);
 }
 
+#ifdef _WIN32
 static void export_skinning(Export_info& export_info,
 	const MDB_file::Skin& skin, FbxMesh* mesh)
 {
@@ -293,6 +294,7 @@ static void export_skinning(Export_info& export_info,
 
 	mesh->AddDeformer(fbx_skin);
 }
+#endif
 
 static void export_skin(Export_info& export_info, const MDB_file::Skin& skin)
 {

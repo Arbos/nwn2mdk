@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <algorithm>
 #include <experimental/filesystem>
 #include <iostream>
 
@@ -456,15 +457,17 @@ int main(int argc, char* argv[])
 
 	for (auto &filename : filenames) {
 		auto ext = path(filename).extension().string();
-		transform(ext.begin(), ext.end(), ext.begin(), toupper);
+		transform(ext.begin(), ext.end(), ext.begin(), ::toupper);
 		if (ext == ".MDB") {
 			if (!export_mdb(export_info, filename.c_str()))
 				return 1;
 		}
+#ifdef _WIN32
 		else if (ext == ".GR2") {
 			vector<FbxNode*> fbx_bones;
 			export_gr2(filename.c_str(), scene, fbx_bones);
 		}
+#endif
 	}
 
 	// Create an exporter.
