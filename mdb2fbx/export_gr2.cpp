@@ -84,7 +84,7 @@ static void export_skeleton(FbxScene *scene, GR2_skeleton *skel,
 {
 	cout << "  Exporting: " << skel->name << endl;
 
-	auto node = FbxNode::Create(scene, "Skeleton");
+	auto node = FbxNode::Create(scene, (string(skel->name) + "|Skel").c_str());
 	node->LclRotation.Set(FbxDouble3(-90, 0, 0));
 	node->LclScaling.Set(FbxDouble3(1, 1, 1));
 
