@@ -207,10 +207,7 @@ void create_anim_rotation(FbxNode *node, FbxAnimLayer *anim_layer, GR2_transform
 
 void export_animation(FbxScene *scene, GR2_transform_track &transform_track,
 	FbxAnimLayer *anim_layer)
-{
-	//if (strcmp(transform_track.name, "P_HHM_skel")) // != 0 && strcmp(transform_track.name, "LLeg1") != 0)
-	//	return;
-
+{	
 	auto node = scene->FindNodeByName(transform_track.name);	
 	if (node) {		
 		create_anim_position(node, anim_layer, transform_track);
