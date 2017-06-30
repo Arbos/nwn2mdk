@@ -29,8 +29,9 @@ static void read(std::istream& in, std::vector<T>& v)
 }
 
 MDB_file::MDB_file(const char* filename)
-	: in(filename, std::ios::in | std::ios::binary)
 {
+	std::ifstream in(filename, std::ios::in | std::ios::binary);
+
 	is_good_ = false;
 
 	if (!in) {

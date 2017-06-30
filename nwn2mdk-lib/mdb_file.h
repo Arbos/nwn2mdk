@@ -282,7 +282,6 @@ private:
 	static_assert(sizeof(Walk_mesh_header) == 52);
 	static_assert(sizeof(Walk_mesh_vertex) == 12);
 
-	std::ifstream in;
 	bool is_good_;
 	std::string error_str_;
 	Header header;
