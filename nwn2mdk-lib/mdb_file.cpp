@@ -28,12 +28,21 @@ static void read(std::istream& in, std::vector<T>& v)
 	in.read((char*)v.data(), sizeof(T) * v.size());
 }
 
+MDB_file::MDB_file()
+{
+	is_good_ = true;
+
+	memcpy(header.signature, "NWN2", 4);
+	header.major_version = 1;
+	header.minor_version = 12;
+	header.packet_count = 0;
+}
+
 MDB_file::MDB_file(const char* filename)
 {
-	std::ifstream in(filename, std::ios::in | std::ios::binary);
-
 	is_good_ = false;
 
+	std::ifstream in(filename, std::ios::in | std::ios::binary);
 	if (!in) {
 		error_str_ = "can't open file";
 		return;
@@ -49,42 +58,7 @@ MDB_file::MDB_file(const char* filename)
 	packet_keys.resize(header.packet_count);
 	read(in, packet_keys);
 
-	for (auto& packet_key : packet_keys) {
-		in.seekg(packet_key.offset);
-
-		if (strncmp(packet_key.type, "COL2", 4) == 0) {
-			packets.emplace_back(new Collision_mesh);
-			packets.back()->type = COL2;
-			packets.back()->read(in);
-		}
-		else if (strncmp(packet_key.type, "COL3", 4) == 0) {
-			packets.emplace_back(new Collision_mesh);
-			packets.back()->type = COL3;
-			packets.back()->read(in);
-		}
-		else if (strncmp(packet_key.type, "HOOK", 4) == 0) {
-			packets.emplace_back(new Hook);
-			packets.back()->type = HOOK;
-			packets.back()->read(in);
-		}
-		else if (strncmp(packet_key.type, "RIGD", 4) == 0) {
-			packets.emplace_back(new Rigid_mesh);
-			packets.back()->type = RIGD;
-			packets.back()->read(in);
-		}
-		else if (strncmp(packet_key.type, "SKIN", 4) == 0) {
-			packets.emplace_back(new Skin);
-			packets.back()->type = SKIN;
-			packets.back()->read(in);
-		}
-		else if (strncmp(packet_key.type, "WALK", 4) == 0) {
-			packets.emplace_back(new Walk_mesh);
-			packets.back()->type = WALK;
-			packets.back()->read(in);
-		}
-		else
-			packets.push_back(nullptr);
-	}
+	read_packets(in);
 
 	is_good_ = true;
 }
@@ -115,6 +89,41 @@ MDB_file::Packet* MDB_file::packet(uint32_t packet_index) const
 uint32_t MDB_file::packet_count() const
 {
 	return header.packet_count;
+}
+
+void MDB_file::read_packets(std::ifstream& in)
+{
+	for (auto& packet_key : packet_keys)
+		read_packet(packet_key, in);
+}
+
+void MDB_file::read_packet(Packet_key& packet_key, std::ifstream& in)
+{
+	in.seekg(packet_key.offset);
+
+	if (strncmp(packet_key.type, "COL2", 4) == 0)
+		packets.emplace_back(new Collision_mesh(in));
+	else if (strncmp(packet_key.type, "COL3", 4) == 0)
+		packets.emplace_back(new Collision_mesh(in));
+	else if (strncmp(packet_key.type, "HOOK", 4) == 0)
+		packets.emplace_back(new Hook(in));
+	else if (strncmp(packet_key.type, "RIGD", 4) == 0)
+		packets.emplace_back(new Rigid_mesh(in));
+	else if (strncmp(packet_key.type, "SKIN", 4) == 0)
+		packets.emplace_back(new Skin(in));
+	else if (strncmp(packet_key.type, "WALK", 4) == 0)
+		packets.emplace_back(new Walk_mesh(in));
+	else
+		packets.push_back(nullptr);
+}
+
+void MDB_file::save(const char* filename)
+{
+	std::ofstream out(filename, std::ios::binary);
+
+	header.packet_count = packets.size();
+
+	out.write((char*)&header, sizeof(Header));
 }
 
 MDB_file::operator bool() const
@@ -150,19 +159,36 @@ std::string MDB_file::Packet::type_str() const
 	return "UNKNOWN";
 }
 
+MDB_file::Collision_mesh::Collision_mesh(std::ifstream& in)
+{
+	read(in);
+}
+
 void MDB_file::Collision_mesh::read(std::ifstream& in)
 {
 	::read(in, header);
 
+	if(strncmp(header.type, "COL2", 4) == 0)
+		type = COL2;
+	else
+		type = COL3;
+
 	verts.resize(header.vertex_count);
 	::read(in, verts);
 
 	faces.resize(header.face_count);
 	::read(in, faces);
+}
+
+MDB_file::Rigid_mesh::Rigid_mesh(std::ifstream& in)
+{
+	read(in);
 }
 
 void MDB_file::Rigid_mesh::read(std::ifstream& in)
 {
+	type = RIGD;
+
 	::read(in, header);
 
 	verts.resize(header.vertex_count);
@@ -170,10 +196,17 @@ void MDB_file::Rigid_mesh::read(std::ifstream& in)
 
 	faces.resize(header.face_count);
 	::read(in, faces);
+}
+
+MDB_file::Skin::Skin(std::ifstream& in)
+{
+	read(in);
 }
 
 void MDB_file::Skin::read(std::ifstream& in)
 {
+	type = SKIN;
+
 	::read(in, header);
 
 	verts.resize(header.vertex_count);
@@ -183,13 +216,27 @@ void MDB_file::Skin::read(std::ifstream& in)
 	::read(in, faces);
 }
 
+MDB_file::Hook::Hook(std::ifstream& in)
+{
+	read(in);
+}
+
 void MDB_file::Hook::read(std::ifstream& in)
 {
+	type = HOOK;
+
 	::read(in, header);
+}
+
+MDB_file::Walk_mesh::Walk_mesh(std::ifstream& in)
+{
+	read(in);
 }
 
 void MDB_file::Walk_mesh::read(std::ifstream& in)
 {
+	type = WALK;
+
 	::read(in, header);
 
 	verts.resize(header.vertex_count);

@@ -84,13 +84,17 @@ public:
 	};
 
 	struct Material {
-		/// Same as filename but without extension. Don't assume it's null terminated.
+		/// Same as filename but without extension. Don't assume it's
+		/// null terminated.
 		char diffuse_map_name[32];
-		/// Same as filename but without extension. Don't assume it's null terminated.
+		/// Same as filename but without extension. Don't assume it's
+		/// null terminated.
 		char normal_map_name[32];
-		/// Same as filename but without extension. Don't assume it's null terminated.
+		/// Same as filename but without extension. Don't assume it's
+		/// null terminated.
 		char tint_map_name[32];
-		/// Same as filename but without extension. Don't assume it's null terminated.
+		/// Same as filename but without extension. Don't assume it's
+		/// null terminated.
 		char glow_map_name[32];
 		Vector3<float> diffuse_color;
 		Vector3<float> specular_color;
@@ -126,8 +130,8 @@ public:
 	struct Skin_header : Packet_header {
 		/// Packet name. Don't assume it's null terminated.
 		char name[32];
-		/// Skeleton name (same as filename but without extension). Don't assume it's null
-		/// terminated.
+		/// Skeleton name (same as filename but without extension).
+		/// Don't assume it's null terminated.
 		char skeleton_name[32];
 		Material material;
 		uint32_t vertex_count;
@@ -160,11 +164,11 @@ public:
 		COL2, ///< Collision Mesh 2
 		COL3, ///< Collision Mesh 3
 		COLS, ///< Collision Sphere
-		HAIR,
-		HELM,
-		HOOK,
+		HAIR, ///< Hair Shortening Behavior
+		HELM, ///< Helm Hair Hiding Behavior
+		HOOK, ///< Hook Point
 		RIGD, ///< Rigid Mesh
-		SKIN,
+		SKIN, ///< Skin Mesh
 		TRRN, ///< Terrain
 		WALK, ///< Walk Mesh
 	};
@@ -176,6 +180,7 @@ public:
 
 		/// Retuns packet type as string.
 		std::string type_str() const;
+
 		virtual void read(std::ifstream& in) = 0;
 	};
 
@@ -185,6 +190,8 @@ public:
 		Rigid_mesh_header header;
 		std::vector<Rigid_mesh_vertex> verts;
 		std::vector<Face> faces;
+
+		Rigid_mesh(std::ifstream& in);
 
 		void read(std::ifstream& in) override;
 	};
@@ -196,6 +203,8 @@ public:
 		std::vector<Collision_mesh_vertex> verts;
 		std::vector<Face> faces;
 
+		Collision_mesh(std::ifstream& in);
+
 		void read(std::ifstream& in) override;
 	};
 
@@ -206,6 +215,8 @@ public:
 		std::vector<Skin_vertex> verts;
 		std::vector<Face> faces;
 
+		Skin(std::ifstream& in);
+
 		void read(std::ifstream& in) override;
 	};
 
@@ -213,6 +224,8 @@ public:
 	class Hook : public Packet {
 	public:
 		Hook_header header;
+
+		Hook(std::ifstream& in);
 
 		void read(std::ifstream& in) override;
 	};
@@ -224,8 +237,13 @@ public:
 		std::vector<Walk_mesh_vertex> verts;
 		std::vector<Walk_mesh_face> faces;
 
+		Walk_mesh(std::ifstream& in);
+
 		void read(std::ifstream& in) override;
 	};
+
+	/// Constructs an empty MDB.
+	MDB_file();
 
 	/// Opens a MDB file at the specified path.
 	///
@@ -249,6 +267,11 @@ public:
 
 	/// Returns the number of packets contained in the MDB file.
 	uint32_t packet_count() const;
+
+	/// Saves to a file.
+	///
+	/// @param filename The name of the file.
+	void save(const char* filename);
 
 	/// Checks if no error has occurred.
 	operator bool() const;
@@ -287,4 +310,7 @@ private:
 	Header header;
 	std::vector<Packet_key> packet_keys;
 	std::vector<std::unique_ptr<Packet>> packets;
+
+	void read_packets(std::ifstream& in);
+	void read_packet(Packet_key& packet_key, std::ifstream& in);
 };
