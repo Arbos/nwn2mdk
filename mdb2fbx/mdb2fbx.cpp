@@ -105,6 +105,8 @@ void print_verts(const std::vector<MDB_file::Rigid_mesh_vertex>& verts)
 		print_vector3(vert.tangent);
 		cout << "vbi ";
 		print_vector3(vert.binormal);
+		cout << "uvw ";
+		print_vector3(vert.uvw);
 	}
 }
 
