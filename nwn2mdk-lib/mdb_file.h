@@ -179,9 +179,11 @@ public:
 		Packet_type type;
 
 		/// Retuns packet type as string.
-		std::string type_str() const;
+		const char* type_str() const;
 
+		virtual uint32_t packet_size() = 0;
 		virtual void read(std::ifstream& in) = 0;
+		virtual void write(std::ostream& out) = 0;
 	};
 
 	/// Represents a rigid mesh (packet type RIGD).
@@ -191,9 +193,12 @@ public:
 		std::vector<Rigid_mesh_vertex> verts;
 		std::vector<Face> faces;
 
+		Rigid_mesh();
 		Rigid_mesh(std::ifstream& in);
 
+		virtual uint32_t packet_size() override;
 		void read(std::ifstream& in) override;
+		void write(std::ostream& out) override;
 	};
 
 	/// Represents a collision mesh (packet type COL2 or COL3).
@@ -203,9 +208,12 @@ public:
 		std::vector<Collision_mesh_vertex> verts;
 		std::vector<Face> faces;
 
+		Collision_mesh(Packet_type t);
 		Collision_mesh(std::ifstream& in);
 
+		virtual uint32_t packet_size() override;
 		void read(std::ifstream& in) override;
+		void write(std::ostream& out) override;
 	};
 
 	/// Represents a skin (packet type SKIN).
@@ -217,7 +225,9 @@ public:
 
 		Skin(std::ifstream& in);
 
+		virtual uint32_t packet_size() override;
 		void read(std::ifstream& in) override;
+		void write(std::ostream& out) override;
 	};
 
 	/// Represents a hook (packet type HOOK).
@@ -227,7 +237,9 @@ public:
 
 		Hook(std::ifstream& in);
 
+		virtual uint32_t packet_size() override;
 		void read(std::ifstream& in) override;
+		void write(std::ostream& out) override;
 	};
 
 	/// Represents a walk mesh (packet type WALK).
@@ -239,7 +251,9 @@ public:
 
 		Walk_mesh(std::ifstream& in);
 
+		virtual uint32_t packet_size() override;
 		void read(std::ifstream& in) override;
+		void write(std::ostream& out) override;
 	};
 
 	/// Constructs an empty MDB.
@@ -249,6 +263,11 @@ public:
 	///
 	/// @param filename The name of the file to be opened.
 	MDB_file(const char* filename);
+
+	/// Adds a packet.
+	///
+	/// @param The packet to add.
+	void add_packet(std::unique_ptr<Packet> packet);
 
 	/// Returns the error string.
 	const char* error_str() const;

@@ -28,6 +28,18 @@ static void read(std::istream& in, std::vector<T>& v)
 	in.read((char*)v.data(), sizeof(T) * v.size());
 }
 
+template <typename T>
+static void write(std::ostream& out, T& x)
+{
+	out.write((char*)&x, sizeof(T));
+}
+
+template <typename T>
+static void write(std::ostream& out, std::vector<T>& v)
+{
+	out.write((char*)v.data(), sizeof(T) * v.size());
+}
+
 MDB_file::MDB_file()
 {
 	is_good_ = true;
@@ -61,6 +73,19 @@ MDB_file::MDB_file(const char* filename)
 	read_packets(in);
 
 	is_good_ = true;
+}
+
+void MDB_file::add_packet(std::unique_ptr<Packet> packet)
+{
+	if(!packet)
+		return;
+
+	Packet_key packet_key;
+	memcpy(packet_key.type, packet->type_str(), 4);
+	packet_key.offset = 0;
+	packet_keys.push_back(packet_key);
+
+	packets.push_back(move(packet));
 }
 
 const char* MDB_file::error_str() const
@@ -119,11 +144,23 @@ void MDB_file::read_packet(Packet_key& packet_key, std::ifstream& in)
 
 void MDB_file::save(const char* filename)
 {
-	std::ofstream out(filename, std::ios::binary);
-
 	header.packet_count = packets.size();
 
+	uint32_t offset =
+	    sizeof(Header) + sizeof(Packet_key) * packet_keys.size();
+
+	for(unsigned i = 0; i < packet_keys.size(); ++i) {
+		packet_keys[i].offset = offset;
+		offset += packets[i]->packet_size();
+	}
+
+	std::ofstream out(filename, std::ios::binary);
 	out.write((char*)&header, sizeof(Header));
+	out.write((char*)packet_keys.data(),
+	          sizeof(Packet_key) * packet_keys.size());
+
+	for(unsigned i = 0; i < packets.size(); ++i)
+		packets[i]->write(out);
 }
 
 MDB_file::operator bool() const
@@ -131,7 +168,7 @@ MDB_file::operator bool() const
 	return is_good_;
 }
 
-std::string MDB_file::Packet::type_str() const
+const char* MDB_file::Packet::type_str() const
 {
 	switch(type) {
 	case MDB_file::COL2:
@@ -159,9 +196,35 @@ std::string MDB_file::Packet::type_str() const
 	return "UNKNOWN";
 }
 
+MDB_file::Collision_mesh::Collision_mesh(Packet_type t)
+{
+	type = t;
+	memcpy(header.type, type_str(), 4);
+	header.packet_size = 0;
+	memset(header.name, 0, sizeof(header.name));
+	memset(header.material.diffuse_map_name, 0, sizeof(header.material.diffuse_map_name));
+	memset(header.material.normal_map_name, 0, sizeof(header.material.normal_map_name));
+	memset(header.material.tint_map_name, 0, sizeof(header.material.tint_map_name));
+	memset(header.material.glow_map_name, 0, sizeof(header.material.glow_map_name));
+	header.material.diffuse_color = Vector3<float>(1, 1, 1);
+	header.material.specular_color = Vector3<float>(1, 1, 1);
+	header.material.specular_power = 1;
+	header.material.specular_value = 1;
+	header.material.flags = 0;
+	header.vertex_count = 0;
+	header.face_count = 0;
+}
+
 MDB_file::Collision_mesh::Collision_mesh(std::ifstream& in)
 {
 	read(in);
+}
+
+uint32_t MDB_file::Collision_mesh::packet_size()
+{
+	return sizeof(Collision_mesh_header) +
+	       sizeof(Collision_mesh_vertex) * verts.size() +
+	       sizeof(Face) * faces.size();
 }
 
 void MDB_file::Collision_mesh::read(std::ifstream& in)
@@ -180,9 +243,46 @@ void MDB_file::Collision_mesh::read(std::ifstream& in)
 	::read(in, faces);
 }
 
+void MDB_file::Collision_mesh::write(std::ostream& out)
+{
+	header.packet_size = packet_size() - sizeof(Packet_header);
+	header.vertex_count = verts.size();
+	header.face_count = faces.size();
+
+	::write(out, header);
+	::write(out, verts);
+	::write(out, faces);
+}
+
+MDB_file::Rigid_mesh::Rigid_mesh()
+{
+	type = RIGD;
+	memcpy(header.type, type_str(), 4);
+	header.packet_size = 0;
+	memset(header.name, 0, sizeof(header.name));
+	memset(header.material.diffuse_map_name, 0, sizeof(header.material.diffuse_map_name));
+	memset(header.material.normal_map_name, 0, sizeof(header.material.normal_map_name));
+	memset(header.material.tint_map_name, 0, sizeof(header.material.tint_map_name));
+	memset(header.material.glow_map_name, 0, sizeof(header.material.glow_map_name));
+	header.material.diffuse_color = Vector3<float>(1, 1, 1);
+	header.material.specular_color = Vector3<float>(1, 1, 1);
+	header.material.specular_power = 1;
+	header.material.specular_value = 1;
+	header.material.flags = 0;
+	header.vertex_count = 0;
+	header.face_count = 0;
+}
+
 MDB_file::Rigid_mesh::Rigid_mesh(std::ifstream& in)
 {
 	read(in);
+}
+
+uint32_t MDB_file::Rigid_mesh::packet_size()
+{
+	return sizeof(Rigid_mesh_header) +
+	       sizeof(Rigid_mesh_vertex) * verts.size() +
+	       sizeof(Face) * faces.size();
 }
 
 void MDB_file::Rigid_mesh::read(std::ifstream& in)
@@ -198,9 +298,27 @@ void MDB_file::Rigid_mesh::read(std::ifstream& in)
 	::read(in, faces);
 }
 
+void MDB_file::Rigid_mesh::write(std::ostream& out)
+{
+	header.packet_size = packet_size() - sizeof(Packet_header);
+	header.vertex_count = verts.size();
+	header.face_count = faces.size();
+
+	::write(out, header);
+	::write(out, verts);
+	::write(out, faces);
+}
+
 MDB_file::Skin::Skin(std::ifstream& in)
 {
 	read(in);
+}
+
+uint32_t MDB_file::Skin::packet_size()
+{
+	return sizeof(Skin_header) +
+	       sizeof(Skin_vertex) * verts.size() +
+	       sizeof(Face) * faces.size();
 }
 
 void MDB_file::Skin::read(std::ifstream& in)
@@ -216,9 +334,23 @@ void MDB_file::Skin::read(std::ifstream& in)
 	::read(in, faces);
 }
 
+void MDB_file::Skin::write(std::ostream& out)
+{
+	header.packet_size = packet_size();
+
+	::write(out, header);
+	::write(out, verts);
+	::write(out, faces);
+}
+
 MDB_file::Hook::Hook(std::ifstream& in)
 {
 	read(in);
+}
+
+uint32_t MDB_file::Hook::packet_size()
+{
+	return sizeof(Hook_header);
 }
 
 void MDB_file::Hook::read(std::ifstream& in)
@@ -228,9 +360,23 @@ void MDB_file::Hook::read(std::ifstream& in)
 	::read(in, header);
 }
 
+void MDB_file::Hook::write(std::ostream& out)
+{
+	header.packet_size = packet_size();
+
+	::write(out, header);
+}
+
 MDB_file::Walk_mesh::Walk_mesh(std::ifstream& in)
 {
 	read(in);
+}
+
+uint32_t MDB_file::Walk_mesh::packet_size()
+{
+	return sizeof(Walk_mesh_header) +
+	       sizeof(Walk_mesh_vertex) * verts.size() +
+	       sizeof(Walk_mesh_face) * faces.size();
 }
 
 void MDB_file::Walk_mesh::read(std::ifstream& in)
@@ -244,4 +390,13 @@ void MDB_file::Walk_mesh::read(std::ifstream& in)
 
 	faces.resize(header.face_count);
 	::read(in, faces);
+}
+
+void MDB_file::Walk_mesh::write(std::ostream& out)
+{
+	header.packet_size = packet_size();
+
+	::write(out, header);
+	::write(out, verts);
+	::write(out, faces);
 }
