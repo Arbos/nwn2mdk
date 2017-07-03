@@ -20,6 +20,11 @@ public:
 	{
 		return (&x)[i];
 	}
+
+	bool operator==(const Vector3 &v) const
+	{
+		return x == v.x && y == v.y && z == v.z;
+	}
 };
 
 static_assert(sizeof(Vector3<float>) == 12);
