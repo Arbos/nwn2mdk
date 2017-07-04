@@ -32,6 +32,8 @@ public:
 	unsigned archive_count() const;
 	bool extract_file(unsigned archive_index, unsigned file_index,
 	                  const char* dest_filename) const;
+	bool extract_file_to_mem(unsigned archive_index, unsigned file_index,
+	                         std::vector<unsigned char> &buffer) const;
 	std::string filename(unsigned archive_index, unsigned file_index) const;
 	Find_result find_file(const char* str) const;
 

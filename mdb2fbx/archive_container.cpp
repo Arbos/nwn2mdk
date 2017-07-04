@@ -62,6 +62,29 @@ bool Archive_container::extract_file(unsigned archive_index,
 	return true;
 }
 
+bool Archive_container::extract_file_to_mem(
+    unsigned archive_index, unsigned file_index,
+    std::vector<unsigned char>& buffer) const
+{
+	if (archive_index >= archives.size())
+		return false;
+
+	mz_zip_archive_file_stat file_stat;
+	if (!mz_zip_reader_file_stat(archives[archive_index].zip.get(),
+	                             file_index, &file_stat))
+		return false;
+
+	buffer.resize(file_stat.m_uncomp_size);
+
+	if (!mz_zip_reader_extract_to_mem(archives[archive_index].zip.get(),
+	                                  file_index, buffer.data(),
+	                                  buffer.size(), 0)) {
+		return false;
+	}
+
+	return true;
+}
+
 std::string Archive_container::filename(unsigned archive_index,
                                         unsigned file_index) const
 {
