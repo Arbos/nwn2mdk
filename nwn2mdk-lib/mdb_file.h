@@ -182,7 +182,7 @@ public:
 		const char* type_str() const;
 
 		virtual uint32_t packet_size() = 0;
-		virtual void read(std::ifstream& in) = 0;
+		virtual void read(std::istream& in) = 0;
 		virtual void write(std::ostream& out) = 0;
 	};
 
@@ -194,10 +194,10 @@ public:
 		std::vector<Face> faces;
 
 		Rigid_mesh();
-		Rigid_mesh(std::ifstream& in);
+		Rigid_mesh(std::istream& in);
 
 		virtual uint32_t packet_size() override;
-		void read(std::ifstream& in) override;
+		void read(std::istream& in) override;
 		void write(std::ostream& out) override;
 	};
 
@@ -209,10 +209,10 @@ public:
 		std::vector<Face> faces;
 
 		Collision_mesh(Packet_type t);
-		Collision_mesh(std::ifstream& in);
+		Collision_mesh(std::istream& in);
 
 		virtual uint32_t packet_size() override;
-		void read(std::ifstream& in) override;
+		void read(std::istream& in) override;
 		void write(std::ostream& out) override;
 	};
 
@@ -223,10 +223,10 @@ public:
 		std::vector<Skin_vertex> verts;
 		std::vector<Face> faces;
 
-		Skin(std::ifstream& in);
+		Skin(std::istream& in);
 
 		virtual uint32_t packet_size() override;
-		void read(std::ifstream& in) override;
+		void read(std::istream& in) override;
 		void write(std::ostream& out) override;
 	};
 
@@ -235,10 +235,10 @@ public:
 	public:
 		Hook_header header;
 
-		Hook(std::ifstream& in);
+		Hook(std::istream& in);
 
 		virtual uint32_t packet_size() override;
-		void read(std::ifstream& in) override;
+		void read(std::istream& in) override;
 		void write(std::ostream& out) override;
 	};
 
@@ -249,10 +249,10 @@ public:
 		std::vector<Walk_mesh_vertex> verts;
 		std::vector<Walk_mesh_face> faces;
 
-		Walk_mesh(std::ifstream& in);
+		Walk_mesh(std::istream& in);
 
 		virtual uint32_t packet_size() override;
-		void read(std::ifstream& in) override;
+		void read(std::istream& in) override;
 		void write(std::ostream& out) override;
 	};
 
@@ -263,6 +263,9 @@ public:
 	///
 	/// @param filename The name of the file to be opened.
 	MDB_file(const char* filename);
+
+	/// Reads a MDB from a stream.
+	MDB_file(std::istream& in);
 
 	/// Adds a packet.
 	///
@@ -330,6 +333,7 @@ private:
 	std::vector<Packet_key> packet_keys;
 	std::vector<std::unique_ptr<Packet>> packets;
 
-	void read_packets(std::ifstream& in);
-	void read_packet(Packet_key& packet_key, std::ifstream& in);
+	void read(std::istream& in);
+	void read_packets(std::istream& in);
+	void read_packet(Packet_key& packet_key, std::istream& in);
 };

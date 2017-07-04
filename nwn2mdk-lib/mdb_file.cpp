@@ -60,19 +60,13 @@ MDB_file::MDB_file(const char* filename)
 		return;
 	}
 
-	read(in, header);
+	read(in);
 
-	if (strncmp(header.signature, "NWN2", 4) != 0) {
-		error_str_ = "invalid file type";
-		return;
-	}
+}
 
-	packet_keys.resize(header.packet_count);
-	read(in, packet_keys);
-
-	read_packets(in);
-
-	is_good_ = true;
+MDB_file::MDB_file(std::istream& in)
+{
+	read(in);
 }
 
 void MDB_file::add_packet(std::unique_ptr<Packet> packet)
@@ -116,13 +110,32 @@ uint32_t MDB_file::packet_count() const
 	return header.packet_count;
 }
 
-void MDB_file::read_packets(std::ifstream& in)
+void MDB_file::read(std::istream& in)
+{
+	is_good_ = false;
+
+	::read(in, header);
+
+	if (strncmp(header.signature, "NWN2", 4) != 0) {
+		error_str_ = "invalid file type";
+		return;
+	}
+
+	packet_keys.resize(header.packet_count);
+	::read(in, packet_keys);
+
+	read_packets(in);
+
+	is_good_ = true;
+}
+
+void MDB_file::read_packets(std::istream& in)
 {
 	for (auto& packet_key : packet_keys)
 		read_packet(packet_key, in);
 }
 
-void MDB_file::read_packet(Packet_key& packet_key, std::ifstream& in)
+void MDB_file::read_packet(Packet_key& packet_key, std::istream& in)
 {
 	in.seekg(packet_key.offset);
 
@@ -215,7 +228,7 @@ MDB_file::Collision_mesh::Collision_mesh(Packet_type t)
 	header.face_count = 0;
 }
 
-MDB_file::Collision_mesh::Collision_mesh(std::ifstream& in)
+MDB_file::Collision_mesh::Collision_mesh(std::istream& in)
 {
 	read(in);
 }
@@ -227,7 +240,7 @@ uint32_t MDB_file::Collision_mesh::packet_size()
 	       sizeof(Face) * faces.size();
 }
 
-void MDB_file::Collision_mesh::read(std::ifstream& in)
+void MDB_file::Collision_mesh::read(std::istream& in)
 {
 	::read(in, header);
 
@@ -273,7 +286,7 @@ MDB_file::Rigid_mesh::Rigid_mesh()
 	header.face_count = 0;
 }
 
-MDB_file::Rigid_mesh::Rigid_mesh(std::ifstream& in)
+MDB_file::Rigid_mesh::Rigid_mesh(std::istream& in)
 {
 	read(in);
 }
@@ -285,7 +298,7 @@ uint32_t MDB_file::Rigid_mesh::packet_size()
 	       sizeof(Face) * faces.size();
 }
 
-void MDB_file::Rigid_mesh::read(std::ifstream& in)
+void MDB_file::Rigid_mesh::read(std::istream& in)
 {
 	type = RIGD;
 
@@ -309,7 +322,7 @@ void MDB_file::Rigid_mesh::write(std::ostream& out)
 	::write(out, faces);
 }
 
-MDB_file::Skin::Skin(std::ifstream& in)
+MDB_file::Skin::Skin(std::istream& in)
 {
 	read(in);
 }
@@ -321,7 +334,7 @@ uint32_t MDB_file::Skin::packet_size()
 	       sizeof(Face) * faces.size();
 }
 
-void MDB_file::Skin::read(std::ifstream& in)
+void MDB_file::Skin::read(std::istream& in)
 {
 	type = SKIN;
 
@@ -343,7 +356,7 @@ void MDB_file::Skin::write(std::ostream& out)
 	::write(out, faces);
 }
 
-MDB_file::Hook::Hook(std::ifstream& in)
+MDB_file::Hook::Hook(std::istream& in)
 {
 	read(in);
 }
@@ -353,7 +366,7 @@ uint32_t MDB_file::Hook::packet_size()
 	return sizeof(Hook_header);
 }
 
-void MDB_file::Hook::read(std::ifstream& in)
+void MDB_file::Hook::read(std::istream& in)
 {
 	type = HOOK;
 
@@ -367,7 +380,7 @@ void MDB_file::Hook::write(std::ostream& out)
 	::write(out, header);
 }
 
-MDB_file::Walk_mesh::Walk_mesh(std::ifstream& in)
+MDB_file::Walk_mesh::Walk_mesh(std::istream& in)
 {
 	read(in);
 }
@@ -379,7 +392,7 @@ uint32_t MDB_file::Walk_mesh::packet_size()
 	       sizeof(Walk_mesh_face) * faces.size();
 }
 
-void MDB_file::Walk_mesh::read(std::ifstream& in)
+void MDB_file::Walk_mesh::read(std::istream& in)
 {
 	type = WALK;
 
