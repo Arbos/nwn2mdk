@@ -84,14 +84,14 @@ static void export_skeleton(FbxScene *scene, GR2_skeleton *skel,
 {
 	cout << "  Exporting: " << skel->name << endl;
 
-	auto node = FbxNode::Create(scene, (string(skel->name) + "|Skel").c_str());
+	auto node = FbxNode::Create(scene, (string(skel->name) + ".gr2").c_str());
 	node->LclRotation.Set(FbxDouble3(-90, 0, 0));
 	node->LclScaling.Set(FbxDouble3(1, 1, 1));
 
 	auto null_attr = FbxNull::Create(scene, skel->name);
 	node->SetNodeAttribute(null_attr);
 
-	scene->GetRootNode()->AddChild(node);	
+	scene->GetRootNode()->AddChild(node);
 
 	export_bones(scene, node, skel, -1, fbx_bones);
 
