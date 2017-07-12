@@ -1,7 +1,9 @@
 #include <iostream>
 #include <experimental/filesystem>
+#include <assert.h>
 
 #include "fbxsdk.h"
+#include "gr2_file.h"
 #include "mdb_file.h"
 
 using namespace std;
@@ -19,6 +21,22 @@ bool operator==(const MDB_file::Rigid_mesh_vertex &v1, const MDB_file::Rigid_mes
 	return v1.position == v2.position && v1.normal == v2.normal &&
 	       v1.tangent == v2.tangent && v1.binormal == v2.binormal &&
 	       v1.uvw == v2.uvw;
+}
+
+bool operator==(const MDB_file::Skin_vertex &v1, const MDB_file::Skin_vertex &v2)
+{
+	return v1.position == v2.position && v1.normal == v2.normal &&
+		v1.bone_weights[0] == v2.bone_weights[0] &&
+		v1.bone_weights[1] == v2.bone_weights[1] &&
+		v1.bone_weights[2] == v2.bone_weights[2] &&
+		v1.bone_weights[3] == v2.bone_weights[3] &&
+		v1.bone_indices[0] == v2.bone_indices[0] &&
+		v1.bone_indices[1] == v2.bone_indices[1] &&
+		v1.bone_indices[2] == v2.bone_indices[2] &&
+		v1.bone_indices[3] == v2.bone_indices[3] &&
+		v1.tangent == v2.tangent && v1.binormal == v2.binormal &&
+		v1.uvw == v2.uvw &&
+		v1.bone_count == v2.bone_count;
 }
 
 bool ends_with(const char *s1, const char *s2)
@@ -63,15 +81,27 @@ const char* reference_mode_str(FbxLayerElement::EReferenceMode m)
 	return "UNKNOWN";
 }
 
+FbxSkin *skin(FbxMesh *mesh)
+{
+	if (mesh->GetDeformerCount() == 0)
+		return nullptr;
+
+	auto deformer = mesh->GetDeformer(0);
+	if (deformer->GetDeformerType() != FbxDeformer::eSkin)
+		return nullptr;
+
+	return static_cast<FbxSkin*>(deformer);
+}
+
 template <typename T>
 void import_positions(FbxMesh* mesh, int polygon_index, T* poly_vertices)
 {
 	for(int i = 0; i < mesh->GetPolygonSize(polygon_index); ++i) {
 		int index = mesh->GetPolygonVertex(polygon_index, i);
 		FbxVector4 p = mesh->GetControlPointAt(index);
-		poly_vertices[i].position.x = p[0];
-		poly_vertices[i].position.y = p[1];
-		poly_vertices[i].position.z = p[2];
+		poly_vertices[i].position.x = float(p[0]);
+		poly_vertices[i].position.y = float(p[1]);
+		poly_vertices[i].position.z = float(p[2]);
 	}
 }
 
@@ -81,14 +111,14 @@ void import_normals(FbxMesh* mesh, int polygon_index, T* poly_vertices)
 	for(int i = 0; i < mesh->GetPolygonSize(polygon_index); ++i) {
 		FbxVector4 normal;
 		mesh->GetPolygonVertexNormal(polygon_index, i, normal);
-		poly_vertices[i].normal.x = normal[0];
-		poly_vertices[i].normal.y = normal[1];
-		poly_vertices[i].normal.z = normal[2];
+		poly_vertices[i].normal.x = float(normal[0]);
+		poly_vertices[i].normal.y = float(normal[1]);
+		poly_vertices[i].normal.z = float(normal[2]);
 	}
 }
 
-void import_tangents(FbxMesh* mesh, int polygon_index,
-                     MDB_file::Rigid_mesh_vertex* poly_vertices)
+template <typename T>
+void import_tangents(FbxMesh* mesh, int polygon_index, T* poly_vertices)
 {
 	if(mesh->GetElementTangentCount() <= 0)
 		return;
@@ -99,18 +129,18 @@ void import_tangents(FbxMesh* mesh, int polygon_index,
 		for(int i = 0; i < mesh->GetPolygonSize(polygon_index); ++i) {
 			int index = mesh->GetPolygonVertexIndex(polygon_index) + i;
 			FbxVector4 v = e->GetDirectArray().GetAt(index);
-			poly_vertices[i].tangent.x = v[0];
-			poly_vertices[i].tangent.y = v[1];
-			poly_vertices[i].tangent.z = v[2];
+			poly_vertices[i].tangent.x = float(v[0]);
+			poly_vertices[i].tangent.y = float(v[1]);
+			poly_vertices[i].tangent.z = float(v[2]);
 		}
 		break;
 	case FbxGeometryElement::eByControlPoint:
 		for(int i = 0; i < mesh->GetPolygonSize(polygon_index); ++i) {
 			int index = mesh->GetPolygonVertex(polygon_index, i);
 			FbxVector4 v = e->GetDirectArray().GetAt(index);
-			poly_vertices[i].tangent.x = v[0];
-			poly_vertices[i].tangent.y = v[1];
-			poly_vertices[i].tangent.z = v[2];
+			poly_vertices[i].tangent.x = float(v[0]);
+			poly_vertices[i].tangent.y = float(v[1]);
+			poly_vertices[i].tangent.z = float(v[2]);
 		}
 		break;
 	default:
@@ -118,8 +148,8 @@ void import_tangents(FbxMesh* mesh, int polygon_index,
 	}
 }
 
-void import_binormals(FbxMesh* mesh, int polygon_index,
-                      MDB_file::Rigid_mesh_vertex* poly_vertices)
+template <typename T>
+void import_binormals(FbxMesh* mesh, int polygon_index, T* poly_vertices)
 {
 	if(mesh->GetElementBinormalCount() <= 0)
 		return;
@@ -130,18 +160,18 @@ void import_binormals(FbxMesh* mesh, int polygon_index,
 		for(int i = 0; i < mesh->GetPolygonSize(polygon_index); ++i) {
 			int index = mesh->GetPolygonVertexIndex(polygon_index) + i;
 			FbxVector4 v = e->GetDirectArray().GetAt(index);
-			poly_vertices[i].binormal.x = v[0];
-			poly_vertices[i].binormal.y = v[1];
-			poly_vertices[i].binormal.z = v[2];
+			poly_vertices[i].binormal.x = float(v[0]);
+			poly_vertices[i].binormal.y = float(v[1]);
+			poly_vertices[i].binormal.z = float(v[2]);
 		}
 		break;
 	case FbxGeometryElement::eByControlPoint:
 		for(int i = 0; i < mesh->GetPolygonSize(polygon_index); ++i) {
 			int index = mesh->GetPolygonVertex(polygon_index, i);
 			FbxVector4 v = e->GetDirectArray().GetAt(index);
-			poly_vertices[i].binormal.x = v[0];
-			poly_vertices[i].binormal.y = v[1];
-			poly_vertices[i].binormal.z = v[2];
+			poly_vertices[i].binormal.x = float(v[0]);
+			poly_vertices[i].binormal.y = float(v[1]);
+			poly_vertices[i].binormal.z = float(v[2]);
 		}
 		break;
 	default:
@@ -161,8 +191,8 @@ void import_uv(FbxMesh* mesh, int polygon_index, T* poly_vertices)
 		for(int i = 0; i < mesh->GetPolygonSize(polygon_index); ++i) {
 			int index = mesh->GetTextureUVIndex(polygon_index, i);
 			FbxVector2 v = uv->GetDirectArray().GetAt(index);
-			poly_vertices[i].uvw.x = v[0];
-			poly_vertices[i].uvw.y = -v[1];
+			poly_vertices[i].uvw.x = float(v[0]);
+			poly_vertices[i].uvw.y = float(-v[1]);
 			poly_vertices[i].uvw.z = 1;
 		}
 		break;
@@ -170,13 +200,76 @@ void import_uv(FbxMesh* mesh, int polygon_index, T* poly_vertices)
 		for(int i = 0; i < mesh->GetPolygonSize(polygon_index); ++i) {
 			int index = mesh->GetPolygonVertex(polygon_index, i);
 			FbxVector2 v = uv->GetDirectArray().GetAt(index);
-			poly_vertices[i].uvw.x = v[0];
-			poly_vertices[i].uvw.y = -v[1];
+			poly_vertices[i].uvw.x = float(v[0]);
+			poly_vertices[i].uvw.y = float(-v[1]);
 			poly_vertices[i].uvw.z = 1;
 		}
 		break;
 	default:
 		break;
+	}
+}
+
+int bone_index(const char* bone_name, GR2_skeleton *skel)
+{
+	if (strcmp(bone_name, "Ribcage") == 0)
+		return 53;
+
+	int index = 0;
+	for (int i = 0; i < skel->bones_count; ++i) {
+		if (strncmp(skel->bones[i].name, "ap_", 3) == 0) {
+			// Ignore this bone
+		}
+		else if (strcmp(skel->bones[i].name, "Ribcage") == 0) {
+			// Ignore this bone
+		}
+		else if (strcmp(bone_name, skel->bones[i].name) == 0)
+			return index;
+		else
+			++index;
+	}
+
+	return index;
+}
+
+void import_skinning(FbxMesh *mesh, int vertex_index, GR2_skeleton *skel,
+	MDB_file::Skin_vertex &poly_vertex)
+{
+	auto s = skin(mesh);
+	assert(s);
+
+	for (int i = 0; i < 4; ++i) {
+		poly_vertex.bone_indices[i] = 0;
+		poly_vertex.bone_weights[i] = 0;
+	}
+
+	poly_vertex.bone_count = 4;
+
+	int bone_count = 0;
+
+	for (int i = 0; i < s->GetClusterCount(); ++i) {
+		auto cluster = s->GetCluster(i);
+		for (int j = 0; j < cluster->GetControlPointIndicesCount(); ++j) {
+			if (vertex_index == cluster->GetControlPointIndices()[j]) {
+				if (bone_count == 4) {
+					cout << "A vertex cannot have more than 4 bones\n";
+					return;
+				}
+				poly_vertex.bone_indices[bone_count] = bone_index(cluster->GetLink()->GetName(), skel);
+				poly_vertex.bone_weights[bone_count] = float(cluster->GetControlPointWeights()[j]);
+				++bone_count;
+			}
+		}
+	}
+}
+
+void import_skinning(FbxMesh *mesh, int polygon_index,
+	GR2_skeleton *skel, MDB_file::Skin_vertex *poly_vertices)
+{
+	for (int i = 0; i < mesh->GetPolygonSize(polygon_index); ++i) {
+		int index = mesh->GetPolygonVertex(polygon_index, i);
+		import_skinning(mesh, index, skel, poly_vertices[i]);
+
 	}
 }
 
@@ -219,17 +312,17 @@ void import_material(MDB_file::Material& material, FbxMesh* mesh)
 	auto m = (FbxSurfacePhong *)fbx_material;
 
 	FbxDouble3 d = m->Diffuse.Get();
-	material.diffuse_color.x = d[0];
-	material.diffuse_color.y = d[1];
-	material.diffuse_color.z = d[2];
+	material.diffuse_color.x = float(d[0]);
+	material.diffuse_color.y = float(d[1]);
+	material.diffuse_color.z = float(d[2]);
 
 	FbxDouble3 s = m->Specular.Get();
-	material.specular_color.x = s[0];
-	material.specular_color.y = s[1];
-	material.specular_color.z = s[2];
+	material.specular_color.x = float(s[0]);
+	material.specular_color.y = float(s[1]);
+	material.specular_color.z = float(s[2]);
 
-	material.specular_value = m->SpecularFactor.Get()*200.0;
-	material.specular_power = m->Shininess.Get()*2.5/100.0;
+	material.specular_value = float(m->SpecularFactor.Get()*200.0);
+	material.specular_power = float(m->Shininess.Get()*2.5/100.0);
 }
 
 template <typename T, typename U>
@@ -288,7 +381,7 @@ void import_collision_mesh(MDB_file& mdb, FbxMesh* mesh)
 }
 
 void import_polygon(MDB_file::Rigid_mesh& rigid_mesh, FbxMesh* mesh,
-                    int polygon_index)
+	int polygon_index)
 {
 	if(mesh->GetPolygonSize(polygon_index) != 3) {
 		cout << "Polygon is not a triangle\n";
@@ -316,43 +409,48 @@ void import_polygon(MDB_file::Rigid_mesh& rigid_mesh, FbxMesh* mesh,
 	cout << endl;
 }
 
-void import_rigid_mesh(MDB_file& mdb, FbxMesh* mesh)
+void print_mesh(FbxMesh *mesh)
 {
 	cout << "Layers: " << mesh->GetLayerCount() << endl;
 
 	cout << "UV elements: " << mesh->GetElementUVCount();
-	if(mesh->GetElementUVCount() > 0) {
+	if (mesh->GetElementUVCount() > 0) {
 		FbxGeometryElementUV *e = mesh->GetElementUV(0);
 		cout << ' ' << mapping_mode_str(e->GetMappingMode()) << ' '
-		     << reference_mode_str(e->GetReferenceMode());
+			<< reference_mode_str(e->GetReferenceMode());
 	}
 	cout << endl;
 
 	cout << "Normal elements: " << mesh->GetElementNormalCount();
-	if(mesh->GetElementNormalCount() > 0) {
+	if (mesh->GetElementNormalCount() > 0) {
 		auto e = mesh->GetElementNormal(0);
 		cout << ' ' << mapping_mode_str(e->GetMappingMode()) << ' '
-		     << reference_mode_str(e->GetReferenceMode());
+			<< reference_mode_str(e->GetReferenceMode());
 	}
 	cout << endl;
 
 	cout << "Tangent elements: " << mesh->GetElementTangentCount();
-	if(mesh->GetElementTangentCount() > 0) {
+	if (mesh->GetElementTangentCount() > 0) {
 		auto e = mesh->GetElementTangent(0);
 		cout << ' ' << mapping_mode_str(e->GetMappingMode()) << ' '
-		     << reference_mode_str(e->GetReferenceMode());
+			<< reference_mode_str(e->GetReferenceMode());
 	}
 	cout << endl;
 
 	cout << "Binormal elements: " << mesh->GetElementBinormalCount();
-	if(mesh->GetElementBinormalCount() > 0) {
+	if (mesh->GetElementBinormalCount() > 0) {
 		auto e = mesh->GetElementBinormal(0);
 		cout << ' ' << mapping_mode_str(e->GetMappingMode()) << ' '
-		     << reference_mode_str(e->GetReferenceMode());
+			<< reference_mode_str(e->GetReferenceMode());
 	}
 	cout << endl;
 
 	cout << "Polygons: " << mesh->GetPolygonCount() << endl;
+}
+
+void import_rigid_mesh(MDB_file& mdb, FbxMesh* mesh)
+{
+	print_mesh(mesh);
 
 	auto rigid_mesh = make_unique<MDB_file::Rigid_mesh>();
 	strncpy(rigid_mesh->header.name, mesh->GetName(), 32);
@@ -365,14 +463,94 @@ void import_rigid_mesh(MDB_file& mdb, FbxMesh* mesh)
 	mdb.add_packet(move(rigid_mesh));
 }
 
+const char *skeleton_name(FbxMesh *mesh)
+{	
+	auto s = skin(mesh);
+
+	if (!s)
+		return "";
+
+	auto cluster = s->GetCluster(0);
+	auto node = cluster->GetLink();
+
+	if (!node)
+		return "";
+
+	while (node->GetParent() != node->GetScene()->GetRootNode())
+		node = node->GetParent();
+
+	return node->GetName();
+}
+
+void import_polygon(MDB_file::Skin& skin, GR2_skeleton *skel, FbxMesh* mesh,
+	int polygon_index)
+{
+	if (mesh->GetPolygonSize(polygon_index) != 3) {
+		cout << "Polygon is not a triangle\n";
+		return;
+	}
+
+	for (int i = 0; i < mesh->GetPolygonSize(polygon_index); ++i)
+		cout << ' ' << mesh->GetPolygonVertex(polygon_index, i);
+
+	MDB_file::Skin_vertex poly_vertices[3];
+	import_positions(mesh, polygon_index, poly_vertices);
+	import_normals(mesh, polygon_index, poly_vertices);
+	import_tangents(mesh, polygon_index, poly_vertices);
+	import_binormals(mesh, polygon_index, poly_vertices);
+	import_uv(mesh, polygon_index, poly_vertices);
+	import_skinning(mesh, polygon_index, skel, poly_vertices);
+
+	MDB_file::Face face;
+
+	for (int i = 0; i < 3; ++i)
+		face.vertex_indices[i] =
+		push_vertex(skin, poly_vertices[i]);
+
+	skin.faces.push_back(face);
+
+	cout << endl;
+}
+
+void import_skin(MDB_file& mdb, FbxMesh* mesh)
+{
+	print_mesh(mesh);
+
+	auto skin = make_unique<MDB_file::Skin>();
+	strncpy(skin->header.name, mesh->GetName(), 32);
+	path skel_name = skeleton_name(mesh);
+	strncpy(skin->header.skeleton_name, skel_name.stem().string().c_str(), 32);
+
+	path skel_filename = path("output")/skel_name;
+	GR2_file gr2(skel_filename.string().c_str());
+	if (!gr2) {
+		cout << gr2.error_string() << endl;
+		return;
+	}
+
+	if (gr2.file_info->skeletons_count == 0) {
+		cout << "No skeleton found\n";
+		return;
+	}
+
+	import_material(skin->header.material, mesh);
+
+	for (int i = 0; i < mesh->GetPolygonCount(); ++i)
+		import_polygon(*skin.get(), gr2.file_info->skeletons[0], mesh, i);
+
+	mdb.add_packet(move(skin));
+}
+
 void import_mesh(MDB_file& mdb, FbxMesh* mesh)
 {
 	cout << mesh->GetName() << endl;
 
-	if(ends_with(mesh->GetName(), "_C2"))
+	if (ends_with(mesh->GetName(), "_C2"))
 		import_collision_mesh(mdb, mesh);
-	else if(ends_with(mesh->GetName(), "_C3"))
+	else if (ends_with(mesh->GetName(), "_C3"))
 		import_collision_mesh(mdb, mesh);
+	else if (skin(mesh))
+		import_skin(mdb, mesh);
 	else
 		import_rigid_mesh(mdb, mesh);
 

@@ -223,6 +223,7 @@ public:
 		std::vector<Skin_vertex> verts;
 		std::vector<Face> faces;
 
+		Skin();
 		Skin(std::istream& in);
 
 		virtual uint32_t packet_size() override;
