@@ -1,4 +1,5 @@
 #include <iostream>
+#include <assert.h>
 
 #include "crc32.h"
 #include "gr2_file.h"
@@ -76,12 +77,15 @@ void GR2_file::apply_marshalling(unsigned index, Marshalling& m)
 	auto p = sections_data.data() + section_offsets[index] + m.offset;
 	if (type_def->type != GR2_type_inline) {
 		cout << "WARNING: unhandled case\n";
+		assert(false);
 	}
 	else if (type_def->keys) {
 		auto p = type_def->keys;
 		while (p->type != GR2_type_none) {
-			if (p->type != GR2_type_uint8)
+			if (p->type != GR2_type_uint8) {
 				cout << "WARNING: unhandled case\n";
+				assert(false);
+			}
 			++p;
 		}
 	}
