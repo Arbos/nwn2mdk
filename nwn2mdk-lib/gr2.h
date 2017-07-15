@@ -300,8 +300,8 @@ struct GR2_track_group {
 	void* periodic_loop;
 	/// Always seems 0
 	void* root_motion;
-	/// Always seems 0
-	void* extended_data;
+	/// Seems always empty
+	GR2_extended_data extended_data;
 };
 
 struct GR2_animation {
@@ -340,7 +340,7 @@ struct GR2_file_info {
 	GR2_track_group** track_groups;
 	int32_t animations_count;
 	GR2_animation** animations;
-	void* extended_data;
+	GR2_extended_data extended_data;
 };
 
 const char* curve_format_to_str(uint8_t format);
