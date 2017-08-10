@@ -4,6 +4,9 @@
 
 static_assert(sizeof(Vector3<float>) == 3 * 4, "");
 static_assert(sizeof(Vector4<float>) == 4 * 4, "");
+static_assert(sizeof(GR2_curve_data_DaIdentity) == 4, "");
+static_assert(sizeof(GR2_curve_data_D3Constant32f) == 16, "");
+static_assert(sizeof(GR2_curve_data_D4nK8uC7u) == 16, "");
 static_assert(sizeof(GR2_art_tool_info) == 64, "");
 static_assert(sizeof(GR2_transform) == 68, "");
 static_assert(sizeof(GR2_property_key) == 32);
