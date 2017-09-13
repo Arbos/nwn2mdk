@@ -21,6 +21,7 @@
 #include "export_gr2.h"
 #include "export_mdb.h"
 #include "fbxsdk.h"
+#include "gr2_file.h"
 #include "mdb_file.h"
 
 // Uncomment for print extra info
@@ -383,30 +384,69 @@ static bool process_arg(const Config& config, char *arg,
 	return true;
 }
 
-bool process_args(const Config& config, int argc, char* argv[],
+bool process_args(Export_info& export_info, int argc, char* argv[],
 	std::vector<std::string> &filenames)
 {
 	for (int i = 1; i < argc; ++i) {
-		if (!process_arg(config, argv[i], filenames))
+		if (!process_arg(export_info.config, argv[i], filenames))
 			return false;
 	}
 
-	return true;
-}
+	struct Input {
+		std::unique_ptr<MDB_file> mdb;
+		std::unique_ptr<GR2_file> gr2;
+	};
 
-bool export_mdb(Export_info& export_info, const char* filename)
-{
-	MDB_file mdb(filename);
-	if (!mdb) {
-		cout << mdb.error_str() << endl;
-		return false;
+	vector<Input> inputs;
+
+	for (auto &filename : filenames) {
+		auto ext = path(filename).extension().string();
+		transform(ext.begin(), ext.end(), ext.begin(), ::toupper);
+		if (ext == ".MDB") {
+			Input input;
+			input.mdb.reset(new MDB_file(filename.c_str()));
+			if (!(*input.mdb)) {
+				cout << input.mdb->error_str() << endl;
+				return false;
+			}
+			inputs.push_back(move(input));
+		}
+		else if (ext == ".GR2") {
+			Input input;
+			input.gr2.reset(new GR2_file(filename.c_str()));
+			if (!(*input.gr2)) {
+				cout << input.gr2->error_string() << endl;
+				return false;
+			}
+			inputs.push_back(move(input));
+		}
 	}
 
-	print_mdb(mdb);
+	for (auto &input : inputs) {
+		if (input.gr2 && input.gr2->file_info->skeletons_count > 0) {
+			auto &dep = export_info.dependencies[input.gr2->file_info->from_file_name];			
+			export_gr2(*input.gr2, export_info.scene, dep.fbx_bones);
+			dep.exported = true;
+			dep.extracted = true;
+		}
+	}
 
-	if (!export_mdb(export_info, mdb)) {
-		cout << "Cannot export MDB\n";
-		return false;
+	for (auto &input : inputs) {
+		if (input.gr2 && input.gr2->file_info->skeletons_count == 0) {
+			vector<FbxNode*> fbx_bones;
+			export_gr2(*input.gr2, export_info.scene, fbx_bones);
+		}
+	}
+
+	for (auto &input : inputs) {
+		if (input.mdb) {
+			print_mdb(*input.mdb);
+
+			if (!export_mdb(export_info, *input.mdb)) {
+				cout << "Cannot export MDB\n";
+				return false;
+			}
+		}
 	}
 
 	return true;
@@ -430,10 +470,6 @@ int main(int argc, char* argv[])
 
 	create_directory("output");
 
-	vector<std::string> filenames;
-	if (!process_args(config, argc, argv, filenames))
-		return 1;	
-
 	auto manager = FbxManager::Create();
 	if (!manager) {
 		cout << "Unable to create FBX manager\n";
@@ -453,24 +489,15 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
+	scene->GetGlobalSettings().SetTimeMode(FbxTime::eFrames30);
+
 	Export_info export_info = { config,
 		get_material_archives(config),
 		get_lod_archives(config), nullptr, scene };
 
-	for (auto &filename : filenames) {
-		auto ext = path(filename).extension().string();
-		transform(ext.begin(), ext.end(), ext.begin(), ::toupper);
-		if (ext == ".MDB") {
-			if (!export_mdb(export_info, filename.c_str()))
-				return 1;
-		}
-#ifdef _WIN32
-		else if (ext == ".GR2") {
-			vector<FbxNode*> fbx_bones;
-			export_gr2(filename.c_str(), scene, fbx_bones);
-		}
-#endif
-	}
+	vector<std::string> filenames;
+	if (!process_args(export_info, argc, argv, filenames))
+		return 1;
 
 	// Create an exporter.
 	auto exporter = FbxExporter::Create(manager, "");
