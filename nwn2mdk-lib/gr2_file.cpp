@@ -551,6 +551,8 @@ uint32_t export_animations(GR2_export_info& export_info, GR2_file_info *fi)
 	return offset;
 }
 
+std::string GR2_file::granny2dll_filename = "granny2.dll";
+
 GR2_file::GR2_file() : section_headers(6)
 {
 	header.magic[0] = magic0;
@@ -758,11 +760,11 @@ void GR2_file::read_section(unsigned index)
 		return;
 	}
 
-	static Granny2dll_handle granny2dll("granny2.dll");
+	static Granny2dll_handle granny2dll(granny2dll_filename.c_str());
 
 	if (!granny2dll) {
 		is_good = false;
-		error_string_ = "cannot load library";
+		error_string_ = "cannot load library " + granny2dll_filename;
 		return;
 	}
 

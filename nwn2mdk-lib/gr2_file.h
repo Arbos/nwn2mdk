@@ -60,6 +60,7 @@ public:
 	std::vector<Section_header> section_headers;
 	GR2_file_info* file_info;
 	GR2_property_key* type_definition;
+	static std::string granny2dll_filename;
 
 	GR2_file();
 	GR2_file(const char* filename);
