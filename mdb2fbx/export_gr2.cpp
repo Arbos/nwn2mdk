@@ -20,7 +20,7 @@ static void export_bone(FbxScene *scene, FbxNode *parent_node, GR2_skeleton *ske
 	int32_t bone_index, std::vector<FbxNode*> &fbx_bones)
 {
 	GR2_bone &bone = skel->bones[bone_index];
-	cout << "    Exporting bone: " << bone.name << endl;
+	cout << "  Exporting bone: " << bone.name << endl;
 	auto node = FbxNode::Create(scene, bone.name);
 
 	node->LclTranslation.Set(FbxDouble3(bone.transform.translation[0],
@@ -82,9 +82,9 @@ static void process_fbx_bones(std::vector<FbxNode*> &fbx_bones)
 static void export_skeleton(FbxScene *scene, GR2_skeleton *skel,
 	std::vector<FbxNode*> &fbx_bones)
 {
-	cout << "  Exporting: " << skel->name << endl;
+	cout << "Exporting: " << skel->name << endl;
 
-	auto node = FbxNode::Create(scene, (string(skel->name) + ".gr2").c_str());
+	auto node = FbxNode::Create(scene, skel->name);
 	node->LclRotation.Set(FbxDouble3(-90, 0, 0));
 	node->LclScaling.Set(FbxDouble3(1, 1, 1));
 
@@ -209,7 +209,10 @@ void export_animation(FbxScene *scene, GR2_transform_track &transform_track,
 	FbxAnimLayer *anim_layer)
 {	
 	auto node = scene->FindNodeByName(transform_track.name);	
-	if (node) {		
+	if (node) {
+		if (node->GetChildCount() == 1 && strcmp(node->GetName(), node->GetChild(0)->GetName()) == 0)
+			node = node->GetChild(0);
+
 		create_anim_position(node, anim_layer, transform_track);
 		create_anim_rotation(node, anim_layer, transform_track);
 	}
@@ -249,12 +252,18 @@ void export_gr2(const char *filename, FbxScene *scene,
 		return;
 	}
 
+	export_gr2(gr2, scene, fbx_bones);	
+}
+
+void export_gr2(GR2_file& gr2, FbxScene *scene,
+	std::vector<FbxNode*> &fbx_bones)
+{
 	cout << endl;
 	cout << "===\n";
 	cout << "GR2\n";
-	cout << "===\n\n";
-
+	cout << "===\n";
 	cout << "Skeletons: " << gr2.file_info->skeletons_count << endl;
+	cout << "Animations: " << gr2.file_info->animations_count << endl;
 	cout << endl;
 
 	export_skeletons(scene, gr2.file_info, fbx_bones);
