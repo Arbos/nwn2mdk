@@ -515,4 +515,6 @@ int main(int argc, char* argv[])
 	exporter->Destroy();
 
 	manager->Destroy();
+
+	cout << "\nOutput is " << fbx_filename.c_str() << endl;
 }
