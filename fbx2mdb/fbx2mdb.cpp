@@ -949,7 +949,10 @@ void import_animation(FbxAnimStack *stack, const char* filename)
 
 	GR2_file gr2;
 	gr2.read(&import_info.file_info);
-	gr2.write("P_HHM_UnA_run.gr2");
+	string output_filename = (path("output") / path(filename).stem()).string() + ".anim.gr2";
+	gr2.write(output_filename.c_str());
+
+	cout << "\nOutput is " << output_filename << endl;
 }
 
 void import_animations(FbxScene* scene, const char* filename)
@@ -998,10 +1001,10 @@ int main(int argc, char* argv[])
 	import_meshes(mdb, scene);
 	import_animations(scene, argv[1]);
 
-	string output_filename = path(argv[1]).stem().string() + ".MDB";
+	string output_filename = (path("output") / path(argv[1]).stem()).string() + ".MDB";
 	mdb.save(output_filename.c_str());
 
-	cout << "Output is " << output_filename << endl;
+	cout << "\nOutput is " << output_filename << endl;
 
 	// Destroy the sdk manager and all other objects it was handling.
 	manager->Destroy();
