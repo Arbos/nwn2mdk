@@ -61,10 +61,12 @@ public:
 	GR2_file_info* file_info;
 	GR2_property_key* type_definition;
 
+	GR2_file();
 	GR2_file(const char* filename);
 
 	operator bool() const;
 	std::string error_string() const;
+	void read(GR2_file_info* file_info);
 	void write(const char* filename);
 
 private:

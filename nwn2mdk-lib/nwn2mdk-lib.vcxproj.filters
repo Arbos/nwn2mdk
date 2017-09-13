@@ -36,6 +36,9 @@
     <ClInclude Include="mdb_file.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="string_collection.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="module_handle.cpp">
@@ -54,6 +57,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="mdb_file.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="string_collection.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
