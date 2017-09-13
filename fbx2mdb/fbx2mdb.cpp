@@ -962,7 +962,7 @@ void import_animations(FbxScene* scene, const char* filename)
 int main(int argc, char* argv[])
 {
 	if(argc < 2) {
-		cout << "Usage: fbx2mdb <file>\n";
+		cout << "Usage: fbx2nw <file>\n";
 		return 1;
 	}
 
