@@ -4,6 +4,7 @@
 #include <list>
 #include <assert.h>
 
+#include "config.h"
 #include "fbxsdk.h"
 #include "gr2_file.h"
 #include "mdb_file.h"
@@ -562,6 +563,8 @@ void import_polygon(MDB_file::Skin& skin, GR2_skeleton *skel, FbxMesh* mesh,
 		return;
 	}
 
+	cout << "   ";
+
 	for (int i = 0; i < mesh->GetPolygonSize(polygon_index); ++i)
 		cout << ' ' << mesh->GetPolygonVertex(polygon_index, i);
 
@@ -592,12 +595,12 @@ void import_skin(MDB_file& mdb, FbxMesh* mesh)
 	auto skin = make_unique<MDB_file::Skin>();
 	strncpy(skin->header.name, mesh->GetName(), 32);
 	auto skel_name = skeleton_name(mesh);
-	cout << "  Skeleton: " << skel_name << endl;
+	cout << "  Skeleton name: " << skel_name << endl;
 
 	strncpy(skin->header.skeleton_name, skel_name, 32);
 
 	path skel_filename = (path("output") / skel_name).concat(".gr2");
-	cout << "  Skeleton filename: " << skel_filename.string() << endl;
+	cout << "  Reference skeleton filename: " << skel_filename.string() << endl;
 
 	GR2_file gr2(skel_filename.string().c_str());
 	if (!gr2) {
@@ -972,6 +975,17 @@ void import_animations(FbxScene* scene, const char* filename)
 
 int main(int argc, char* argv[])
 {
+	Config config;
+
+	if (config.nwn2_home.empty() || !exists(config.nwn2_home)) {
+		cout << "Cannot find a NWN2 installation directory. Edit the "
+			"config.yml file and put the directory where NWN2 is "
+			"installed.\n";
+		return 1;
+	}
+
+	GR2_file::granny2dll_filename = config.nwn2_home + "\\granny2.dll";
+
 	if(argc < 2) {
 		cout << "Usage: fbx2nw <file>\n";
 		return 1;
