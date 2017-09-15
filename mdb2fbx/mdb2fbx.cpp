@@ -331,29 +331,6 @@ static Archive_container get_material_archives(const Config& config)
 	return archives;
 }
 
-bool find_and_extract_mdb(const Config& config, const char* pattern,
-                          std::string& filename)
-{
-	auto model_archives = get_model_archives(config);
-	auto r = model_archives.find_file(pattern);
-	if (r.matches != 1)
-		return false;
-
-	path p(model_archives.filename(r.archive_index, r.file_index));
-	p = path("output") / p.filename();
-	filename = p.string();
-
-	cout << "Extracting: " << filename << endl; 
-
-	if (!model_archives.extract_file(r.archive_index, r.file_index,
-	                                 filename.c_str())) {
-		cout << "Cannot extract\n";
-		return false;
-	}
-
-	return true;
-}
-
 static bool process_arg(const Config& config, char *arg,
 	std::vector<std::string> &filenames)
 {
@@ -494,8 +471,7 @@ int main(int argc, char* argv[])
 	scene->GetGlobalSettings().SetTimeMode(FbxTime::eFrames30);
 
 	Export_info export_info = { config,
-		get_material_archives(config),
-		get_lod_archives(config), nullptr, scene };
+		get_material_archives(config), nullptr, scene };
 
 	vector<std::string> filenames;
 	if (!process_args(export_info, argc, argv, filenames))

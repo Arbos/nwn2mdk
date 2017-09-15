@@ -18,8 +18,7 @@ struct Dependency {
 
 struct Export_info {
 	const Config &config;
-	Archive_container materials;
-	Archive_container lod_merge;
+	Archive_container materials;	
 	const MDB_file *mdb;
 	FbxScene *scene;
 	std::map<std::string, Dependency> dependencies;
