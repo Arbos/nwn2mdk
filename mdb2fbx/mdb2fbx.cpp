@@ -466,7 +466,7 @@ int main(int argc, char* argv[])
 	GR2_file::granny2dll_filename = config.nwn2_home + "\\granny2.dll";
 
 	if (argc < 2) {
-		cout << "Usage: nw2fbx <file|substring>\n";
+		cout << "Usage: nw2fbx <file|substring ...>\n";
 		return 1;
 	}
 
