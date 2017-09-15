@@ -228,6 +228,8 @@ static void export_animation(FbxScene *scene, GR2_track_group *track_group,
 
 static void export_animation(FbxScene *scene, GR2_animation *anim)
 {
+	cout << "Exporting: " << anim->name << endl;
+
 	auto anim_stack = FbxAnimStack::Create(scene, anim->name);
 	auto anim_layer = FbxAnimLayer::Create(scene, "Layer");
 	anim_stack->AddMember(anim_layer);

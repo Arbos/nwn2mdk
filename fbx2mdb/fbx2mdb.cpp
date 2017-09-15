@@ -316,7 +316,7 @@ void import_skinning(FbxMesh *mesh, int vertex_index, GR2_skeleton *skel,
 		for (int j = 0; j < cluster->GetControlPointIndicesCount(); ++j) {
 			if (vertex_index == cluster->GetControlPointIndices()[j]) {
 				if (bone_count == 4) {
-					cout << "A vertex cannot have more than 4 bones\n";
+					cout << "  A vertex cannot be influence by more than 4 bones\n";
 					return;
 				}
 				poly_vertex.bone_indices[bone_count] = bone_index(cluster->GetLink()->GetName(), skel);
@@ -406,10 +406,12 @@ void import_polygon(MDB_file::Collision_mesh& col_mesh, FbxMesh* mesh,
                     int polygon_index)
 {
 	if(mesh->GetPolygonSize(polygon_index) != 3) {
-		cout << "Polygon is not a triangle\n";
+		cout << "  Polygon is not a triangle\n";
 		return;
 	}
 	
+	cout << "   ";
+
 	for(int i = 0; i < mesh->GetPolygonSize(polygon_index); ++i)
 		cout << ' ' << mesh->GetPolygonVertex(polygon_index, i);
 
@@ -431,7 +433,7 @@ void import_polygon(MDB_file::Collision_mesh& col_mesh, FbxMesh* mesh,
 
 void import_collision_mesh(MDB_file& mdb, FbxMesh* mesh)
 {
-	cout << "Polygons: " << mesh->GetPolygonCount() << endl;
+	cout << "  Polygons: " << mesh->GetPolygonCount() << endl;
 
 	auto col_mesh = make_unique<MDB_file::Collision_mesh>(
 	    ends_with(mesh->GetName(), "_C2") ? MDB_file::COL2
@@ -448,10 +450,12 @@ void import_polygon(MDB_file::Rigid_mesh& rigid_mesh, FbxMesh* mesh,
 	int polygon_index)
 {
 	if(mesh->GetPolygonSize(polygon_index) != 3) {
-		cout << "Polygon is not a triangle\n";
+		cout << "  Polygon is not a triangle\n";
 		return;
 	}
 	
+	cout << "   ";
+
 	for(int i = 0; i < mesh->GetPolygonSize(polygon_index); ++i)
 		cout << ' ' << mesh->GetPolygonVertex(polygon_index, i);
 
@@ -475,9 +479,9 @@ void import_polygon(MDB_file::Rigid_mesh& rigid_mesh, FbxMesh* mesh,
 
 void print_mesh(FbxMesh *mesh)
 {
-	cout << "Layers: " << mesh->GetLayerCount() << endl;
+	cout << "  Layers: " << mesh->GetLayerCount() << endl;
 
-	cout << "UV elements: " << mesh->GetElementUVCount();
+	cout << "  UV elements: " << mesh->GetElementUVCount();
 	if (mesh->GetElementUVCount() > 0) {
 		FbxGeometryElementUV *e = mesh->GetElementUV(0);
 		cout << ' ' << mapping_mode_str(e->GetMappingMode()) << ' '
@@ -485,7 +489,7 @@ void print_mesh(FbxMesh *mesh)
 	}
 	cout << endl;
 
-	cout << "Normal elements: " << mesh->GetElementNormalCount();
+	cout << "  Normal elements: " << mesh->GetElementNormalCount();
 	if (mesh->GetElementNormalCount() > 0) {
 		auto e = mesh->GetElementNormal(0);
 		cout << ' ' << mapping_mode_str(e->GetMappingMode()) << ' '
@@ -493,7 +497,7 @@ void print_mesh(FbxMesh *mesh)
 	}
 	cout << endl;
 
-	cout << "Tangent elements: " << mesh->GetElementTangentCount();
+	cout << "  Tangent elements: " << mesh->GetElementTangentCount();
 	if (mesh->GetElementTangentCount() > 0) {
 		auto e = mesh->GetElementTangent(0);
 		cout << ' ' << mapping_mode_str(e->GetMappingMode()) << ' '
@@ -501,7 +505,7 @@ void print_mesh(FbxMesh *mesh)
 	}
 	cout << endl;
 
-	cout << "Binormal elements: " << mesh->GetElementBinormalCount();
+	cout << "  Binormal elements: " << mesh->GetElementBinormalCount();
 	if (mesh->GetElementBinormalCount() > 0) {
 		auto e = mesh->GetElementBinormal(0);
 		cout << ' ' << mapping_mode_str(e->GetMappingMode()) << ' '
@@ -509,7 +513,7 @@ void print_mesh(FbxMesh *mesh)
 	}
 	cout << endl;
 
-	cout << "Polygons: " << mesh->GetPolygonCount() << endl;
+	cout << "  Polygons: " << mesh->GetPolygonCount() << endl;
 }
 
 void import_rigid_mesh(MDB_file& mdb, FbxMesh* mesh)
@@ -554,7 +558,7 @@ void import_polygon(MDB_file::Skin& skin, GR2_skeleton *skel, FbxMesh* mesh,
 	int polygon_index)
 {
 	if (mesh->GetPolygonSize(polygon_index) != 3) {
-		cout << "Polygon is not a triangle\n";
+		cout << "  Polygon is not a triangle\n";
 		return;
 	}
 
@@ -587,18 +591,22 @@ void import_skin(MDB_file& mdb, FbxMesh* mesh)
 #ifdef _WIN32
 	auto skin = make_unique<MDB_file::Skin>();
 	strncpy(skin->header.name, mesh->GetName(), 32);
-	path skel_name = skeleton_name(mesh);
-	strncpy(skin->header.skeleton_name, skel_name.stem().string().c_str(), 32);
+	auto skel_name = skeleton_name(mesh);
+	cout << "  Skeleton: " << skel_name << endl;
 
-	path skel_filename = path("output")/skel_name;
+	strncpy(skin->header.skeleton_name, skel_name, 32);
+
+	path skel_filename = (path("output") / skel_name).concat(".gr2");
+	cout << "  Skeleton filename: " << skel_filename.string() << endl;
+
 	GR2_file gr2(skel_filename.string().c_str());
 	if (!gr2) {
-		cout << gr2.error_string() << endl;
+		cout << "    " << gr2.error_string() << endl;
 		return;
 	}
 
 	if (gr2.file_info->skeletons_count == 0) {
-		cout << "No skeleton found\n";
+		cout << "  GR2 doesn't contains any skeleton\n";
 		return;
 	}
 
@@ -731,9 +739,9 @@ void import_position(GR2_import_info& import_info, FbxNode* node,
 			knots.push_back(t);
 
 			auto p = node->LclTranslation.EvaluateValue(time);
-			controls.push_back(p[0]);
-			controls.push_back(p[1]);
-			controls.push_back(p[2]);			
+			controls.push_back(float(p[0]));
+			controls.push_back(float(p[1]));
+			controls.push_back(float(p[2]));
 
 			cout << "    " << knots.back() << ": " << p[0] << ' '
 			     << p[1] << ' ' << p[2] << endl;
@@ -934,7 +942,7 @@ void import_animation(FbxAnimStack *stack, const char* filename)
 	import_info.animation.duration =
 	    float(import_info.anim_stack->LocalStop.Get().GetSecondDouble() -
 	    import_info.anim_stack->LocalStart.Get().GetSecondDouble());
-	import_info.animation.time_step = time_step;
+	import_info.animation.time_step = float(time_step);
 	import_info.animation.oversampling = 1;
 	import_info.animation.track_groups_count = import_info.track_group_pointers.size();
 	import_info.animation.track_groups = import_info.track_group_pointers.data();
