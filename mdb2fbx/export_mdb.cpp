@@ -399,7 +399,7 @@ static void extract_dependency(Export_info& export_info, const char* str,
 	auto r = archives.find_file((string(str) + '.').c_str());
 	if (r.matches > 0) {
 		path p(archives.filename(r.archive_index, r.file_index));
-		p = path("output") / p.filename();
+		p = p.filename();
 		dep.extracted_path = p.string();
 
 		cout << "Extracting: " << p.string() << endl;

@@ -599,7 +599,7 @@ void import_skin(MDB_file& mdb, FbxMesh* mesh)
 
 	strncpy(skin->header.skeleton_name, skel_name, 32);
 
-	path skel_filename = (path("output") / skel_name).concat(".gr2");
+	path skel_filename = path(skel_name).concat(".gr2");
 	cout << "  Reference skeleton filename: " << skel_filename.string() << endl;
 
 	GR2_file gr2(skel_filename.string().c_str());
@@ -960,7 +960,7 @@ void import_animation(FbxAnimStack *stack, const char* filename)
 
 	GR2_file gr2;
 	gr2.read(&import_info.file_info);
-	string output_filename = (path("output") / path(filename).stem()).string() + ".anim.gr2";
+	string output_filename = path(filename).stem().string() + ".anim.gr2";
 	gr2.write(output_filename.c_str());
 
 	cout << "\nOutput is " << output_filename << endl;
@@ -1023,7 +1023,7 @@ int main(int argc, char* argv[])
 	import_meshes(mdb, scene);
 	import_animations(scene, argv[1]);
 
-	string output_filename = (path("output") / path(argv[1]).stem()).string() + ".MDB";
+	string output_filename = path(argv[1]).stem().string() + ".MDB";
 	mdb.save(output_filename.c_str());
 
 	cout << "\nOutput is " << output_filename << endl;

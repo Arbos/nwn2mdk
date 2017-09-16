@@ -345,7 +345,7 @@ static bool process_arg(const Config& config, char *arg,
 		return false;
 
 	path p(model_archives.filename(r.archive_index, r.file_index));
-	p = path("output") / p.filename();
+	p = p.filename();
 	string filename = p.string();
 
 	cout << "Extracting: " << filename << endl;
@@ -445,9 +445,7 @@ int main(int argc, char* argv[])
 	if (argc < 2) {
 		cout << "Usage: nw2fbx <file|substring ...>\n";
 		return 1;
-	}
-
-	create_directory("output");
+	}	
 
 	auto manager = FbxManager::Create();
 	if (!manager) {
@@ -480,7 +478,7 @@ int main(int argc, char* argv[])
 	// Create an exporter.
 	auto exporter = FbxExporter::Create(manager, "");
 	auto fbx_filename =
-		(path("output") / path(filenames[0]).stem()).concat(".fbx").string();
+		path(filenames[0]).stem().concat(".fbx").string();
 	if (!exporter->Initialize(fbx_filename.c_str(), -1, manager->GetIOSettings())) {
 		cout << exporter->GetStatus().GetErrorString() << endl;
 		return false;
