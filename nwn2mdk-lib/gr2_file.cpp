@@ -313,6 +313,7 @@ struct GR2_export_info {
 	std::vector<GR2_file::Relocation> relocations[6];
 	String_collection strings;
 	std::map<GR2_property_key*, uint32_t> keys;
+	std::map<GR2_skeleton*, uint32_t> skeletons;
 	std::map<GR2_track_group*, uint32_t> track_groups;
 };
 
@@ -379,6 +380,111 @@ uint32_t export_exporter_info(GR2_export_info& export_info, GR2_exporter_info* e
 	if (exporter_info->exporter_name) {
 		auto target_offset = export_info.strings.write(exporter_info->exporter_name, export_info.streams[6]);
 		export_info.relocations[1].push_back({ offset, 6, target_offset });
+	}
+
+	return offset;
+}
+
+uint32_t export_bone(GR2_export_info& export_info, GR2_bone* bone)
+{
+	uint32_t offset = uint32_t(export_info.streams[2].tellp());
+
+	// Make a copy of the bone and empty the extended data, which
+	// is not exported.
+	GR2_bone b = *bone;
+	b.extended_data.keys = nullptr;
+	b.extended_data.values = nullptr;
+	export_info.streams[2].write((char*)&b, sizeof(GR2_bone));
+
+	if (bone->name) {
+		auto target_offset = export_info.strings.write(bone->name, export_info.streams[6]);
+		export_info.relocations[2].push_back(
+			{ offset + offsetof(GR2_bone, name), 6, target_offset });
+	}
+
+	return offset;
+}
+
+uint32_t export_bones(GR2_export_info& export_info, GR2_skeleton* skel)
+{
+	uint32_t offset = uint32_t(export_info.streams[2].tellp());
+
+	for (int32_t i = 0; i < skel->bones_count; ++i)
+		export_bone(export_info, &skel->bones[i]);
+
+	return offset;
+}
+
+uint32_t export_skeleton(GR2_export_info& export_info, GR2_skeleton* skel)
+{
+	uint32_t offset = uint32_t(export_info.streams[2].tellp());
+	export_info.skeletons[skel] = offset;
+
+	export_info.streams[2].write((char*)skel, sizeof(GR2_skeleton));
+
+	if (skel->name) {
+		auto target_offset = export_info.strings.write(skel->name, export_info.streams[6]);
+		export_info.relocations[2].push_back(
+			{ offset + offsetof(GR2_skeleton, name), 6, target_offset });
+	}
+
+	auto target_offset = export_bones(export_info, skel);
+	export_info.relocations[2].push_back(
+		{ offset + offsetof(GR2_skeleton, bones), 2, target_offset });
+
+	return offset;
+}
+
+uint32_t export_skeletons(GR2_export_info& export_info, GR2_file_info* fi)
+{
+	uint32_t offset = uint32_t(export_info.streams[0].tellp());
+
+	// Write array of pointers to skeletons
+	for (int32_t i = 0; i < fi->skeletons_count; ++i) {
+		// The pointer is initially null, it'll be relocated later.
+		int32_t p = 0;
+		export_info.streams[0].write((char*)&p, 4);
+	}
+
+	for (int32_t i = 0; i < fi->skeletons_count; ++i) {
+		auto target_offset = export_skeleton(export_info, fi->skeletons[i]);
+		export_info.relocations[0].push_back({ offset + 4 * i, 2, target_offset });
+	}
+
+	return offset;
+}
+
+uint32_t export_model(GR2_export_info& export_info, GR2_model* model)
+{
+	uint32_t offset = uint32_t(export_info.streams[3].tellp());	
+
+	export_info.streams[3].write((char*)model, sizeof(GR2_model));
+
+	if (model->name) {
+		auto target_offset = export_info.strings.write(model->name, export_info.streams[6]);
+		export_info.relocations[3].push_back(
+		{ offset + offsetof(GR2_model, name), 6, target_offset });
+	}
+
+	export_info.relocations[3].push_back({ offset + offsetof(GR2_model, skeleton), 2, export_info.skeletons[model->skeleton] });
+
+	return offset;
+}
+
+uint32_t export_models(GR2_export_info& export_info, GR2_file_info* fi)
+{
+	uint32_t offset = uint32_t(export_info.streams[0].tellp());
+
+	// Write array of pointers to models
+	for (int32_t i = 0; i < fi->models_count; ++i) {
+		// The pointer is initially null, it'll be relocated later.
+		int32_t p = 0;
+		export_info.streams[0].write((char*)&p, 4);
+	}
+
+	for (int32_t i = 0; i < fi->models_count; ++i) {
+		auto target_offset = export_model(export_info, fi->models[i]);
+		export_info.relocations[0].push_back({ offset + 4 * i, 3, target_offset });
 	}
 
 	return offset;
@@ -822,7 +928,7 @@ std::string GR2_file::error_string() const
 }
 
 void GR2_file::read(GR2_file_info* file_info)
-{
+{	
 	GR2_export_info export_info;
 
 	uint32_t offset = uint32_t(export_info.streams[0].tellp());
@@ -839,6 +945,16 @@ void GR2_file::read(GR2_file_info* file_info)
 		auto target_offset = export_info.strings.write(file_info->from_file_name, export_info.streams[6]);
 		export_info.relocations[0].push_back({ offset + offsetof(GR2_file_info, from_file_name), 6, target_offset });
 	}
+
+	target_offset = uint32_t(export_info.streams[0].tellp());
+	export_info.relocations[0].push_back({ offset + offsetof(GR2_file_info, skeletons), 0, target_offset });
+
+	export_skeletons(export_info, file_info);
+
+	target_offset = uint32_t(export_info.streams[0].tellp());
+	export_info.relocations[0].push_back({ offset + offsetof(GR2_file_info, models), 0, target_offset });
+
+	export_models(export_info, file_info);
 
 	target_offset = uint32_t(export_info.streams[0].tellp());
 	export_info.relocations[0].push_back({ offset + offsetof(GR2_file_info, track_groups), 0, target_offset });

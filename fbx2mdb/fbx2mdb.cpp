@@ -83,9 +83,9 @@ FbxQuaternion euler_to_quaternion(const FbxVector4 &v)
 	double p = v[1];
 	double r = v[2];
 
-	y = y * M_PI / 180;
-	p = p * M_PI / 180;
-	r = r * M_PI / 180;
+	y = y * M_PI / 180; // To radians
+	p = p * M_PI / 180; // To radians
+	r = r * M_PI / 180; // To radians
 
 	double sp = sin(p * 0.5);
 	double cp = cos(p * 0.5);
@@ -647,11 +647,6 @@ void import_meshes(MDB_file& mdb, FbxScene* scene)
 	}
 }
 
-struct GR2_transform_track_data {
-	std::vector<float> position_knots;
-	std::vector<float> position_controls;
-};
-
 struct GR2_track_group_info {
 	GR2_track_group track_group;
 	std::vector<GR2_transform_track> transform_tracks;
@@ -664,6 +659,11 @@ struct GR2_import_info {
 	GR2_exporter_info exporter_info;
 	GR2_animation animation;
 	GR2_animation *animations[1];
+	std::list<GR2_skeleton> skeletons;
+	std::list<std::vector<GR2_bone>> bone_arrays;
+	std::vector<GR2_skeleton*> skeleton_pointers;
+	std::list<GR2_model> models;
+	std::vector<GR2_model*> model_pointers;
 	std::vector<GR2_track_group_info> track_groups;
 	std::list<GR2_curve_data_D3Constant32f> d3c_curves;
 	std::list<GR2_curve_data_DaK32fC32f> da_curves;
@@ -672,6 +672,176 @@ struct GR2_import_info {
 	String_collection strings;
 	std::vector<GR2_track_group*> track_group_pointers;
 };
+
+void import_art_tool_info(GR2_import_info& import_info)
+{
+	import_info.art_tool_info.from_art_tool_name =
+		import_info.strings.get("FBX");
+	import_info.art_tool_info.art_tool_major_revision = 0;
+	import_info.art_tool_info.art_tool_minor_revision = 0;
+	import_info.art_tool_info.units_per_meter = 100;
+	import_info.art_tool_info.origin = Vector3<float>(0, 0, 0);
+	import_info.art_tool_info.right_vector = Vector3<float>(1, 0, 0);
+	import_info.art_tool_info.up_vector = Vector3<float>(0, 0, 1);
+	import_info.art_tool_info.back_vector = Vector3<float>(0, -1, 0);
+	import_info.file_info.art_tool_info = &import_info.art_tool_info;
+}
+
+void import_exporter_info(GR2_import_info& import_info)
+{
+	import_info.exporter_info.exporter_name =
+		import_info.strings.get("NWN2 MDK 0.2");
+	import_info.exporter_info.exporter_major_revision = 2;
+	import_info.exporter_info.exporter_minor_revision = 6;
+	import_info.exporter_info.exporter_customization = 0;
+	import_info.exporter_info.exporter_build_number = 10;
+	import_info.file_info.exporter_info = &import_info.exporter_info;
+}
+
+bool is_skeleton(FbxNode* node)
+{
+	// A skeleton should have atleast a bone.
+	if (node->GetChildCount() == 0)
+		return false;
+
+	auto attr = node->GetChild(0)->GetNodeAttribute();
+	if (attr && attr->GetAttributeType() == FbxNodeAttribute::eSkeleton)
+		return true;
+
+	return false;
+}
+
+void import_bone(GR2_import_info& import_info, FbxNode* node, int32_t parent_index, std::vector<GR2_bone>& bones)
+{
+	GR2_bone bone;
+	bone.name = import_info.strings.get(node->GetName());
+	bone.parent_index = parent_index;
+	bone.transform.flags = 3;
+	bone.transform.translation.x = float(node->LclTranslation.Get()[0]);
+	bone.transform.translation.y = float(node->LclTranslation.Get()[1]);
+	bone.transform.translation.z = float(node->LclTranslation.Get()[2]);	
+	auto rotation = euler_to_quaternion(node->LclRotation.Get());
+	bone.transform.rotation.x = float(rotation[0]);
+	bone.transform.rotation.y = float(rotation[1]);
+	bone.transform.rotation.z = float(rotation[2]);
+	bone.transform.rotation.w = float(rotation[3]);
+	bone.transform.scale_shear[0] = 1;
+	bone.transform.scale_shear[1] = 0;
+	bone.transform.scale_shear[2] = 0;
+	bone.transform.scale_shear[3] = 0;
+	bone.transform.scale_shear[4] = 1;
+	bone.transform.scale_shear[5] = 0;
+	bone.transform.scale_shear[6] = 0;
+	bone.transform.scale_shear[7] = 0;
+	bone.transform.scale_shear[8] = 1;
+
+	auto inv_world_transform = node->EvaluateGlobalTransform().Inverse();
+	for (int row = 0; row < 4; ++row) {
+		for (int col = 0; col < 4; ++col) {
+			bone.inverse_world_transform[row * 4 + col] = float(inv_world_transform.Get(row, col));
+		}
+	}
+
+	// Swap y-axis with z-axis and negate y-axis.
+	swap(bone.inverse_world_transform[4], bone.inverse_world_transform[4 + 4]);
+	swap(bone.inverse_world_transform[5], bone.inverse_world_transform[5 + 4]);
+	swap(bone.inverse_world_transform[6], bone.inverse_world_transform[6 + 4]);
+	bone.inverse_world_transform[4] = -bone.inverse_world_transform[4];
+	bone.inverse_world_transform[5] = -bone.inverse_world_transform[5];
+	bone.inverse_world_transform[6] = -bone.inverse_world_transform[6];
+
+	bone.light_info = nullptr;
+	bone.camera_info = nullptr;
+	bone.extended_data.keys = nullptr;
+	bone.extended_data.values = nullptr;
+	bones.push_back(bone);
+}
+
+void import_bones(GR2_import_info& import_info, FbxNode* node, int32_t parent_index, std::vector<GR2_bone>& bones)
+{
+	for (int i = 0; i < node->GetChildCount(); ++i) {
+		import_bone(import_info, node->GetChild(i), parent_index, bones);
+		import_bones(import_info, node->GetChild(i), bones.size() - 1, bones);
+	}
+}
+
+void import_skeleton(GR2_import_info& import_info, FbxNode* node)
+{	
+	import_info.bone_arrays.emplace_back();
+	import_bones(import_info, node, -1, import_info.bone_arrays.back());
+
+	GR2_skeleton skel;
+	skel.name = import_info.strings.get(node->GetName());
+	skel.bones_count = import_info.bone_arrays.back().size();
+	skel.bones = import_info.bone_arrays.back().data();
+	import_info.skeletons.push_back(skel);
+	import_info.skeleton_pointers.push_back(&import_info.skeletons.back());
+
+	GR2_model model;
+	model.name = skel.name;
+	model.skeleton = &import_info.skeletons.back();
+	model.initial_placement.flags = 0;
+	model.initial_placement.translation = Vector3<float>(0, 0, 0);
+	model.initial_placement.rotation = Vector4<float>(0, 0, 0, 1);
+	model.initial_placement.scale_shear[0] = 1;
+	model.initial_placement.scale_shear[1] = 0;
+	model.initial_placement.scale_shear[2] = 0;
+	model.initial_placement.scale_shear[3] = 0;
+	model.initial_placement.scale_shear[4] = 1;
+	model.initial_placement.scale_shear[5] = 0;
+	model.initial_placement.scale_shear[6] = 0;
+	model.initial_placement.scale_shear[7] = 0;
+	model.initial_placement.scale_shear[8] = 1;
+	model.mesh_bindings_count = 0;
+	model.mesh_bindings = nullptr;
+	import_info.models.push_back(model);
+	import_info.model_pointers.push_back(&import_info.models.back());
+}
+
+void import_skeletons(FbxScene* scene, const char* filename)
+{
+	GR2_import_info import_info;
+
+	import_art_tool_info(import_info);
+	import_exporter_info(import_info);
+
+	import_info.file_info.from_file_name =
+		import_info.strings.get(filename);
+
+	import_info.file_info.textures_count = 0;
+	import_info.file_info.materials_count = 0;
+	import_info.file_info.skeletons_count = 0;
+	import_info.file_info.vertex_datas_count = 0;
+	import_info.file_info.tri_topologies_count = 0;
+	import_info.file_info.meshes_count = 0;
+	import_info.file_info.models_count = 0;
+	import_info.file_info.track_groups_count = 0;
+	import_info.file_info.animations_count = 0;
+	import_info.file_info.extended_data.keys = nullptr;
+	import_info.file_info.extended_data.values = nullptr;
+	
+	for (int i = 0; i < scene->GetRootNode()->GetChildCount(); ++i) {
+		auto node = scene->GetRootNode()->GetChild(i);
+		if (is_skeleton(node))
+			import_skeleton(import_info, node);
+	}
+
+	if (import_info.skeletons.empty())
+		return;
+
+	import_info.file_info.skeletons_count = import_info.skeleton_pointers.size();
+	import_info.file_info.skeletons = import_info.skeleton_pointers.data();
+
+	import_info.file_info.models_count = import_info.model_pointers.size();
+	import_info.file_info.models = import_info.model_pointers.data();
+
+	GR2_file gr2;
+	gr2.read(&import_info.file_info);
+	string output_filename = path(filename).stem().string() + ".skel.gr2";
+	gr2.write(output_filename.c_str());
+
+	cout << "\nOutput is " << output_filename << endl;
+}
 
 GR2_track_group_info &track_group(GR2_import_info& import_info, const char *name)
 {
@@ -890,24 +1060,8 @@ void import_animation(FbxAnimStack *stack, const char* filename)
 
 	import_info.anim_stack = stack;
 
-	import_info.art_tool_info.from_art_tool_name =
-	    import_info.strings.get("FBX");
-	import_info.art_tool_info.art_tool_major_revision = 0;
-	import_info.art_tool_info.art_tool_minor_revision = 0;
-	import_info.art_tool_info.units_per_meter = 100;
-	import_info.art_tool_info.origin = Vector3<float>(0, 0, 0);
-	import_info.art_tool_info.right_vector = Vector3<float>(1, 0, 0);
-	import_info.art_tool_info.up_vector = Vector3<float>(0, 0, 1);
-	import_info.art_tool_info.back_vector = Vector3<float>(0, -1, 0);
-	import_info.file_info.art_tool_info = &import_info.art_tool_info;
-
-	import_info.exporter_info.exporter_name =
-	    import_info.strings.get("NWN2 MDK 0.1");
-	import_info.exporter_info.exporter_major_revision = 2;
-	import_info.exporter_info.exporter_minor_revision = 6;
-	import_info.exporter_info.exporter_customization = 0;
-	import_info.exporter_info.exporter_build_number = 10;
-	import_info.file_info.exporter_info = &import_info.exporter_info;
+	import_art_tool_info(import_info);
+	import_exporter_info(import_info);	
 
 	import_info.file_info.from_file_name =
 	    import_info.strings.get(filename);
@@ -932,8 +1086,7 @@ void import_animation(FbxAnimStack *stack, const char* filename)
 			[](GR2_transform_track &t1, GR2_transform_track &t2) {
 			return strcmp(t1.name, t2.name) < 0;
 		});		
-		tg.track_group.transform_tracks_count = tg.transform_tracks.size();	
-		//tg.track_group.transform_tracks_count = 16;
+		tg.track_group.transform_tracks_count = tg.transform_tracks.size();		
 		tg.track_group.transform_tracks = tg.transform_tracks.data();
 		import_info.track_group_pointers.push_back(&tg.track_group);
 	}
@@ -1021,6 +1174,7 @@ int main(int argc, char* argv[])
 	MDB_file mdb;
 
 	import_meshes(mdb, scene);
+	import_skeletons(scene, argv[1]);
 	import_animations(scene, argv[1]);
 
 	string output_filename = path(argv[1]).stem().string() + ".MDB";
