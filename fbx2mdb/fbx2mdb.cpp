@@ -799,6 +799,7 @@ void import_skeleton(GR2_import_info& import_info, FbxNode* node)
 	import_info.bone_scaling.y = node->LclScaling.Get()[1];
 	import_info.bone_scaling.z = node->LclScaling.Get()[2];
 
+	node->LclTranslation.Set(FbxDouble3(0, 0, 0));
 	node->LclRotation.Set(FbxDouble3(0, 0, 0));
 	node->LclScaling.Set(FbxDouble3(1, 1, 1));
 
