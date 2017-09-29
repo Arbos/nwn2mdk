@@ -1,0 +1,88 @@
+ 0: P_HHM_skel
+ 1: LLeg1
+ 2: LLeg2
+ 3: LLegAnkle
+  : ap_foot_left
+ 4: LLegAnkleDigit011
+  : ap_knee_left
+ 5: RLeg1
+ 6: RLeg2
+ 7: RLegAnkle
+  : ap_foot_right
+ 8: RLegAnkleDigit011
+  : ap_knee_right
+  : ap_pelvis
+ 9: BHip1
+10: FHip1
+11: LHip1
+12: RHip1
+13: Spine
+53: Ribcage
+14: LArm0CollarBone
+15: LArm010
+16: LArm011
+17: LArm02
+18: LArm0Palm
+19: h_LArm0PalmDigit451
+20: h_LArm0PalmDigit452
+  : ap_hand_left
+21: h_LArm0PalmDigit341
+22: h_LArm0PalmDigit342
+23: LArm0PalmDigit231
+24: LArm0PalmDigit232
+25: LArm0PalmDigit121
+26: LArm0PalmDigit122
+27: LArm0PalmDigit011
+28: LArm0PalmDigit012
+  : ap_shield_left
+29: RArm1CollarBone
+30: RArm110
+31: RArm111
+32: RArm12
+33: RArm1Palm
+34: h_RArm1PalmDigit451
+35: h_RArm1PalmDigit452
+  : ap_hand_right
+36: h_RArm1PalmDigit341
+37: h_RArm1PalmDigit342
+38: RArm1PalmDigit231
+39: RArm1PalmDigit232
+40: RArm1PalmDigit121
+41: RArm1PalmDigit122
+42: RArm1PalmDigit011
+43: RArm1PalmDigit012
+  : ap_torso
+  : ap_back
+44: Neck
+45: Head
+46: ponytail1
+47: ponytail2
+48: ponytail3
+  : ap_mouth
+  : ap_forehead
+  : ap_eye_right
+  : ap_halo
+49: eyeRlid
+50: eyeLlid
+51: eyeL
+52: eyeR
+  : ap_camera
+  : ap_eye_left
+  : ap_ear_left
+  : ap_ear_right
+    Exporting bone: f_emotiondummy
+    Exporting bone: f_mdbrw
+    Exporting bone: f_lbrw
+    Exporting bone: f_rbrw
+    Exporting bone: f_rlweye
+    Exporting bone: f_llweye
+    Exporting bone: f_talkdummy
+    Exporting bone: f_rmc
+    Exporting bone: f_um
+    Exporting bone: f_lmc
+    Exporting bone: f_lns
+    Exporting bone: f_rns
+    Exporting bone: f_jaw
+    Exporting bone: f_Llm
+    Exporting bone: f_Rlm
+    Exporting bone: f_tonguetip

@@ -841,7 +841,7 @@ void import_skeletons(FbxScene* scene, const char* filename)
 	import_exporter_info(import_info);
 
 	import_info.file_info.from_file_name =
-		import_info.strings.get(filename);
+		import_info.strings.get(path(filename).filename().string().c_str());
 
 	import_info.file_info.textures_count = 0;
 	import_info.file_info.materials_count = 0;
@@ -1102,9 +1102,9 @@ void import_animation(FbxAnimStack *stack, const char* filename)
 
 	import_art_tool_info(import_info);
 	import_exporter_info(import_info);	
-
+	
 	import_info.file_info.from_file_name =
-	    import_info.strings.get(filename);
+		import_info.strings.get(path(filename).filename().string().c_str());
 
 	import_info.file_info.textures_count = 0;
 	import_info.file_info.materials_count = 0;
