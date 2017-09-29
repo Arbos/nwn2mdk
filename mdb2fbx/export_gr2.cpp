@@ -60,9 +60,14 @@ static void export_bones(FbxScene *scene, FbxNode *parent_node, GR2_skeleton *sk
 static void process_fbx_bones(std::vector<FbxNode*> &fbx_bones)
 {
 	FbxNode *ribcage = nullptr;
+
 	for (auto it = fbx_bones.begin(); it != fbx_bones.end();) {
 		if (strncmp((*it)->GetName(), "ap_", 3) == 0) {
-			// Remove "ap_..." bones as they are not used in skinning.
+			// Erase "ap_..." bones as they are not used in skinning.
+			it = fbx_bones.erase(it);
+		}
+		else if (strncmp((*it)->GetName(), "f_", 2) == 0) {	
+			// Erase "f_..." bones as they are only uses for heads.
 			it = fbx_bones.erase(it);
 		}
 		else if (strcmp((*it)->GetName(), "Ribcage") == 0) {
@@ -73,10 +78,12 @@ static void process_fbx_bones(std::vector<FbxNode*> &fbx_bones)
 		else
 			++it;
 	}
-
-	// Reinsert "Ribcage bone"
-	if (ribcage)
-		fbx_bones.insert(fbx_bones.begin() + 53, ribcage);
+	
+	if (ribcage) {
+		// Reinsert "Ribcage" bone. For some unknown reason, it seems		
+		// this bone must be always the last one.
+		fbx_bones.push_back(ribcage);		
+	}
 }
 
 static void export_skeleton(FbxScene *scene, GR2_skeleton *skel,
