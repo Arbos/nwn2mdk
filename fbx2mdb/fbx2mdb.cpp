@@ -532,15 +532,20 @@ void import_rigid_mesh(MDB_file& mdb, FbxMesh* mesh)
 	mdb.add_packet(move(rigid_mesh));
 }
 
-const char *skeleton_name(FbxNode *node)
+FbxNode* skeleton_node(FbxNode* node)
 {
 	if (!node)
-		return "";
+		return nullptr;
 
 	while (node->GetParent() != node->GetScene()->GetRootNode())
 		node = node->GetParent();
 
-	return node->GetName();
+	return node;
+}
+
+const char *skeleton_name(FbxNode* node)
+{
+	return skeleton_node(node)->GetName();
 }
 
 const char *skeleton_name(FbxMesh *mesh)
@@ -659,6 +664,7 @@ struct GR2_import_info {
 	GR2_exporter_info exporter_info;
 	GR2_animation animation;
 	GR2_animation *animations[1];
+	Vector3<double> bone_scaling;
 	std::list<GR2_skeleton> skeletons;
 	std::list<std::vector<GR2_bone>> bone_arrays;
 	std::vector<GR2_skeleton*> skeleton_pointers;
@@ -705,21 +711,47 @@ bool is_skeleton(FbxNode* node)
 		return false;
 
 	auto attr = node->GetChild(0)->GetNodeAttribute();
-	if (attr && attr->GetAttributeType() == FbxNodeAttribute::eSkeleton)
-		return true;
+	return attr && attr->GetAttributeType() == FbxNodeAttribute::eSkeleton;	
+}
 
-	return false;
+void print_bone(GR2_bone& bone)
+{
+	cout << "    Translation: " << bone.transform.translation.x;
+	cout << ' ' << bone.transform.translation.y;
+	cout << ' ' << bone.transform.translation.z << endl;
+
+	cout << "    Rotation: " << bone.transform.rotation.x;
+	cout << ' ' << bone.transform.rotation.y;
+	cout << ' ' << bone.transform.rotation.z;
+	cout << ' ' << bone.transform.rotation.w << endl;
+
+	cout << "    Inverse World Transform:\n";
+	for (int row = 0; row < 4; ++row) {
+		cout << "        ";
+		for (int col = 0; col < 4; ++col) {
+			cout << ' ' << bone.inverse_world_transform[row * 4 + col];
+		}
+		cout << endl;
+	}
 }
 
 void import_bone(GR2_import_info& import_info, FbxNode* node, int32_t parent_index, std::vector<GR2_bone>& bones)
 {
+	cout << "  Importing bone: " << node->GetName() << endl;
+
+	auto translation = node->LclTranslation.Get();
+	translation[0] *= import_info.bone_scaling.x;
+	translation[1] *= import_info.bone_scaling.y;
+	translation[2] *= import_info.bone_scaling.z;
+	node->LclTranslation.Set(translation);
+
 	GR2_bone bone;
 	bone.name = import_info.strings.get(node->GetName());
 	bone.parent_index = parent_index;
 	bone.transform.flags = 3;
 	bone.transform.translation.x = float(node->LclTranslation.Get()[0]);
 	bone.transform.translation.y = float(node->LclTranslation.Get()[1]);
-	bone.transform.translation.z = float(node->LclTranslation.Get()[2]);	
+	bone.transform.translation.z = float(node->LclTranslation.Get()[2]);
 	auto rotation = euler_to_quaternion(node->LclRotation.Get());
 	bone.transform.rotation.x = float(rotation[0]);
 	bone.transform.rotation.y = float(rotation[1]);
@@ -740,21 +772,15 @@ void import_bone(GR2_import_info& import_info, FbxNode* node, int32_t parent_ind
 		for (int col = 0; col < 4; ++col) {
 			bone.inverse_world_transform[row * 4 + col] = float(inv_world_transform.Get(row, col));
 		}
-	}
-
-	// Swap y-axis with z-axis and negate y-axis.
-	swap(bone.inverse_world_transform[4], bone.inverse_world_transform[4 + 4]);
-	swap(bone.inverse_world_transform[5], bone.inverse_world_transform[5 + 4]);
-	swap(bone.inverse_world_transform[6], bone.inverse_world_transform[6 + 4]);
-	bone.inverse_world_transform[4] = -bone.inverse_world_transform[4];
-	bone.inverse_world_transform[5] = -bone.inverse_world_transform[5];
-	bone.inverse_world_transform[6] = -bone.inverse_world_transform[6];
+	}	
 
 	bone.light_info = nullptr;
 	bone.camera_info = nullptr;
 	bone.extended_data.keys = nullptr;
 	bone.extended_data.values = nullptr;
 	bones.push_back(bone);
+
+	print_bone(bone);	
 }
 
 void import_bones(GR2_import_info& import_info, FbxNode* node, int32_t parent_index, std::vector<GR2_bone>& bones)
@@ -766,7 +792,16 @@ void import_bones(GR2_import_info& import_info, FbxNode* node, int32_t parent_in
 }
 
 void import_skeleton(GR2_import_info& import_info, FbxNode* node)
-{	
+{
+	cout << "Importing skeleton: " << node->GetName() << endl;
+
+	import_info.bone_scaling.x = node->LclScaling.Get()[0];
+	import_info.bone_scaling.y = node->LclScaling.Get()[1];
+	import_info.bone_scaling.z = node->LclScaling.Get()[2];
+
+	node->LclRotation.Set(FbxDouble3(0, 0, 0));
+	node->LclScaling.Set(FbxDouble3(1, 1, 1));
+
 	import_info.bone_arrays.emplace_back();
 	import_bones(import_info, node, -1, import_info.bone_arrays.back());
 
@@ -912,9 +947,9 @@ void import_position(GR2_import_info& import_info, FbxNode* node,
 			knots.push_back(t);
 
 			auto p = node->LclTranslation.EvaluateValue(time);
-			controls.push_back(float(p[0]));
-			controls.push_back(float(p[1]));
-			controls.push_back(float(p[2]));
+			controls.push_back(float(p[0] * import_info.bone_scaling.x));
+			controls.push_back(float(p[1] * import_info.bone_scaling.y));
+			controls.push_back(float(p[2] * import_info.bone_scaling.z));
 
 			cout << "    " << knots.back() << ": " << p[0] << ' '
 			     << p[1] << ' ' << p[2] << endl;
@@ -937,9 +972,9 @@ void import_position(GR2_import_info& import_info, FbxNode* node,
 		auto& curve = import_info.d3c_curves.back();
 		curve.curve_data_header_D3Constant32f.format = D3Constant32f;
 		curve.curve_data_header_D3Constant32f.degree = 0;
-		curve.controls[0] = float(node->LclTranslation.Get()[0]);
-		curve.controls[1] = float(node->LclTranslation.Get()[1]);
-		curve.controls[2] = float(node->LclTranslation.Get()[2]);
+		curve.controls[0] = float(node->LclTranslation.Get()[0] * import_info.bone_scaling.x);
+		curve.controls[1] = float(node->LclTranslation.Get()[1] * import_info.bone_scaling.y);
+		curve.controls[2] = float(node->LclTranslation.Get()[2] * import_info.bone_scaling.z);
 		tt.position_curve.curve_data =
 		    reinterpret_cast<GR2_curve_data*>(&curve);
 	}
@@ -1030,8 +1065,13 @@ void import_anim_layer(GR2_import_info& import_info, FbxAnimLayer* layer,
 
 	auto attr = node->GetNodeAttribute();	
 	if(attr && attr->GetAttributeType() == FbxNodeAttribute::eSkeleton && node->GetParent() != node->GetScene()->GetRootNode())	{
-		auto skel_name = skeleton_name(node);
-		auto &tg = track_group(import_info, skel_name);				
+		auto skel_node = skeleton_node(node);
+
+		import_info.bone_scaling.x = skel_node->LclScaling.Get()[0];
+		import_info.bone_scaling.y = skel_node->LclScaling.Get()[1];
+		import_info.bone_scaling.z = skel_node->LclScaling.Get()[2];
+
+		auto &tg = track_group(import_info, skel_node->GetName());				
 
 		tg.transform_tracks.emplace_back();
 		auto& tt = tg.transform_tracks.back();
@@ -1174,8 +1214,8 @@ int main(int argc, char* argv[])
 	MDB_file mdb;
 
 	import_meshes(mdb, scene);
-	import_skeletons(scene, argv[1]);
 	import_animations(scene, argv[1]);
+	import_skeletons(scene, argv[1]);
 
 	string output_filename = path(argv[1]).stem().string() + ".MDB";
 	mdb.save(output_filename.c_str());
