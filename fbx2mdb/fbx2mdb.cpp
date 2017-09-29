@@ -729,7 +729,7 @@ void print_bone(GR2_bone& bone)
 	for (int row = 0; row < 4; ++row) {
 		cout << "        ";
 		for (int col = 0; col < 4; ++col) {
-			cout << ' ' << bone.inverse_world_transform[row * 4 + col];
+			cout << ' ' << bone.inverse_world_transform[col * 4 + row];
 		}
 		cout << endl;
 	}
