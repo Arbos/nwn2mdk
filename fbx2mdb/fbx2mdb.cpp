@@ -1016,19 +1016,11 @@ void import_rotation(GR2_import_info& import_info, FbxNode* node,
 		if (quat.DotProduct(prev_quat) < 0)
 			quat = -quat;
 
-		if (strcmp(tt.name, "RLeg1") == 0 && t > 1) {			
-			controls.push_back(float(prev_quat[0]));
-			controls.push_back(float(prev_quat[1]));
-			controls.push_back(float(prev_quat[2]));
-			controls.push_back(float(prev_quat[3]));
-		}
-		else {
-			controls.push_back(float(quat[0]));
-			controls.push_back(float(quat[1]));
-			controls.push_back(float(quat[2]));
-			controls.push_back(float(quat[3]));
-			prev_quat = quat;
-		}
+		controls.push_back(float(quat[0]));
+		controls.push_back(float(quat[1]));
+		controls.push_back(float(quat[2]));
+		controls.push_back(float(quat[3]));
+		prev_quat = quat;
 
 		cout << "    " << knots.back() << ": ";
 		cout << '[' << p[0] << ' ' << p[1] << ' ' << p[2] << "] "<< quat[0] << ' '
