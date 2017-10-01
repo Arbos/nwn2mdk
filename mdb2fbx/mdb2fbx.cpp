@@ -139,6 +139,13 @@ static void print_collision_mesh(const MDB_file::Collision_mesh& cm)
 #endif
 }
 
+static void print_collision_spheres(const MDB_file::Collision_spheres& cs)
+{
+	cout << "Signature:      " << string(cs.header.type, 4) << endl;
+	cout << "Size:           " << cs.header.packet_size << endl;		
+	cout << "Spheres:        " << cs.header.sphere_count << endl;	
+}
+
 static void print_hook(const MDB_file::Hook& hook)
 {
 	cout << "Signature:   " << string(hook.header.type, 4) << endl;
@@ -220,6 +227,9 @@ static void print_packet(const MDB_file::Packet* packet)
 	case MDB_file::COL3:
 		print_collision_mesh(
 		    *static_cast<const MDB_file::Collision_mesh*>(packet));
+		break;
+	case MDB_file::COLS:
+		print_collision_spheres(*static_cast<const MDB_file::Collision_spheres*>(packet));
 		break;
 	case MDB_file::HOOK:
 		print_hook(*static_cast<const MDB_file::Hook*>(packet));

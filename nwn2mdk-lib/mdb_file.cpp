@@ -143,6 +143,8 @@ void MDB_file::read_packet(Packet_key& packet_key, std::istream& in)
 		packets.emplace_back(new Collision_mesh(in));
 	else if (strncmp(packet_key.type, "COL3", 4) == 0)
 		packets.emplace_back(new Collision_mesh(in));
+	else if (strncmp(packet_key.type, "COLS", 4) == 0)
+		packets.emplace_back(new Collision_spheres(in));
 	else if (strncmp(packet_key.type, "HOOK", 4) == 0)
 		packets.emplace_back(new Hook(in));
 	else if (strncmp(packet_key.type, "RIGD", 4) == 0)
@@ -434,4 +436,33 @@ void MDB_file::Walk_mesh::write(std::ostream& out)
 	::write(out, header);
 	::write(out, verts);
 	::write(out, faces);
+}
+
+MDB_file::Collision_spheres::Collision_spheres(std::istream & in)
+{
+	read(in);
+}
+
+uint32_t MDB_file::Collision_spheres::packet_size()
+{
+	return sizeof(Collision_spheres_header) + 
+		sizeof(Collision_sphere) * spheres.size();
+}
+
+void MDB_file::Collision_spheres::read(std::istream & in)
+{
+	type = COLS;
+
+	::read(in, header);
+
+	spheres.resize(header.sphere_count);
+	::read(in, spheres);
+}
+
+void MDB_file::Collision_spheres::write(std::ostream & out)
+{
+	header.packet_size = packet_size();
+
+	::write(out, header);
+	::write(out,spheres);	
 }

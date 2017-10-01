@@ -62,6 +62,11 @@ public:
 		uint16_t flags[2];
 	};
 
+	struct Collision_sphere {
+		uint32_t bone_index;
+		float radius;
+	};
+
 	enum Material_flags {
 		/// Alpha map values from the diffuse map below 50% grey are not
 		/// drawn.
@@ -158,6 +163,10 @@ public:
 		uint32_t ui_flags;
 		uint32_t vertex_count;
 		uint32_t face_count;
+	};
+
+	struct Collision_spheres_header : Packet_header {
+		uint32_t sphere_count; ///< Number of collision spheres
 	};
 
 	enum Packet_type {
@@ -257,6 +266,19 @@ public:
 		void write(std::ostream& out) override;
 	};
 
+	/// Represents collision spheres (packet type COLS).
+	class Collision_spheres : public Packet {
+	public:
+		Collision_spheres_header header;
+		std::vector<Collision_sphere> spheres;
+
+		Collision_spheres(std::istream& in);
+
+		uint32_t packet_size() override;
+		void read(std::istream& in) override;
+		void write(std::ostream& out) override;
+	};
+
 	/// Constructs an empty MDB.
 	MDB_file();
 
@@ -315,6 +337,8 @@ private:
 
 	static_assert(sizeof(Collision_mesh_header) == 212);
 	static_assert(sizeof(Collision_mesh_vertex) == 36);
+	static_assert(sizeof(Collision_sphere) == 8);
+	static_assert(sizeof(Collision_spheres_header) == 12);
 	static_assert(sizeof(Face) == 6);
 	static_assert(sizeof(Header) == 12);
 	static_assert(sizeof(Hook_header) == 92);
