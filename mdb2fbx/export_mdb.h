@@ -14,6 +14,7 @@ struct Dependency {
 	std::string extracted_path;
 	bool exported;
 	std::vector<FbxNode*> fbx_bones;
+	std::vector<FbxNode*> fbx_head_bones;
 };
 
 struct Export_info {

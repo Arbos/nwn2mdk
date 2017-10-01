@@ -25,7 +25,7 @@ static FbxSurfacePhong *create_material(FbxScene* scene, FbxNode* node,
 	// Transform from [0, 100] to [0, 0.5]
 	material->SpecularFactor.Set(mdb_material.specular_value/200.0f);
 	// Transform from [0, 2.5] to [0, 100]
-	material->Shininess.Set(mdb_material.specular_power/2.5f*100.0f);
+	material->Shininess.Set(mdb_material.specular_power/2.5f*100.0f);	
 
 	return material;
 }
@@ -255,22 +255,24 @@ static void export_rigid_mesh(Export_info& export_info,
 #ifdef _WIN32
 static void export_skinning(Export_info& export_info,
 	const MDB_file::Skin& skin, FbxMesh* mesh, 
-	std::vector<FbxNode*>& fbx_bones)
+	Dependency& dep)
 {
 	FbxSkin *fbx_skin = FbxSkin::Create(export_info.scene, "");
 	fbx_skin->SetSkinningType(FbxSkin::eRigid);
 
-	std::vector<FbxCluster*> clusters(fbx_bones.size());
+	std::vector<FbxCluster*> clusters(dep.fbx_bones.size());
 	for (unsigned i = 0; i < clusters.size(); ++i) {
+		auto fbx_bone = (skin.header.material.flags & MDB_file::CUTSCENE_MESH) && i < dep.fbx_head_bones.size() ?
+			dep.fbx_head_bones[i] : dep.fbx_bones[i];
 		clusters[i] = FbxCluster::Create(export_info.scene, "");
-		clusters[i]->SetLink(fbx_bones[i]);
+		clusters[i]->SetLink(fbx_bone);
 		clusters[i]->SetLinkMode(FbxCluster::eNormalize);
 		FbxAMatrix m;
 		m.SetT(FbxVector4(0, 0, 0));
 		m.SetR(FbxVector4(-90, 0, 0));
 		m.SetS(FbxVector4(100, 100, 100));
 		clusters[i]->SetTransformMatrix(m);
-		clusters[i]->SetTransformLinkMatrix(fbx_bones[i]->EvaluateGlobalTransform());
+		clusters[i]->SetTransformLinkMatrix(fbx_bone->EvaluateGlobalTransform());
 	}
 
 	for (unsigned i = 0; i < skin.verts.size(); ++i) {
@@ -296,7 +298,7 @@ static void export_skinning(Export_info& export_info,
 {
 	for (auto &dep : export_info.dependencies) {
 		if (dep.second.fbx_bones.size() > 0) {
-			export_skinning(export_info, skin, mesh, dep.second.fbx_bones);
+			export_skinning(export_info, skin, mesh, dep.second);
 			return;
 		}
 	}

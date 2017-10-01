@@ -371,6 +371,36 @@ static bool process_arg(const Config& config, char *arg,
 	return true;
 }
 
+static void process_fbx_bones(Dependency& dep)
+{
+	FbxNode *ribcage = nullptr;
+
+	for (auto it = dep.fbx_bones.begin(); it != dep.fbx_bones.end();) {
+		if (strncmp((*it)->GetName(), "ap_", 3) == 0) {
+			// Erase "ap_..." bones as they are not used in skinning.
+			it = dep.fbx_bones.erase(it);
+		}
+		else if (strncmp((*it)->GetName(), "f_", 2) == 0) {
+			// Erase "f_..." bones as they are only uses for heads.
+			dep.fbx_head_bones.push_back(*it);
+			it = dep.fbx_bones.erase(it);			
+		}
+		else if (strcmp((*it)->GetName(), "Ribcage") == 0) {
+			// Erase "Ribcage" bone and keep it to reinsert later.
+			ribcage = *it;
+			it = dep.fbx_bones.erase(it);
+		}
+		else
+			++it;
+	}
+
+	if (ribcage) {
+		// Reinsert "Ribcage" bone. For some unknown reason, it seems		
+		// this bone must be always the last one.
+		dep.fbx_bones.push_back(ribcage);
+	}
+}
+
 bool process_args(Export_info& export_info, int argc, char* argv[],
 	std::vector<std::string> &filenames)
 {
@@ -415,6 +445,7 @@ bool process_args(Export_info& export_info, int argc, char* argv[],
 			export_gr2(*input.gr2, export_info.scene, dep.fbx_bones);
 			dep.exported = true;
 			dep.extracted = true;
+			process_fbx_bones(dep);
 		}
 	}
 
