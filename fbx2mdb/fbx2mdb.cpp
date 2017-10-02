@@ -157,6 +157,16 @@ FbxSkin *skin(FbxMesh *mesh)
 	return static_cast<FbxSkin*>(deformer);
 }
 
+FbxSkin *skin(FbxNode* node)
+{
+	auto mesh = node->GetMesh();
+
+	if (!mesh)
+		return nullptr;
+
+	return skin(mesh);	
+}
+
 template <typename T>
 void import_positions(FbxMesh* mesh, int polygon_index, T* poly_vertices)
 {
@@ -432,14 +442,19 @@ void import_polygon(MDB_file::Collision_mesh& col_mesh, FbxMesh* mesh,
 	cout << endl;
 }
 
-void import_collision_mesh(MDB_file& mdb, FbxMesh* mesh)
+void import_collision_mesh(MDB_file& mdb, FbxNode* node)
 {
+	auto mesh = node->GetMesh();
+
+	if (!mesh)
+		return;
+
 	cout << "  Polygons: " << mesh->GetPolygonCount() << endl;
 
 	auto col_mesh = make_unique<MDB_file::Collision_mesh>(
-	    ends_with(mesh->GetName(), "_C2") ? MDB_file::COL2
+	    ends_with(node->GetName(), "_C2") ? MDB_file::COL2
 	                                      : MDB_file::COL3);
-	strncpy(col_mesh->header.name, mesh->GetName(), 32);
+	strncpy(col_mesh->header.name, node->GetName(), 32);
 
 	for(int i = 0; i < mesh->GetPolygonCount(); ++i)
 		import_polygon(*col_mesh.get(), mesh, i);
@@ -517,17 +532,51 @@ void print_mesh(FbxMesh *mesh)
 	cout << "  Polygons: " << mesh->GetPolygonCount() << endl;
 }
 
-void import_rigid_mesh(MDB_file& mdb, FbxMesh* mesh)
+void import_user_property(FbxProperty& p, MDB_file::Material& material)
 {
+	if (p.GetName() == "TRANSPARENCY_MASK")
+		material.flags |= p.Get<float>() == 0 ? 0 : MDB_file::ALPHA_TEST;
+	else if (p.GetName() == "ENVIRONMENT_MAP")
+		material.flags |= p.Get<float>() == 0 ? 0 : MDB_file::ENVIRONMENT_MAPPING;
+	else if (p.GetName() == "HEAD")
+		material.flags |= p.Get<float>() == 0 ? 0 : MDB_file::CUTSCENE_MESH;
+	else if (p.GetName() == "GLOW")
+		material.flags |= p.Get<float>() == 0 ? 0 : MDB_file::GLOW;
+	else if (p.GetName() == "DONT_CAST_SHADOWS")
+		material.flags |= p.Get<float>() == 0 ? 0 : MDB_file::CAST_NO_SHADOWS;
+	else if (p.GetName() == "PROJECTED_TEXTURES")
+		material.flags |= p.Get<float>() == 0 ? 0 : MDB_file::PROJECTED_TEXTURES;
+}
+
+void import_user_properties(FbxNode* node, MDB_file::Material& material)
+{
+	auto p = node->GetFirstProperty();
+	while (p.IsValid()) {
+		if (p.GetFlag(FbxPropertyFlags::eUserDefined))
+			import_user_property(p, material);
+
+		p = node->GetNextProperty(p);
+	}
+}
+
+void import_rigid_mesh(MDB_file& mdb, FbxNode* node)
+{
+	auto mesh = node->GetMesh();
+
+	if (!mesh)
+		return;
+
 	print_mesh(mesh);
 
 	auto rigid_mesh = make_unique<MDB_file::Rigid_mesh>();
-	strncpy(rigid_mesh->header.name, mesh->GetName(), 32);
+	strncpy(rigid_mesh->header.name, node->GetName(), 32);
 
 	import_material(rigid_mesh->header.material, mesh);
 
 	for(int i = 0; i < mesh->GetPolygonCount(); ++i)
 		import_polygon(*rigid_mesh.get(), mesh, i);
+
+	import_user_properties(node, rigid_mesh->header.material);
 
 	mdb.add_packet(move(rigid_mesh));
 }
@@ -592,13 +641,18 @@ void import_polygon(MDB_file::Skin& skin, GR2_skeleton *skel, FbxMesh* mesh,
 	cout << endl;
 }
 
-void import_skin(MDB_file& mdb, FbxMesh* mesh)
+void import_skin(MDB_file& mdb, FbxNode* node)
 {
+	auto mesh = node->GetMesh();
+
+	if (!mesh)
+		return;
+
 	print_mesh(mesh);
 
 #ifdef _WIN32
 	auto skin = make_unique<MDB_file::Skin>();
-	strncpy(skin->header.name, mesh->GetName(), 32);
+	strncpy(skin->header.name, node->GetName(), 32);
 	auto skel_name = skeleton_name(mesh);
 	cout << "  Skeleton name: " << skel_name << endl;
 
@@ -623,33 +677,32 @@ void import_skin(MDB_file& mdb, FbxMesh* mesh)
 	for (int i = 0; i < mesh->GetPolygonCount(); ++i)
 		import_polygon(*skin.get(), gr2.file_info->skeletons[0], mesh, i);
 
+	import_user_properties(node, skin->header.material);
+
 	mdb.add_packet(move(skin));
 #endif
 }
 
-void import_mesh(MDB_file& mdb, FbxMesh* mesh)
+void import_mesh(MDB_file& mdb, FbxNode* node)
 {
-	cout << mesh->GetName() << endl;
+	cout << node->GetName() << endl;
 
-	if (ends_with(mesh->GetName(), "_C2"))
-		import_collision_mesh(mdb, mesh);
-	else if (ends_with(mesh->GetName(), "_C3"))
-		import_collision_mesh(mdb, mesh);
-	else if (skin(mesh))
-		import_skin(mdb, mesh);
+	if (ends_with(node->GetName(), "_C2"))
+		import_collision_mesh(mdb, node);
+	else if (ends_with(node->GetName(), "_C3"))
+		import_collision_mesh(mdb, node);
+	else if (skin(node))
+		import_skin(mdb, node);
 	else
-		import_rigid_mesh(mdb, mesh);
+		import_rigid_mesh(mdb, node);
 
 	cout << endl;
 }
 
 void import_meshes(MDB_file& mdb, FbxScene* scene)
 {
-	int mesh_count = scene->GetSrcObjectCount<FbxMesh>();
-	for(int i = 0; i < mesh_count; ++i) {
-		FbxMesh *m = scene->GetSrcObject<FbxMesh>(i);
-		import_mesh(mdb, m);
-	}
+	for (int i = 0; i < scene->GetRootNode()->GetChildCount(); ++i)
+		import_mesh(mdb, scene->GetRootNode()->GetChild(i));
 }
 
 struct GR2_track_group_info {
