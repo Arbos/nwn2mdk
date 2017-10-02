@@ -284,30 +284,35 @@ void import_uv(FbxMesh* mesh, int polygon_index, T* poly_vertices)
 	}
 }
 
-int bone_index(const char* bone_name, GR2_skeleton *skel)
-{
-	// It seems Ribcage is always 53.
-	if (strcmp(bone_name, "Ribcage") == 0)
-		return 53;
+struct Fbx_bones {
+	std::vector<FbxNode*> bones;
+	std::vector<FbxNode*> body_bones;
+	std::vector<FbxNode*> face_bones;
+	FbxNode* ribcage = nullptr;
+};
 
-	int index = 0;
-	for (int i = 0; i < skel->bones_count; ++i) {
-		if (strncmp(skel->bones[i].name, "ap_", 3) == 0) {
-			// Ignore this bone
-		}
-		else if (strcmp(skel->bones[i].name, "Ribcage") == 0) {
-			// Ignore this bone
-		}
-		else if (strcmp(bone_name, skel->bones[i].name) == 0)
-			return index;
-		else
-			++index;
+int bone_index(const char* bone_name, Fbx_bones& fbx_bones)
+{
+	// Ribcage bone is always the last bone.
+	if (strcmp(bone_name, "Ribcage") == 0)
+		return fbx_bones.body_bones.size();
+
+	// Search in the body bones.
+	for (unsigned i = 0; i < fbx_bones.body_bones.size(); ++i) {
+		if (strcmp(fbx_bones.body_bones[i]->GetName(), bone_name) == 0)
+			return i;		
 	}
 
-	return index;
+	// Search in the face bones.
+	for (unsigned i = 0; i < fbx_bones.face_bones.size(); ++i) {
+		if (strcmp(fbx_bones.face_bones[i]->GetName(), bone_name) == 0)
+			return i;
+	}
+
+	return 0;
 }
 
-void import_skinning(FbxMesh *mesh, int vertex_index, GR2_skeleton *skel,
+void import_skinning(FbxMesh *mesh, int vertex_index, Fbx_bones& fbx_bones,
 	MDB_file::Skin_vertex &poly_vertex)
 {
 	auto s = skin(mesh);
@@ -330,7 +335,7 @@ void import_skinning(FbxMesh *mesh, int vertex_index, GR2_skeleton *skel,
 					cout << "  A vertex cannot be influence by more than 4 bones\n";
 					return;
 				}
-				poly_vertex.bone_indices[bone_count] = bone_index(cluster->GetLink()->GetName(), skel);
+				poly_vertex.bone_indices[bone_count] = bone_index(cluster->GetLink()->GetName(), fbx_bones);
 				poly_vertex.bone_weights[bone_count] = float(cluster->GetControlPointWeights()[j]);
 				++bone_count;
 			}
@@ -339,11 +344,11 @@ void import_skinning(FbxMesh *mesh, int vertex_index, GR2_skeleton *skel,
 }
 
 void import_skinning(FbxMesh *mesh, int polygon_index,
-	GR2_skeleton *skel, MDB_file::Skin_vertex *poly_vertices)
+	Fbx_bones& fbx_bones, MDB_file::Skin_vertex *poly_vertices)
 {
 	for (int i = 0; i < mesh->GetPolygonSize(polygon_index); ++i) {
 		int index = mesh->GetPolygonVertex(polygon_index, i);
-		import_skinning(mesh, index, skel, poly_vertices[i]);
+		import_skinning(mesh, index, fbx_bones, poly_vertices[i]);
 
 	}
 }
@@ -592,24 +597,19 @@ FbxNode* skeleton_node(FbxNode* node)
 	return node;
 }
 
-const char *skeleton_name(FbxNode* node)
+FbxNode* skeleton_node(FbxMesh* mesh)
 {
-	return skeleton_node(node)->GetName();
-}
-
-const char *skeleton_name(FbxMesh *mesh)
-{	
 	auto s = skin(mesh);
 
 	if (!s)
-		return "";
+		return nullptr;
 
 	auto cluster = s->GetCluster(0);
 
-	return skeleton_name(cluster->GetLink());
+	return skeleton_node(cluster->GetLink());
 }
 
-void import_polygon(MDB_file::Skin& skin, GR2_skeleton *skel, FbxMesh* mesh,
+void import_polygon(MDB_file::Skin& skin, Fbx_bones& fbx_bones, FbxMesh* mesh,
 	int polygon_index)
 {
 	if (mesh->GetPolygonSize(polygon_index) != 3) {
@@ -628,7 +628,7 @@ void import_polygon(MDB_file::Skin& skin, GR2_skeleton *skel, FbxMesh* mesh,
 	import_tangents(mesh, polygon_index, poly_vertices);
 	import_binormals(mesh, polygon_index, poly_vertices);
 	import_uv(mesh, polygon_index, poly_vertices);
-	import_skinning(mesh, polygon_index, skel, poly_vertices);
+	import_skinning(mesh, polygon_index, fbx_bones, poly_vertices);
 
 	MDB_file::Face face;
 
@@ -639,6 +639,27 @@ void import_polygon(MDB_file::Skin& skin, GR2_skeleton *skel, FbxMesh* mesh,
 	skin.faces.push_back(face);
 
 	cout << endl;
+}
+
+void gather_fbx_bones(FbxNode* node, Fbx_bones& fbx_bones)
+{
+	fbx_bones.bones.push_back(node);
+
+	if (strncmp(node->GetName(), "ap_", 3) == 0) {
+		// Discard "ap_..." bones as they are not used in skinning.		
+	}
+	else if (strncmp(node->GetName(), "f_", 2) == 0) {
+		fbx_bones.face_bones.push_back(node);
+	}
+	else if (strcmp(node->GetName(), "Ribcage") == 0) {		
+		fbx_bones.ribcage = node;		
+	}
+	else {
+		fbx_bones.body_bones.push_back(node);
+	}
+
+	for (int i = 0; i < node->GetChildCount(); ++i)
+		gather_fbx_bones(node->GetChild(i), fbx_bones);
 }
 
 void import_skin(MDB_file& mdb, FbxNode* node)
@@ -653,29 +674,18 @@ void import_skin(MDB_file& mdb, FbxNode* node)
 #ifdef _WIN32
 	auto skin = make_unique<MDB_file::Skin>();
 	strncpy(skin->header.name, node->GetName(), 32);
-	auto skel_name = skeleton_name(mesh);
-	cout << "  Skeleton name: " << skel_name << endl;
+	auto skel_node = skeleton_node(mesh);
+	cout << "  Skeleton name: " << skel_node->GetName() << endl;
 
-	strncpy(skin->header.skeleton_name, skel_name, 32);
-
-	path skel_filename = path(skel_name).concat(".gr2");
-	cout << "  Reference skeleton filename: " << skel_filename.string() << endl;
-
-	GR2_file gr2(skel_filename.string().c_str());
-	if (!gr2) {
-		cout << "    " << gr2.error_string() << endl;
-		return;
-	}
-
-	if (gr2.file_info->skeletons_count == 0) {
-		cout << "  GR2 doesn't contains any skeleton\n";
-		return;
-	}
+	strncpy(skin->header.skeleton_name, skel_node->GetName(), 32);	
 
 	import_material(skin->header.material, mesh);
 
+	Fbx_bones fbx_bones;
+	gather_fbx_bones(skel_node->GetChild(0), fbx_bones);
+
 	for (int i = 0; i < mesh->GetPolygonCount(); ++i)
-		import_polygon(*skin.get(), gr2.file_info->skeletons[0], mesh, i);
+		import_polygon(*skin.get(), fbx_bones, mesh, i);
 
 	import_user_properties(node, skin->header.material);
 
