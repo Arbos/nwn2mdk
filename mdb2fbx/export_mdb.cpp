@@ -25,9 +25,29 @@ static FbxSurfacePhong *create_material(FbxScene* scene, FbxNode* node,
 	// Transform from [0, 100] to [0, 0.5]
 	material->SpecularFactor.Set(mdb_material.specular_value/200.0f);
 	// Transform from [0, 2.5] to [0, 100]
-	material->Shininess.Set(mdb_material.specular_power/2.5f*100.0f);	
+	material->Shininess.Set(mdb_material.specular_power/2.5f*100.0f);
 
 	return material;
+}
+
+static void create_user_property(FbxNode* node,
+	const MDB_file::Material& mdb_material, MDB_file::Material_flags flag,
+	const char* flag_name)
+{
+	auto prop = FbxProperty::Create(node, FbxFloatDT, flag_name);
+	prop.Set(mdb_material.flags & flag ? 1.0f : 0.0f);
+	prop.ModifyFlag(FbxPropertyFlags::eUserDefined, true);
+}
+
+static void create_user_properties(FbxNode* node,
+	const MDB_file::Material& mdb_material)
+{
+	create_user_property(node, mdb_material, MDB_file::ALPHA_TEST, "TRANSPARENCY_MASK");
+	create_user_property(node, mdb_material, MDB_file::ENVIRONMENT_MAPPING, "ENVIRONMENT_MAP");
+	create_user_property(node, mdb_material, MDB_file::CUTSCENE_MESH, "HEAD");
+	create_user_property(node, mdb_material, MDB_file::GLOW, "GLOW");
+	create_user_property(node, mdb_material, MDB_file::CAST_NO_SHADOWS, "DONT_CAST_SHADOWS");
+	create_user_property(node, mdb_material, MDB_file::PROJECTED_TEXTURES, "PROJECTED_TEXTURES");
 }
 
 static FbxFileTexture* create_texture(FbxScene* scene, const char* name)
@@ -250,6 +270,8 @@ static void export_rigid_mesh(Export_info& export_info,
 		create_material(export_info.scene, node, rm.header.material, name.c_str());
 	export_maps(export_info, material, rm.header.material);
 	node->AddMaterial(material);
+
+	create_user_properties(node, rm.header.material);
 }
 
 #ifdef _WIN32
@@ -326,6 +348,8 @@ static void export_skin(Export_info& export_info, const MDB_file::Skin& skin)
 		create_material(export_info.scene, node, skin.header.material, name.c_str());
 	export_maps(export_info, material, skin.header.material);
 	node->AddMaterial(material);
+
+	create_user_properties(node, skin.header.material);
 
 #ifdef _WIN32 // Export skinning only on Windows	
 	export_skinning(export_info, skin, mesh);	
