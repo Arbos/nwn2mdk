@@ -174,6 +174,55 @@ const char* property_type_to_str(GR2_property_type type)
 	return s[type];
 }
 
+GR2_D3K16uC16u_view::GR2_D3K16uC16u_view(GR2_curve_data_D3K16uC16u& data)
+{
+	int knots_count = data.knots_controls_count / 4;
+
+	float one_over_knot_scale;
+	unsigned tmp = (unsigned)data.one_over_knot_scale_trunc << 16;
+	memcpy(&one_over_knot_scale, &tmp, sizeof(tmp));
+
+	for (int i = 0; i < knots_count; ++i) {
+		encoded_knots_.push_back(data.knots_controls[i]);
+		knots_.push_back(data.knots_controls[i] / one_over_knot_scale);
+	}
+
+	int controls_count = data.knots_controls_count - knots_count;
+	auto controls = data.knots_controls + knots_count;
+
+	for (int i = 0; i < controls_count; i += 3) {
+		auto a = controls[i + 0];
+		auto b = controls[i + 1];
+		auto c = controls[i + 2];
+		encoded_controls_.emplace_back(a, b, c);
+
+		float x = a * data.control_scales[0] + data.control_offsets[0];
+		float y = b * data.control_scales[1] + data.control_offsets[1];
+		float z = c * data.control_scales[2] + data.control_offsets[2];
+		controls_.emplace_back(x, y, z);
+	}
+}
+
+const std::vector<uint16_t>& GR2_D3K16uC16u_view::encoded_knots() const
+{
+	return encoded_knots_;
+}
+
+const std::vector<float>& GR2_D3K16uC16u_view::knots() const
+{
+	return knots_;
+}
+
+const std::vector<Vector3<uint16_t>>& GR2_D3K16uC16u_view::encoded_controls() const
+{
+	return encoded_controls_;
+}
+
+const std::vector<Vector3<float>>& GR2_D3K16uC16u_view::controls() const
+{
+	return controls_;
+}
+
 GR2_D3K8uC8u_view::GR2_D3K8uC8u_view(GR2_curve_data_D3K8uC8u& data)
 {
 	int knots_count = data.knots_controls_count / 4;
@@ -359,6 +408,8 @@ const std::vector<Vector4<float>>& GR2_DaK32fC32f_view::controls() const
 
 GR2_curve_view::GR2_curve_view(GR2_curve& curve)
 {
+	degree_ = curve.curve_data->curve_data_header.degree;
+
 	if (curve.curve_data->curve_data_header.format == DaK32fC32f) {
 		GR2_curve_data_DaK32fC32f* data =
 			(GR2_curve_data_DaK32fC32f*)curve.curve_data;
@@ -389,6 +440,14 @@ GR2_curve_view::GR2_curve_view(GR2_curve& curve)
 		knots_ = view.knots();
 		controls_ = view.controls();		
 	}
+	else if (curve.curve_data->curve_data_header.format == D3K16uC16u) {
+		GR2_curve_data_D3K16uC16u* data =
+			(GR2_curve_data_D3K16uC16u*)curve.curve_data;
+		GR2_D3K16uC16u_view view(*data);
+		knots_ = view.knots();
+		for (auto &c : view.controls())
+			controls_.emplace_back(c.x, c.y, c.z, 1.0f);
+	}
 	else if (curve.curve_data->curve_data_header.format == D3K8uC8u) {
 		GR2_curve_data_D3K8uC8u* data =
 			(GR2_curve_data_D3K8uC8u*)curve.curve_data;
@@ -397,6 +456,11 @@ GR2_curve_view::GR2_curve_view(GR2_curve& curve)
 		for (auto &c : view.controls())
 			controls_.emplace_back(c.x, c.y, c.z, 1.0f);
 	}
+}
+
+uint8_t GR2_curve_view::degree() const
+{
+	return degree_;
 }
 
 const std::vector<float>& GR2_curve_view::knots() const

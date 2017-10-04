@@ -6,6 +6,8 @@
 
 using namespace std;
 
+const float time_step = 1 / 30.0f;
+
 static FbxVector4 quat_to_euler(FbxQuaternion &q)
 {
 	FbxAMatrix m;
@@ -82,123 +84,189 @@ static void export_skeletons(FbxScene *scene, GR2_file_info *info,
 	}
 }
 
-void create_anim_position(FbxNode *node, FbxAnimLayer *anim_layer,
+std::vector<float> padded_knots(const std::vector<float>& knots, unsigned degree)
+{
+	std::vector<float> v;
+
+	v.push_back(0);
+
+	for (auto t : knots)
+		v.push_back(t);
+
+	for (unsigned i = 1; i <= degree; ++i) {
+		v[i] = 0;
+		v.push_back(knots.back());
+	}
+
+	return v;
+}
+
+// De Boor's algorithm to evaluate a B-spline
+Vector3<float> de_boor_position(unsigned k, const std::vector<float>& knots, const std::vector<Vector4<float>>& controls, float t)
+{	
+	unsigned i = k;
+
+	while (knots[i] <= t)
+		++i;
+
+	i = i - 1;
+
+	std::vector<Vector3<float>> d;
+
+	for (unsigned j = 0; j <= k; ++j) {
+		auto r = controls[j + i - k];
+		d.emplace_back(r.x, r.y, r.z);
+	}
+
+	for (unsigned r = 1; r <= k; ++r) {
+		for (unsigned j = k; j >= r; --j) {
+			float alpha = 0;
+			if (knots[j + 1 + i - r] != knots[j + i - k])
+				alpha = (t - knots[j + i - k]) / (knots[j + 1 + i - r] - knots[j + i - k]);
+			d[j].x = d[j - 1].x * (1 - alpha) + d[j].x * alpha;
+			d[j].y = d[j - 1].y * (1 - alpha) + d[j].y * alpha;
+			d[j].z = d[j - 1].z * (1 - alpha) + d[j].z * alpha;
+		}
+	}
+
+	return d[k];
+}
+
+Vector3<float> de_boor_position(unsigned degree, float t, GR2_curve_view &v)
+{
+	if (v.knots().size() == 1 || v.knots().size() < degree + 1)
+		return Vector3<float>(v.controls()[0].x, v.controls()[0].y, v.controls()[0].z);
+
+	return de_boor_position(degree, padded_knots(v.knots(), degree), v.controls(), t);
+}
+
+// De Boor's algorithm to evaluate a B-spline
+FbxQuaternion de_boor_rotation(unsigned k, const std::vector<float>& knots, const std::vector<Vector4<float>>& controls, float t)
+{
+	unsigned i = k;
+
+	while (knots[i] <= t)
+		++i;
+
+	i = i - 1;
+
+	std::vector<FbxQuaternion> d;
+
+	for (unsigned j = 0; j <= k; ++j) {
+		auto r = controls[j + i - k];
+		d.emplace_back(r.x, r.y, r.z, r.w);
+	}
+
+	for (unsigned r = 1; r <= k; ++r) {
+		for (unsigned j = k; j >= r; --j) {
+			float alpha = 1;
+			if (knots[j + 1 + i - r] != knots[j + i - k])
+				alpha = (t - knots[j + i - k]) / (knots[j + 1 + i - r] - knots[j + i - k]);
+			d[j] = d[j - 1].Slerp(d[j], alpha);
+		}
+	}
+
+	return d[k];
+}
+
+FbxQuaternion de_boor_rotation(unsigned degree, float t, GR2_curve_view &v)
+{
+	if (v.knots().size() == 1 || v.knots().size() < degree + 1)
+		return FbxQuaternion(v.controls()[0].x, v.controls()[0].y, v.controls()[0].z, v.controls()[0].w);	
+
+	return de_boor_rotation(degree, padded_knots(v.knots(), degree), v.controls(), t);
+}
+
+void create_anim_position(FbxNode *node, FbxAnimLayer *anim_layer, GR2_animation *anim,
 	GR2_transform_track &transform_track)
 {
 	GR2_curve_view view(transform_track.position_curve);
 
-	auto curvex = node->LclTranslation.GetCurve(anim_layer, FBXSDK_CURVENODE_COMPONENT_X, true);
+	if (view.knots().empty())
+		return;
+
+	auto curvex = node->LclTranslation.GetCurve(anim_layer, FBXSDK_CURVENODE_COMPONENT_X, true);	
+	auto curvey = node->LclTranslation.GetCurve(anim_layer, FBXSDK_CURVENODE_COMPONENT_Y, true);	
+	auto curvez = node->LclTranslation.GetCurve(anim_layer, FBXSDK_CURVENODE_COMPONENT_Z, true);	
+
 	curvex->KeyModifyBegin();
+	curvey->KeyModifyBegin();
+	curvez->KeyModifyBegin();	
 
-	for (unsigned i = 0; i < view.knots().size(); ++i) {
-		if (i > 0 && view.knots()[i] <= view.knots()[i - 1]) continue;
-
-		FbxTime time;
-		time.SetSecondDouble(view.knots()[i]);
+	for (float t = 0; t < anim->duration; t += time_step) {
+		auto p = de_boor_position(view.degree(), t, view);
+			
+		FbxTime time;		
+		time.SetSecondDouble(t);
 		auto k = curvex->KeyAdd(time);
-		curvex->KeySetValue(k, view.controls()[i].x);
+		curvex->KeySetValue(k, p.x);
+		k = curvey->KeyAdd(time);
+		curvey->KeySetValue(k, p.y);
+		k = curvez->KeyAdd(time);
+		curvez->KeySetValue(k, p.z);
 	}
 
 	curvex->KeyModifyEnd();
-
-	auto curvey = node->LclTranslation.GetCurve(anim_layer, FBXSDK_CURVENODE_COMPONENT_Y, true);
-	curvey->KeyModifyBegin();
-
-	for (unsigned i = 0; i < view.knots().size(); ++i) {
-		if (i > 0 && view.knots()[i] <= view.knots()[i - 1]) continue;
-
-		FbxTime time;
-		time.SetSecondDouble(view.knots()[i]);
-		auto k = curvey->KeyAdd(time);
-		curvey->KeySetValue(k, view.controls()[i].y);
-	}
-
 	curvey->KeyModifyEnd();
-
-	auto curvez = node->LclTranslation.GetCurve(anim_layer, FBXSDK_CURVENODE_COMPONENT_Z, true);
-	curvez->KeyModifyBegin();
-
-	for (unsigned i = 0; i < view.knots().size(); ++i) {
-		if (i > 0 && view.knots()[i] <= view.knots()[i - 1]) continue;
-
-		FbxTime time;
-		time.SetSecondDouble(view.knots()[i]);
-		auto k = curvez->KeyAdd(time);
-		curvez->KeySetValue(k, view.controls()[i].z);
-	}
-
 	curvez->KeyModifyEnd();
 }
 
-void create_anim_rotation(FbxNode *node, FbxAnimLayer *anim_layer, GR2_transform_track &transform_track)
+void create_anim_rotation(FbxNode *node, FbxAnimLayer *anim_layer, GR2_animation *anim, GR2_transform_track &transform_track)
 {
 	GR2_curve_view view(transform_track.orientation_curve);
 
-	std::vector<FbxVector4> rotations;
-	for (auto &c : view.controls())
-		rotations.push_back(quat_to_euler(FbxQuaternion(c.x, c.y, c.z, c.w)));
+	if (view.knots().empty())
+		return;
 
-	auto curvex = node->LclRotation.GetCurve(anim_layer, FBXSDK_CURVENODE_COMPONENT_X, true);
+	auto curvex = node->LclRotation.GetCurve(anim_layer, FBXSDK_CURVENODE_COMPONENT_X, true);	
+	auto curvey = node->LclRotation.GetCurve(anim_layer, FBXSDK_CURVENODE_COMPONENT_Y, true);	
+	auto curvez = node->LclRotation.GetCurve(anim_layer, FBXSDK_CURVENODE_COMPONENT_Z, true);
+
 	curvex->KeyModifyBegin();
+	curvey->KeyModifyBegin();
+	curvez->KeyModifyBegin();	
 
-	for (unsigned i = 0; i < view.knots().size(); ++i) {
-		if (i > 0 && view.knots()[i] <= view.knots()[i - 1]) continue;
+	for (float t = 0; t < anim->duration; t += time_step) {
+		auto r = de_boor_rotation(view.degree(), t, view);		
+		auto e = quat_to_euler(r);
 
 		FbxTime time;
-		time.SetSecondDouble(view.knots()[i]);
+		time.SetSecondDouble(t);
 		auto k = curvex->KeyAdd(time);
-		curvex->KeySetValue(k, float(rotations[i][0]));
+		curvex->KeySetValue(k, float(e[0]));
+		k = curvey->KeyAdd(time);
+		curvey->KeySetValue(k, float(e[1]));
+		k = curvez->KeyAdd(time);
+		curvez->KeySetValue(k, float(e[2]));
 	}
 
 	curvex->KeyModifyEnd();
-
-	auto curvey = node->LclRotation.GetCurve(anim_layer, FBXSDK_CURVENODE_COMPONENT_Y, true);
-	curvey->KeyModifyBegin();
-
-	for (unsigned i = 0; i < view.knots().size(); ++i) {
-		if (i > 0 && view.knots()[i] <= view.knots()[i - 1]) continue;
-
-		FbxTime time;
-		time.SetSecondDouble(view.knots()[i]);
-		auto k = curvey->KeyAdd(time);
-		curvey->KeySetValue(k, float(rotations[i][1]));
-	}
-
 	curvey->KeyModifyEnd();
-
-	auto curvez = node->LclRotation.GetCurve(anim_layer, FBXSDK_CURVENODE_COMPONENT_Z, true);
-	curvez->KeyModifyBegin();
-
-	for (unsigned i = 0; i < view.knots().size(); ++i) {
-		if (i > 0 && view.knots()[i] <= view.knots()[i - 1]) continue;
-
-		FbxTime time;
-		time.SetSecondDouble(view.knots()[i]);
-		auto k = curvez->KeyAdd(time);
-		curvez->KeySetValue(k, float(rotations[i][2]));
-	}
-
 	curvez->KeyModifyEnd();
 }
 
-void export_animation(FbxScene *scene, GR2_transform_track &transform_track,
-	FbxAnimLayer *anim_layer)
-{	
+void export_animation(FbxScene *scene, GR2_animation *anim, GR2_transform_track &transform_track,
+	FbxAnimLayer *anim_layer)	
+{
+	cout << "    Exporting transform track: " << transform_track.name << endl;
+
 	auto node = scene->FindNodeByName(transform_track.name);	
 	if (node) {
 		if (node->GetChildCount() == 1 && strcmp(node->GetName(), node->GetChild(0)->GetName()) == 0)
 			node = node->GetChild(0);
 
-		create_anim_position(node, anim_layer, transform_track);
-		create_anim_rotation(node, anim_layer, transform_track);
+		create_anim_position(node, anim_layer, anim, transform_track);
+		create_anim_rotation(node, anim_layer, anim, transform_track);
 	}
 }
 
-static void export_animation(FbxScene *scene, GR2_track_group *track_group,
+static void export_animation(FbxScene *scene, GR2_animation *anim, GR2_track_group *track_group,
 	FbxAnimLayer *anim_layer)
 {
+	cout << "  Exporting track group: " << track_group->name << endl;
+
 	for (int i = 0; i < track_group->transform_tracks_count; ++i)
-		export_animation(scene, track_group->transform_tracks[i]
+		export_animation(scene, anim, track_group->transform_tracks[i]
 			, anim_layer);
 }
 
@@ -211,7 +279,7 @@ static void export_animation(FbxScene *scene, GR2_animation *anim)
 	anim_stack->AddMember(anim_layer);
 
 	for (int i = 0; i < anim->track_groups_count; ++i)
-		export_animation(scene, anim->track_groups[i], anim_layer);
+		export_animation(scene, anim, anim->track_groups[i], anim_layer);
 }
 
 static void export_animations(FbxScene *scene, GR2_file_info *info)
