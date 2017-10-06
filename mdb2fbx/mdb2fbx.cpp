@@ -373,31 +373,31 @@ static bool process_arg(const Config& config, char *arg,
 
 static void process_fbx_bones(Dependency& dep)
 {
-	FbxNode *ribcage = nullptr;
+	FbxNode* ribcage = nullptr;
 
 	for (auto it = dep.fbx_bones.begin(); it != dep.fbx_bones.end();) {
 		if (strncmp((*it)->GetName(), "ap_", 3) == 0) {
-			// Erase "ap_..." bones as they are not used in skinning.
-			it = dep.fbx_bones.erase(it);
+			// "ap_..." (attachment point) bones are not used for skinning.			
 		}
 		else if (strncmp((*it)->GetName(), "f_", 2) == 0) {
-			// Erase "f_..." bones as they are only uses for heads.
-			dep.fbx_head_bones.push_back(*it);
-			it = dep.fbx_bones.erase(it);			
+			// "f_..." (face) bones are only used for head skinning.
+			dep.fbx_face_bones.push_back(*it);			
 		}
 		else if (strcmp((*it)->GetName(), "Ribcage") == 0) {
-			// Erase "Ribcage" bone and keep it to reinsert later.
-			ribcage = *it;
-			it = dep.fbx_bones.erase(it);
+			// Keep "Ribcage" bone to reinsert it later.
+			ribcage = *it;			
 		}
-		else
+		else {
+			// The remaining bones are used for body skinning.
+			dep.fbx_body_bones.push_back(*it);
+		}
 			++it;
 	}
 
 	if (ribcage) {
 		// Reinsert "Ribcage" bone. For some unknown reason, it seems		
 		// this bone must be always the last one.
-		dep.fbx_bones.push_back(ribcage);
+		dep.fbx_body_bones.push_back(ribcage);
 	}
 }
 

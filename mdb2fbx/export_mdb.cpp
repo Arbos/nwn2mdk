@@ -248,6 +248,136 @@ static void export_collision_mesh_3(Export_info& export_info,
 	node->AddMaterial(material);
 }
 
+FbxMesh* create_sphere(Export_info& export_info, const char* name, double radius)
+{
+	auto mesh = FbxMesh::Create(export_info.scene, name);
+
+	int rings = 16;
+	int segments = 32;
+	int vertex_count = 2 + (rings - 1)*segments;
+
+	mesh->InitControlPoints(vertex_count);
+
+	// North pole vertex
+	mesh->GetControlPoints()[0] = FbxVector4(0, 0, radius);
+
+	// Middle rings vertices
+	for (int vertex_index = 1, i = 1; i < rings; ++i) {
+		double inclination = M_PI / rings*i;
+		for (int j = 0; j < segments; ++j) {
+			double azimuth = 2 * M_PI / segments*j;
+			double x = radius * sin(inclination) * cos(azimuth);
+			double y = radius * sin(inclination) * sin(azimuth);
+			double z = radius * cos(inclination);
+			mesh->GetControlPoints()[vertex_index] = FbxVector4(x, y, z);
+			++vertex_index;
+		}
+	}
+
+	// South pole vertex
+	mesh->GetControlPoints()[vertex_count - 1] = FbxVector4(0, 0, -radius);
+
+	// Top ring faces
+	for (int i = 1; i <= segments; ++i) {
+		mesh->BeginPolygon(-1, -1, -1, false);
+		mesh->AddPolygon(0);
+		mesh->AddPolygon(i);
+		mesh->AddPolygon(i % segments + 1);
+		mesh->EndPolygon();
+	}
+
+	// Middle rings faces
+	for (int r = 1; r <= rings - 2; ++r) {
+		int vertex_base = 1 + (r - 1)*segments;
+
+		for (int i = 0; i < segments; ++i) {
+			mesh->BeginPolygon(-1, -1, -1, false);
+			mesh->AddPolygon(vertex_base + i);
+			mesh->AddPolygon(vertex_base + segments + i);
+			mesh->AddPolygon(vertex_base + segments + (i + 1) % segments);
+			mesh->AddPolygon(vertex_base + (i + 1) % segments);
+			mesh->EndPolygon();
+		}		
+	}
+
+	// Bottom ring faces
+	for (int i = 0; i < segments; ++i) {
+		mesh->BeginPolygon(-1, -1, -1, false);
+		mesh->AddPolygon(vertex_count - 1 - segments + i);
+		mesh->AddPolygon(vertex_count - 1);
+		mesh->AddPolygon(vertex_count - 1 - segments + (i + 1) % segments);
+		mesh->EndPolygon();
+	}
+
+	return mesh;
+}
+
+static FbxSurfacePhong *collision_sphere_material(FbxScene* scene)
+{
+	static FbxSurfacePhong* material = nullptr;
+	if (!material) {
+		material = FbxSurfacePhong::Create(scene, "COLS");
+		material->Diffuse.Set(FbxDouble3(0.5, 0.5, 0.5));
+		material->DiffuseFactor.Set(1.0);
+		material->TransparentColor.Set(FbxDouble3(1.0, 1.0, 1.0));
+		material->TransparencyFactor.Set(1.0);
+		material->Specular.Set(FbxDouble3(0, 0, 0));
+		material->SpecularFactor.Set(0);
+		material->Shininess.Set(2);
+	}
+
+	return material;
+}
+
+static void export_collision_sphere(Export_info& export_info,
+	const MDB_file::Collision_spheres& cs, uint32_t sphere_index,
+	Dependency& dep)
+{
+	FbxNode* fbx_bone = nullptr;
+	if (cs.spheres[sphere_index].bone_index < dep.fbx_bones.size())
+		fbx_bone = dep.fbx_bones[cs.spheres[sphere_index].bone_index];
+	
+	string node_name = "COLS_";
+	if (fbx_bone)
+		node_name += fbx_bone->GetName();
+	else
+		node_name += to_string(cs.spheres[sphere_index].bone_index);
+
+	auto node = FbxNode::Create(export_info.scene, node_name.c_str());
+	node->LclRotation.Set(FbxDouble3(-90, 0, 0));
+	node->LclScaling.Set(FbxDouble3(100, 100, 100));
+
+	if (fbx_bone) {
+		auto m = fbx_bone->EvaluateGlobalTransform();
+		node->LclTranslation.Set(m.GetT());
+	}
+
+	export_info.scene->GetRootNode()->AddChild(node);
+
+	auto mesh = create_sphere(export_info, node_name.c_str(), cs.spheres[sphere_index].radius);
+	node->SetNodeAttribute(mesh);
+	
+	node->AddMaterial(collision_sphere_material(export_info.scene));
+}
+
+static void export_collision_spheres(Export_info& export_info,
+	const MDB_file::Collision_spheres& cs)
+{
+	Dependency* dep = nullptr;
+	for (auto &d : export_info.dependencies) {
+		if (d.second.fbx_bones.size() > 0) {
+			dep = &d.second;
+			break;
+		}
+	}
+
+	if (!dep)
+		return;
+
+	for (uint32_t i = 0; i < cs.header.sphere_count; ++i)
+		export_collision_sphere(export_info, cs, i, *dep);
+}
+
 static void export_rigid_mesh(Export_info& export_info,
 	const MDB_file::Rigid_mesh& rm)
 {
@@ -282,10 +412,10 @@ static void export_skinning(Export_info& export_info,
 	FbxSkin *fbx_skin = FbxSkin::Create(export_info.scene, "");
 	fbx_skin->SetSkinningType(FbxSkin::eRigid);
 
-	std::vector<FbxCluster*> clusters(dep.fbx_bones.size());
+	std::vector<FbxCluster*> clusters(dep.fbx_body_bones.size());
 	for (unsigned i = 0; i < clusters.size(); ++i) {
-		auto fbx_bone = (skin.header.material.flags & MDB_file::CUTSCENE_MESH) && i < dep.fbx_head_bones.size() ?
-			dep.fbx_head_bones[i] : dep.fbx_bones[i];
+		auto fbx_bone = (skin.header.material.flags & MDB_file::CUTSCENE_MESH) && i < dep.fbx_face_bones.size() ?
+			dep.fbx_face_bones[i] : dep.fbx_body_bones[i];
 		clusters[i] = FbxCluster::Create(export_info.scene, "");
 		clusters[i]->SetLink(fbx_bone);
 		clusters[i]->SetLinkMode(FbxCluster::eNormalize);
@@ -392,6 +522,10 @@ static void export_packet(Export_info& export_info,
 	case MDB_file::COL3:
 		export_collision_mesh_3(export_info,
 			*static_cast<const MDB_file::Collision_mesh*>(packet));
+		break;
+	case MDB_file::COLS:
+		export_collision_spheres(export_info,
+			*static_cast<const MDB_file::Collision_spheres*>(packet));
 		break;
 	case MDB_file::HOOK:
 		break;
