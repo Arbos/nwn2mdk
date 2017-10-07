@@ -438,6 +438,14 @@ void MDB_file::Walk_mesh::write(std::ostream& out)
 	::write(out, faces);
 }
 
+MDB_file::Collision_spheres::Collision_spheres()
+{
+	type = COLS;
+	memcpy(header.type, type_str(), 4);
+	header.packet_size = 0;
+	header.sphere_count = 0;
+}
+
 MDB_file::Collision_spheres::Collision_spheres(std::istream & in)
 {
 	read(in);
@@ -445,7 +453,7 @@ MDB_file::Collision_spheres::Collision_spheres(std::istream & in)
 
 uint32_t MDB_file::Collision_spheres::packet_size()
 {
-	return sizeof(Collision_spheres_header) + 
+	return sizeof(Collision_spheres_header) - sizeof(Packet_header) +
 		sizeof(Collision_sphere) * spheres.size();
 }
 
@@ -464,5 +472,5 @@ void MDB_file::Collision_spheres::write(std::ostream & out)
 	header.packet_size = packet_size();
 
 	::write(out, header);
-	::write(out,spheres);	
+	::write(out, spheres);	
 }

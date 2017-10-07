@@ -103,6 +103,11 @@ FbxQuaternion euler_to_quaternion(const FbxVector4 &v)
 	return q;
 }
 
+bool starts_with(const char *s1, const char *s2)
+{
+	return strncmp(s1, s2, strlen(s2)) == 0;
+}
+
 bool ends_with(const char *s1, const char *s2)
 {
 	auto l1 = strlen(s1);
@@ -703,7 +708,7 @@ void import_mesh(MDB_file& mdb, FbxNode* node)
 		import_collision_mesh(mdb, node);
 	else if (skin(node))
 		import_skin(mdb, node);
-	else
+	else if(!starts_with(node->GetName(), "COLS"))
 		import_rigid_mesh(mdb, node);
 
 	cout << endl;
@@ -1222,6 +1227,95 @@ void import_animations(FbxScene* scene, const char* filename)
 		import_animation(scene->GetSrcObject<FbxAnimStack>(i), filename);
 }
 
+struct Bone_info {
+	uint32_t index;
+	FbxVector4 translation;
+};
+
+uint32_t gather_bone_info(FbxNode* node, uint32_t bone_index, std::vector<Bone_info>& bone_infos)
+{
+	auto attr = node->GetNodeAttribute();
+	if (attr && attr->GetAttributeType() == FbxNodeAttribute::eSkeleton) {
+		Bone_info info;
+		info.index = bone_index;
+		info.translation = node->EvaluateGlobalTransform().GetT();
+		bone_infos.push_back(info);
+		++bone_index;
+	}
+
+	for (int i = 0; i < node->GetChildCount(); ++i) {
+		if (node == node->GetScene()->GetRootNode())
+			bone_index = 0; // Reset index
+
+		bone_index = gather_bone_info(node->GetChild(i), bone_index, bone_infos);
+	}
+
+	return bone_index;
+}
+
+uint32_t nearest_bone_index(const std::vector<Bone_info>& bone_infos, FbxVector4 &position)
+{
+	double min_distance = 1e6;
+	uint32_t bone_index = 0;
+
+	for (auto& bone_info : bone_infos) {
+		double d = bone_info.translation.Distance(position);
+		if (d < min_distance) {
+			min_distance = d;
+			bone_index = bone_info.index;
+		}
+	}
+
+	return bone_index;
+}
+
+float sphere_radius(FbxNode *node)
+{
+	auto mesh = node->GetMesh();
+
+	if (!mesh || mesh->GetControlPointsCount() == 0)
+		return 0;
+
+	// For collision spheres, we assume the mesh is a sphere with origin at
+	// the center, so the radius is the length of any vertex.
+	return float(mesh->GetControlPointAt(0).Length());
+}
+
+void import_collision_sphere(MDB_file::Collision_spheres& cs, FbxNode* node, const std::vector<Bone_info>& bone_infos)
+{
+	cout << "Importing collision sphere: " << node->GetName() << endl;	
+
+	MDB_file::Collision_sphere s;
+	s.bone_index = nearest_bone_index(bone_infos, node->EvaluateGlobalTransform().GetT());
+	s.radius = sphere_radius(node);
+	cs.spheres.push_back(s);
+}
+
+void import_collision_spheres(MDB_file& mdb, FbxScene* scene)
+{
+	vector<Bone_info> bone_infos;
+	gather_bone_info(scene->GetRootNode(), 0, bone_infos);
+
+	auto cs = make_unique<MDB_file::Collision_spheres>();
+
+	for (int i = 0; i < scene->GetRootNode()->GetChildCount(); ++i) {
+		auto node = scene->GetRootNode()->GetChild(i);
+
+		if (starts_with(node->GetName(), "COLS"))
+			import_collision_sphere(*cs, node, bone_infos);
+	}
+
+	sort(cs->spheres.begin(), cs->spheres.end(),
+		[](MDB_file::Collision_sphere &s0, MDB_file::Collision_sphere &s1) {
+		return s0.bone_index < s1.bone_index;
+	});
+
+	cs->header.sphere_count = cs->spheres.size();
+
+	if (cs->header.sphere_count > 0)
+		mdb.add_packet(move(cs));
+}
+
 int main(int argc, char* argv[])
 {
 	Config config;
@@ -1270,6 +1364,7 @@ int main(int argc, char* argv[])
 	MDB_file mdb;
 
 	import_meshes(mdb, scene);
+	import_collision_spheres(mdb, scene);
 	import_animations(scene, argv[1]);
 	import_skeletons(scene, argv[1]);
 

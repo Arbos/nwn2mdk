@@ -272,6 +272,7 @@ public:
 		Collision_spheres_header header;
 		std::vector<Collision_sphere> spheres;
 
+		Collision_spheres();
 		Collision_spheres(std::istream& in);
 
 		uint32_t packet_size() override;
