@@ -488,18 +488,8 @@ static void export_skin(Export_info& export_info, const MDB_file::Skin& skin)
 
 static void add_walk_mesh_materials(FbxScene* scene, FbxNode* node)
 {
-	node->AddMaterial(scene->GetMaterial("w_Nonwalk"));
-	node->AddMaterial(scene->GetMaterial("w_Dirt"));
-	node->AddMaterial(scene->GetMaterial("w_Grass"));
-	node->AddMaterial(scene->GetMaterial("w_Stone"));
-	node->AddMaterial(scene->GetMaterial("w_Wood"));
-	node->AddMaterial(scene->GetMaterial("w_Carpet"));
-	node->AddMaterial(scene->GetMaterial("w_Metal"));
-	node->AddMaterial(scene->GetMaterial("w_Swamp"));
-	node->AddMaterial(scene->GetMaterial("w_Mud"));
-	node->AddMaterial(scene->GetMaterial("w_Leaves"));
-	node->AddMaterial(scene->GetMaterial("w_Water"));
-	node->AddMaterial(scene->GetMaterial("w_Puddles"));
+	for (unsigned i = 0; i < size(MDB_file::walk_mesh_materials); ++i)
+		node->AddMaterial(scene->GetMaterial(MDB_file::walk_mesh_materials[i].name));
 }
 
 static void export_vertices(FbxMesh* mesh, const MDB_file::Walk_mesh& wm)
@@ -516,17 +506,12 @@ static void export_vertices(FbxMesh* mesh, const MDB_file::Walk_mesh& wm)
 
 // Returns the FBX material index for a walk mesh face.
 static int material_index(const MDB_file::Walk_mesh_face& f)
-{		
-	int i = 0;
-	uint16_t flags = f.flags[0];
-	flags >>= 3;
-	// Count the number of significant bits. This count is the material index.
-	while (flags != 0) {
-		++i;
-		flags >>= 1;
-	}
+{
+	for (unsigned i = 0; i < size(MDB_file::walk_mesh_materials); ++i)
+		if (f.flags[0] == MDB_file::walk_mesh_materials[i].flags)
+			return i;
 
-	return i;	
+	return 0;
 }
 
 static void export_faces(FbxMesh* mesh, const MDB_file::Walk_mesh& wm)
@@ -695,128 +680,16 @@ static void extract_dependencies(Export_info& export_info)
 	extract_textures(export_info);
 }
 
-void create_material_carpet(FbxScene* scene)
-{
-	FbxSurfacePhong* material = FbxSurfacePhong::Create(scene, "w_Carpet");
-	material->Diffuse.Set(FbxDouble3(0.25, 0, 0.25));
-	material->DiffuseFactor.Set(1.0f);
-	material->TransparentColor.Set(FbxDouble3(1, 1, 1));
-	material->TransparencyFactor.Set(0.5);
-}
-
-void create_material_dirt(FbxScene* scene)
-{
-	FbxSurfacePhong* material = FbxSurfacePhong::Create(scene, "w_Dirt");
-	material->Diffuse.Set(FbxDouble3(0.29, 0.18, 0.07));
-	material->DiffuseFactor.Set(1.0f);
-	material->TransparentColor.Set(FbxDouble3(1, 1, 1));
-	material->TransparencyFactor.Set(0.5);
-}
-
-void create_material_grass(FbxScene* scene)
-{
-	FbxSurfacePhong* material = FbxSurfacePhong::Create(scene, "w_Grass");
-	material->Diffuse.Set(FbxDouble3(0, 0.14, 0));
-	material->DiffuseFactor.Set(1.0f);
-	material->TransparentColor.Set(FbxDouble3(1, 1, 1));
-	material->TransparencyFactor.Set(0.5);
-}
-
-void create_material_leaves(FbxScene* scene)
-{
-	FbxSurfacePhong* material = FbxSurfacePhong::Create(scene, "w_Leaves");
-	material->Diffuse.Set(FbxDouble3(0.03, 0.05, 0));
-	material->DiffuseFactor.Set(1.0f);
-	material->TransparentColor.Set(FbxDouble3(1, 1, 1));
-	material->TransparencyFactor.Set(0.5);
-}
-
-void create_material_metal(FbxScene* scene)
-{
-	FbxSurfacePhong* material = FbxSurfacePhong::Create(scene, "w_Metal");
-	material->Diffuse.Set(FbxDouble3(0.82, 0.82, 1));
-	material->DiffuseFactor.Set(1.0f);
-	material->TransparentColor.Set(FbxDouble3(1, 1, 1));
-	material->TransparencyFactor.Set(0.5);
-}
-
-void create_material_mud(FbxScene* scene)
-{
-	FbxSurfacePhong* material = FbxSurfacePhong::Create(scene, "w_Mud");
-	material->Diffuse.Set(FbxDouble3(0.25, 0.07, 0));
-	material->DiffuseFactor.Set(1.0f);
-	material->TransparentColor.Set(FbxDouble3(1, 1, 1));
-	material->TransparencyFactor.Set(0.5);
-}
-
-void create_material_nonwalk(FbxScene* scene)
-{
-	FbxSurfacePhong* material = FbxSurfacePhong::Create(scene, "w_Nonwalk");
-	material->Diffuse.Set(FbxDouble3(1, 0, 0));
-	material->DiffuseFactor.Set(1.0f);
-	material->TransparentColor.Set(FbxDouble3(1, 1, 1));
-	material->TransparencyFactor.Set(0.5);
-}
-
-void create_material_puddles(FbxScene* scene)
-{
-	FbxSurfacePhong* material = FbxSurfacePhong::Create(scene, "w_Puddles");
-	material->Diffuse.Set(FbxDouble3(0.6, 0.65, 0.83));
-	material->DiffuseFactor.Set(1.0f);
-	material->TransparentColor.Set(FbxDouble3(1, 1, 1));
-	material->TransparencyFactor.Set(0.5);
-}
-
-void create_material_stone(FbxScene* scene)
-{
-	FbxSurfacePhong* material = FbxSurfacePhong::Create(scene, "w_Stone");
-	material->Diffuse.Set(FbxDouble3(0.22, 0.22, 0.22));
-	material->DiffuseFactor.Set(1.0f);
-	material->TransparentColor.Set(FbxDouble3(1, 1, 1));
-	material->TransparencyFactor.Set(0.5);
-}
-
-void create_material_swamp(FbxScene* scene)
-{
-	FbxSurfacePhong* material = FbxSurfacePhong::Create(scene, "w_Swamp");
-	material->Diffuse.Set(FbxDouble3(0.41, 0.67, 0));
-	material->DiffuseFactor.Set(1.0f);
-	material->TransparentColor.Set(FbxDouble3(1, 1, 1));
-	material->TransparencyFactor.Set(0.5);
-}
-
-void create_material_water(FbxScene* scene)
-{
-	FbxSurfacePhong* material = FbxSurfacePhong::Create(scene, "w_Water");
-	material->Diffuse.Set(FbxDouble3(0.25, 0.59, 1));
-	material->DiffuseFactor.Set(1.0f);
-	material->TransparentColor.Set(FbxDouble3(1, 1, 1));
-	material->TransparencyFactor.Set(0.5);
-}
-
-void create_material_wood(FbxScene* scene)
-{
-	FbxSurfacePhong* material = FbxSurfacePhong::Create(scene, "w_Wood");
-	material->Diffuse.Set(FbxDouble3(1, 0.9, 0.17));
-	material->DiffuseFactor.Set(1.0f);
-	material->TransparentColor.Set(FbxDouble3(1, 1, 1));
-	material->TransparencyFactor.Set(0.5);
-}
-
 void create_walk_mesh_materials(FbxScene* scene)
 {
-	create_material_carpet(scene);
-	create_material_dirt(scene);
-	create_material_grass(scene);
-	create_material_leaves(scene);
-	create_material_metal(scene);
-	create_material_mud(scene);
-	create_material_nonwalk(scene);
-	create_material_puddles(scene);
-	create_material_stone(scene);
-	create_material_swamp(scene);
-	create_material_water(scene);
-	create_material_wood(scene);
+	for (unsigned i = 0; i < size(MDB_file::walk_mesh_materials); ++i) {
+		auto material = FbxSurfacePhong::Create(scene, MDB_file::walk_mesh_materials[i].name);
+		auto color = MDB_file::walk_mesh_materials[i].color;
+		material->Diffuse.Set(FbxDouble3(color.x, color.y, color.z));
+		material->DiffuseFactor.Set(1.0f);
+		material->TransparentColor.Set(FbxDouble3(1, 1, 1));
+		material->TransparencyFactor.Set(0.5);
+	}
 }
 
 bool export_mdb(Export_info& export_info, const MDB_file& mdb)

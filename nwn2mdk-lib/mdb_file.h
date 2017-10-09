@@ -259,6 +259,7 @@ public:
 		std::vector<Walk_mesh_vertex> verts;
 		std::vector<Walk_mesh_face> faces;
 
+		Walk_mesh();
 		Walk_mesh(std::istream& in);
 
 		virtual uint32_t packet_size() override;
@@ -279,6 +280,14 @@ public:
 		void read(std::istream& in) override;
 		void write(std::ostream& out) override;
 	};
+
+	struct Walk_mesh_material {
+		char *name;
+		uint16_t flags;
+		Vector3<float> color;
+	};
+
+	static Walk_mesh_material walk_mesh_materials[12];
 
 	/// Constructs an empty MDB.
 	MDB_file();

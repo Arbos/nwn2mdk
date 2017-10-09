@@ -77,6 +77,11 @@ bool operator==(const MDB_file::Skin_vertex &v1, const MDB_file::Skin_vertex &v2
 		v1.bone_count == v2.bone_count;
 }
 
+bool operator==(const MDB_file::Walk_mesh_vertex &v1, const MDB_file::Walk_mesh_vertex &v2)
+{
+	return v1.position == v2.position;
+}
+
 FbxQuaternion euler_to_quaternion(const FbxVector4 &v)
 {
 	double y = v[0];
@@ -427,7 +432,7 @@ void import_polygon(MDB_file::Collision_mesh& col_mesh, FbxMesh* mesh,
                     int polygon_index)
 {
 	if(mesh->GetPolygonSize(polygon_index) != 3) {
-		cout << "  Polygon is not a triangle\n";
+		cout << "  WARNING: Polygon is not a triangle\n";
 		return;
 	}
 	
@@ -472,11 +477,89 @@ void import_collision_mesh(MDB_file& mdb, FbxNode* node)
 	mdb.add_packet(move(col_mesh));
 }
 
+// Returns the material of a mesh polygon.
+FbxSurfaceMaterial *polygon_material(FbxMesh* mesh, int polygon_index)
+{
+	auto element_material = mesh->GetElementMaterial(0);
+	if (!element_material)
+		return nullptr;
+
+	int mat_index;
+	switch (element_material->GetMappingMode()) {
+	case FbxLayerElement::eByPolygon:
+		mat_index = element_material->GetIndexArray()[polygon_index];
+		return mesh->GetNode()->GetMaterial(mat_index);		
+	case FbxLayerElement::eAllSame: // All polygons have same material.
+		mat_index = element_material->GetIndexArray()[0];
+		return mesh->GetNode()->GetMaterial(mat_index);		
+	default:
+		return nullptr;
+	}	
+}
+
+uint16_t walk_mesh_face_flags(FbxMesh* mesh, int polygon_index)
+{
+	auto mat = polygon_material(mesh, polygon_index);
+	if (!mat)
+		return 0;
+
+	for (unsigned i = 0; i < size(MDB_file::walk_mesh_materials); ++i)
+		if (starts_with(mat->GetName(), MDB_file::walk_mesh_materials[i].name))
+			return MDB_file::walk_mesh_materials[i].flags;
+
+	return 0;
+}
+
+void import_polygon(MDB_file::Walk_mesh& walk_mesh, FbxMesh* mesh,
+	int polygon_index)
+{
+	if (mesh->GetPolygonSize(polygon_index) != 3) {
+		cout << "  WARNING: Polygon is not a triangle\n";
+		return;
+	}
+
+	cout << "   ";
+
+	for (int i = 0; i < mesh->GetPolygonSize(polygon_index); ++i)
+		cout << ' ' << mesh->GetPolygonVertex(polygon_index, i);
+
+	MDB_file::Walk_mesh_vertex poly_vertices[3];
+	import_positions(mesh, polygon_index, poly_vertices);
+
+	MDB_file::Walk_mesh_face face;
+
+	for (int i = 0; i < 3; ++i)
+		face.vertex_indices[i] = push_vertex(walk_mesh, poly_vertices[i]);
+
+	face.flags[0] = walk_mesh_face_flags(mesh, polygon_index);
+	face.flags[1] = 0;
+
+	walk_mesh.faces.push_back(face);
+
+	cout << endl;
+}
+
+void import_walk_mesh(MDB_file& mdb, FbxNode* node)
+{
+	auto mesh = node->GetMesh();
+
+	if (!mesh)
+		return;
+
+	auto walk_mesh = make_unique<MDB_file::Walk_mesh>();
+	strncpy(walk_mesh->header.name, node->GetName(), 32);
+
+	for (int i = 0; i < mesh->GetPolygonCount(); ++i)
+		import_polygon(*walk_mesh, mesh, i);
+
+	mdb.add_packet(move(walk_mesh));
+}
+
 void import_polygon(MDB_file::Rigid_mesh& rigid_mesh, FbxMesh* mesh,
 	int polygon_index)
 {
 	if(mesh->GetPolygonSize(polygon_index) != 3) {
-		cout << "  Polygon is not a triangle\n";
+		cout << "  WARNING: Polygon is not a triangle\n";
 		return;
 	}
 	
@@ -618,7 +701,7 @@ void import_polygon(MDB_file::Skin& skin, Fbx_bones& fbx_bones, FbxMesh* mesh,
 	int polygon_index)
 {
 	if (mesh->GetPolygonSize(polygon_index) != 3) {
-		cout << "  Polygon is not a triangle\n";
+		cout << "  WARNING: Polygon is not a triangle\n";
 		return;
 	}
 
@@ -706,6 +789,8 @@ void import_mesh(MDB_file& mdb, FbxNode* node)
 		import_collision_mesh(mdb, node);
 	else if (ends_with(node->GetName(), "_C3"))
 		import_collision_mesh(mdb, node);
+	else if (ends_with(node->GetName(), "_W"))
+		import_walk_mesh(mdb, node);
 	else if (skin(node))
 		import_skin(mdb, node);
 	else if(!starts_with(node->GetName(), "COLS"))

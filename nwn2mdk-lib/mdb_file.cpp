@@ -40,6 +40,21 @@ static void write(std::ostream& out, std::vector<T>& v)
 	out.write((char*)v.data(), sizeof(T) * v.size());
 }
 
+MDB_file::Walk_mesh_material MDB_file::walk_mesh_materials[] = {
+	"w_Nonwalk", 0, Vector3<float>(1, 0, 0),
+	"w_Dirt", 0x9, Vector3<float>(0.29f, 0.18f, 0.07f),
+	"w_Grass", 0x11, Vector3<float>(0, 0.14f, 0),
+	"w_Stone", 0x21, Vector3<float>(0.22f, 0.22f, 0.22f),
+	"w_Wood", 0x41, Vector3<float>(1, 0.9f, 0.17f),
+	"w_Carpet", 0x81, Vector3<float>(0.25f, 0, 0.25f),
+	"w_Metal", 0x101, Vector3<float>(0.82f, 0.82f, 1),
+	"w_Swamp", 0x201, Vector3<float>(0.41f, 0.67f, 0),
+	"w_Mud", 0x401, Vector3<float>(0.25f, 0.07f, 0),
+	"w_Leaves", 0x801, Vector3<float>(0.03f, 0.05f, 0),
+	"w_Water", 0x1001, Vector3<float>(0.25f, 0.59f, 1),
+	"w_Puddles", 0x2001, Vector3<float>(0.6f, 0.65f, 0.83f)
+};
+
 MDB_file::MDB_file()
 {
 	is_good_ = true;
@@ -404,6 +419,17 @@ void MDB_file::Hook::write(std::ostream& out)
 	::write(out, header);
 }
 
+MDB_file::Walk_mesh::Walk_mesh()
+{
+	type = WALK;
+	memcpy(header.type, type_str(), 4);
+	header.packet_size = 0;
+	memset(header.name, 0, sizeof(header.name));
+	header.ui_flags = 0;
+	header.vertex_count = 0;
+	header.face_count = 0;
+}
+
 MDB_file::Walk_mesh::Walk_mesh(std::istream& in)
 {
 	read(in);
@@ -431,7 +457,9 @@ void MDB_file::Walk_mesh::read(std::istream& in)
 
 void MDB_file::Walk_mesh::write(std::ostream& out)
 {
-	header.packet_size = packet_size();
+	header.packet_size = packet_size() - sizeof(Packet_header);
+	header.vertex_count = verts.size();
+	header.face_count = faces.size();
 
 	::write(out, header);
 	::write(out, verts);
