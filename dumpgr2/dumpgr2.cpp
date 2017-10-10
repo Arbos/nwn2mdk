@@ -1,6 +1,7 @@
 #include <iostream>
 #include <set>
-#include <sstream>
+#include <map>
+#include <string>
 
 #include "gr2_file.h"
 #include "targetver.h"
@@ -343,6 +344,25 @@ void print_curve_data(GR2_curve_data_D4nK8uC7u* data)
 	print_controls(view);
 }
 
+void print_curve_data(GR2_curve_data_D3K16uC16u* data)
+{
+	cout << "    OneOverKnotScaleTrunc: " << data->one_over_knot_scale_trunc
+		<< endl;
+	cout << "    ControlScales: [" << data->control_scales[0] << ", "
+		<< data->control_scales[1] << ", " << data->control_scales[2]
+		<< "]\n";
+	cout << "    ControlOffsets: [" << data->control_offsets[0] << ", "
+		<< data->control_offsets[1] << ", " << data->control_offsets[2]
+		<< "]\n";
+	cout << "    KnotsControls_count: " << data->knots_controls_count
+		<< endl;
+
+	GR2_D3K16uC16u_view view(*data);
+
+	print_knots(view);
+	print_controls(view);
+}
+
 void print_curve_data(GR2_curve_data_D3K8uC8u* data)
 {
 	cout << "    OneOverKnotScaleTrunc: " << data->one_over_knot_scale_trunc
@@ -396,6 +416,11 @@ void print_curve(GR2_curve& curve)
 	else if (curve.curve_data->curve_data_header.format == D4nK8uC7u) {
 		GR2_curve_data_D4nK8uC7u* data =
 		    (GR2_curve_data_D4nK8uC7u*)curve.curve_data;
+		print_curve_data(data);
+	}
+	else if (curve.curve_data->curve_data_header.format == D3K16uC16u) {
+		GR2_curve_data_D3K16uC16u* data =
+			(GR2_curve_data_D3K16uC16u*)curve.curve_data;
 		print_curve_data(data);
 	}
 	else if (curve.curve_data->curve_data_header.format == D3K8uC8u) {
@@ -561,6 +586,44 @@ void print_gr2(GR2_file& gr2)
 	print_animations(gr2.file_info);
 }
 
+void print_var(GR2_property_key* key, const char *name, std::map<GR2_property_key*, std::string>& visited)
+{
+	if (visited.find(key) != visited.end())
+		return;
+
+	visited[key] = name;
+
+	for (auto k = key; k->type != 0; ++k)
+		if(k->keys)
+			print_var(k->keys, k->name, visited);	
+
+	cout << "static GR2_property_key " << name << "_def[] = {\n";		
+	for (auto k = key; k->type != 0; ++k) {
+		cout << "\t{ ";
+		cout << "GR2_property_type(" << k->type << "), ";
+		cout << '"' << k->name << "\", ";
+		if (k->keys)
+			//cout << k->name << "_def /* " << k->keys << "*/, ";
+			cout << visited[k->keys] << "_def, ";
+		else
+			cout << "nullptr, ";
+		cout << k->length << ", ";
+		cout << k->unknown1 << ", ";
+		cout << k->unknown2 << ", ";
+		cout << k->unknown3 << ", ";
+		cout << k->unknown4;
+		cout << " },\n";
+	}
+	cout << "\t{ GR2_type_none, 0, 0, 0, 0, 0, 0, 0}\n";
+	cout << "};\n\n";
+}
+
+void print_var(GR2_property_key* k)
+{
+	std::map<GR2_property_key*, std::string> visited;
+	print_var(k, "gr2_type", visited);	
+}
+
 int main(int argc, char* argv[])
 {
 	if (argc < 2) {
@@ -568,13 +631,15 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
+	GR2_file::granny2dll_filename = "C:\\GOG Games\\Neverwinter Nights 2 Complete\\granny2.dll";
+
 	GR2_file gr2(argv[1]);
 	if (!gr2) {
 		cout << gr2.error_string() << endl;
 		return 1;
 	}
 
-	print_gr2(gr2);
+	print_gr2(gr2);	
 
 	return 0;
 }
