@@ -733,7 +733,7 @@ GR2_file::GR2_file(const char* path) : in(path, std::ios::in | std::ios::binary)
 
 	file_info = (GR2_file_info*)sections_data.data();
 	type_definition =
-	    (GR2_property_key*)(sections_data.data() + header.info.type_offset);
+	    (GR2_property_key*)(sections_data.data() + section_offsets[header.info.type_section] + header.info.type_offset);
 }
 
 void GR2_file::apply_marshalling()
