@@ -18,23 +18,50 @@ static FbxVector4 quat_to_euler(FbxQuaternion &q)
 void export_bones(FbxScene *scene, FbxNode *parent_node, GR2_skeleton *skel,
 	int32_t parent_index, std::vector<FbxNode*> &fbx_bones);
 
-static void export_bone(FbxScene *scene, FbxNode *parent_node, GR2_skeleton *skel,
-	int32_t bone_index, std::vector<FbxNode*> &fbx_bones)
+static void export_bone_translation(FbxNode* node, GR2_bone& bone)
 {
-	GR2_bone &bone = skel->bones[bone_index];
-	cout << "  Exporting bone: " << bone.name << endl;
-	auto node = FbxNode::Create(scene, bone.name);
+	if (bone.transform.flags & 0x1) { // Has translation
+		node->LclTranslation.Set(FbxDouble3(bone.transform.translation[0],
+			bone.transform.translation[1],
+			bone.transform.translation[2]));
+	}
+}
 
-	node->LclTranslation.Set(FbxDouble3(bone.transform.translation[0],
-		bone.transform.translation[1],
-		bone.transform.translation[2]));
-	if (bone.transform.flags & 0x2) {
+static void export_bone_rotation(FbxNode* node, GR2_bone& bone)
+{
+	if (bone.transform.flags & 0x2) { // Has rotation
 		FbxQuaternion rotation(bone.transform.rotation[0],
 			bone.transform.rotation[1],
 			bone.transform.rotation[2],
 			bone.transform.rotation[3]);
 		node->LclRotation.Set(quat_to_euler(rotation));
 	}
+}
+
+static void export_bone_scaleshear(FbxNode* node, GR2_bone& bone)
+{
+	if (bone.transform.flags & 0x3) { // Has scale-shear
+		// FBX doesn't support local shear. We only export scale.
+		node->LclScaling.Set(FbxDouble3(bone.transform.scale_shear[0],
+			bone.transform.scale_shear[4],
+			bone.transform.scale_shear[8]));
+	}
+}
+
+static void export_bone_transform(FbxNode* node, GR2_bone& bone)
+{
+	export_bone_translation(node, bone);
+	export_bone_rotation(node, bone);
+	export_bone_scaleshear(node, bone);	
+}
+
+static void export_bone(FbxScene *scene, FbxNode *parent_node, GR2_skeleton *skel,
+	int32_t bone_index, std::vector<FbxNode*> &fbx_bones)
+{
+	GR2_bone &bone = skel->bones[bone_index];
+	cout << "  Exporting bone: " << bone.name << endl;
+	auto node = FbxNode::Create(scene, bone.name);
+	export_bone_transform(node, bone);
 
 	FbxSkeleton *skel_attr = FbxSkeleton::Create(scene, bone.name);
 	skel_attr->SetSkeletonType(FbxSkeleton::eLimbNode);
