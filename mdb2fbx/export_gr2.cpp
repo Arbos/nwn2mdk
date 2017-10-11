@@ -272,6 +272,58 @@ void create_anim_rotation(FbxNode *node, FbxAnimLayer *anim_layer, GR2_animation
 	curvez->KeyModifyEnd();
 }
 
+std::pair<std::vector<float>, float*> scaleshear_curve_view(GR2_transform_track &transform_track)
+{
+	std::vector<float> knots;
+	float *controls;
+
+	if (transform_track.scale_shear_curve.curve_data->curve_data_header.format == DaConstant32f) {
+		knots.push_back(0);
+		auto data = (GR2_curve_data_DaConstant32f*)transform_track.scale_shear_curve.curve_data;
+		controls = data->controls;
+	}
+	else if (transform_track.scale_shear_curve.curve_data->curve_data_header.format == DaK32fC32f) {
+		auto data = (GR2_curve_data_DaK32fC32f*)transform_track.scale_shear_curve.curve_data;
+		for (int i = 0; i < data->knots_count; ++i)
+			knots.push_back(data->knots[i]);
+		controls = data->controls;
+	}
+
+	return { knots, controls };
+}
+
+void create_anim_scaling(FbxNode *node, FbxAnimLayer *anim_layer, GR2_animation *anim, GR2_transform_track &transform_track)
+{	
+	auto [knots, controls] = scaleshear_curve_view(transform_track);
+
+	if (knots.empty())
+		return;
+
+	auto curvex = node->LclScaling.GetCurve(anim_layer, FBXSDK_CURVENODE_COMPONENT_X, true);
+	auto curvey = node->LclScaling.GetCurve(anim_layer, FBXSDK_CURVENODE_COMPONENT_Y, true);
+	auto curvez = node->LclScaling.GetCurve(anim_layer, FBXSDK_CURVENODE_COMPONENT_Z, true);
+
+	curvex->KeyModifyBegin();
+	curvey->KeyModifyBegin();
+	curvez->KeyModifyBegin();
+
+	for (unsigned i = 0; i < knots.size(); ++i) {
+		FbxTime time;
+		time.SetSecondDouble(knots[i]);
+
+		auto k = curvex->KeyAdd(time);
+		curvex->KeySetValue(k, controls[i * 9 + 0]);
+		k = curvey->KeyAdd(time);
+		curvey->KeySetValue(k, controls[i * 9 + 4]);
+		k = curvez->KeyAdd(time);
+		curvez->KeySetValue(k, controls[i * 9 + 8]);
+	}
+
+	curvex->KeyModifyEnd();
+	curvey->KeyModifyEnd();
+	curvez->KeyModifyEnd();
+}
+
 void export_animation(FbxScene *scene, GR2_animation *anim, GR2_transform_track &transform_track,
 	FbxAnimLayer *anim_layer)	
 {
@@ -284,6 +336,7 @@ void export_animation(FbxScene *scene, GR2_animation *anim, GR2_transform_track 
 
 		create_anim_position(node, anim_layer, anim, transform_track);
 		create_anim_rotation(node, anim_layer, anim, transform_track);
+		create_anim_scaling(node, anim_layer, anim, transform_track);
 	}
 }
 
