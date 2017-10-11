@@ -24,7 +24,7 @@ enum GR2_curve_format {
 	DaKeyframes32f = 0, // Not found in NWN2 files yet
 	DaK32fC32f = 1,
 	DaIdentity = 2,
-	DaConstant32f = 3, // Not found in NWN2 files yet
+	DaConstant32f = 3,
 	D3Constant32f = 4,
 	D4Constant32f = 5,
 	DaK16uC16u = 6, // Not found in NWN2 files yet
@@ -245,6 +245,13 @@ private:
 struct GR2_curve_data_DaIdentity {
 	GR2_curve_data_header curve_data_header_DaIdentity;
 	int16_t dimension;
+};
+
+struct GR2_curve_data_DaConstant32f {
+	GR2_curve_data_header curve_data_header_DaConstant32f;
+	int16_t padding;
+	int32_t controls_count;
+	float *controls;
 };
 
 struct GR2_curve_data_DaK32fC32f {

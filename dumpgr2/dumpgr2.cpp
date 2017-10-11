@@ -308,6 +308,14 @@ void print_curve_data(GR2_curve_data_DaK32fC32f* data)
 	}
 }
 
+void print_curve_data(GR2_curve_data_DaConstant32f* data)
+{
+	cout << "    Controls: #" << data->controls_count << endl;
+		
+	for (int i = 0; i < data->controls_count; ++i)
+		cout << "      - " << data->controls[i] << endl;	
+}
+
 void print_curve_data(GR2_curve_data_D4nK16uC15u* data)
 {
 	cout << "    ScaleOffsetTableEntries: "
@@ -401,6 +409,11 @@ void print_curve(GR2_curve& curve)
 		    (GR2_curve_data_DaIdentity*)curve.curve_data;
 		cout << "    Dimension: " << data->dimension << endl;
 	}
+	else if (curve.curve_data->curve_data_header.format == DaConstant32f) {
+		GR2_curve_data_DaConstant32f* data =
+			(GR2_curve_data_DaConstant32f*)curve.curve_data;
+		print_curve_data(data);		
+	}
 	else if (curve.curve_data->curve_data_header.format == D3Constant32f) {
 		GR2_curve_data_D3Constant32f* data =
 		    (GR2_curve_data_D3Constant32f*)curve.curve_data;
@@ -454,9 +467,7 @@ void print_transform_track(GR2_transform_track& tt)
 	cout << "  OrientationCurve:\n";
 	print_curve(tt.orientation_curve);
 	cout << "  ScaleShearCurve:\n";
-	print_curve(tt.scale_shear_curve);
-	if (tt.scale_shear_curve.curve_data->curve_data_header.format != 2)
-		cout << "    # WARNING: Format != DaIdentity\n";
+	print_curve(tt.scale_shear_curve);	
 }
 
 void print_transform_tracks(GR2_track_group* track_group)
