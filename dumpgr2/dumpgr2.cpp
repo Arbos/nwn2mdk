@@ -276,6 +276,42 @@ void print_controls(const T& view)
 	}
 }
 
+void print_curve_positions(GR2_curve_data_DaK32fC32f* data)
+{
+	for (int i = 0; i < data->knots_count; ++i) {
+		float x = data->controls[i * 3 + 0];
+		float y = data->controls[i * 3 + 1];
+		float z = data->controls[i * 3 + 2];
+		cout << "      - [" << x << ", " << y << ", " << z
+			<< "]\n";
+	}
+}
+
+void print_curve_rotations(GR2_curve_data_DaK32fC32f* data)
+{
+	for (int i = 0; i < data->knots_count; ++i) {
+		float x = data->controls[i * 4 + 0];
+		float y = data->controls[i * 4 + 1];
+		float z = data->controls[i * 4 + 2];
+		float w = data->controls[i * 4 + 3];
+		cout << "      - [" << x << ", " << y << ", " << z
+			<< ", " << w << "]\n";
+	}
+}
+
+void print_curve_scaleshear(GR2_curve_data_DaK32fC32f* data)
+{
+	for (int i = 0; i < data->knots_count; ++i) {
+		cout << "      - [";
+		for (int j = 0; j < 9; ++j) {
+			cout << data->controls[i * 9 + j];
+			if (j != 8)
+				cout << ", ";
+		}
+		cout << "]\n";
+	}
+}
+
 void print_curve_data(GR2_curve_data_DaK32fC32f* data)
 {
 	cout << "    Padding: " << data->padding << endl;
@@ -284,28 +320,14 @@ void print_curve_data(GR2_curve_data_DaK32fC32f* data)
 		cout << "      - " << data->knots[i] << endl;
 	cout << "    Controls: # " << data->controls_count << endl;
 
-	if (data->knots_count * 3 == data->controls_count) { // Positions
-		for (int i = 0; i < data->knots_count; ++i) {
-			float x = data->controls[i * 3 + 0];
-			float y = data->controls[i * 3 + 1];
-			float z = data->controls[i * 3 + 2];
-			cout << "      - [" << x << ", " << y << ", " << z
-			     << "]\n";
-		}
-	}
-	else if (data->knots_count * 4 == data->controls_count) { // Quaternions
-		for (int i = 0; i < data->knots_count; ++i) {
-			float x = data->controls[i * 4 + 0];
-			float y = data->controls[i * 4 + 1];
-			float z = data->controls[i * 4 + 2];
-			float w = data->controls[i * 4 + 3];
-			cout << "      - [" << x << ", " << y << ", " << z
-			     << ", " << w << "]\n";
-		}
-	}
-	else {
+	if (data->knots_count * 3 == data->controls_count)
+		print_curve_positions(data);
+	else if (data->knots_count * 4 == data->controls_count)
+		print_curve_rotations(data);
+	else if (data->knots_count * 9 == data->controls_count)
+		print_curve_scaleshear(data);
+	else
 		cout << "# WARNING: Unhandled case\n";
-	}
 }
 
 void print_curve_data(GR2_curve_data_DaConstant32f* data)
