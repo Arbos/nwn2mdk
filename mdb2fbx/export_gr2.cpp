@@ -25,6 +25,8 @@ static void export_bone_translation(FbxNode* node, GR2_bone& bone)
 			bone.transform.translation[1],
 			bone.transform.translation[2]));
 	}
+	else
+		node->LclTranslation.Set(FbxDouble3(0, 0, 0));
 }
 
 static void export_bone_rotation(FbxNode* node, GR2_bone& bone)
@@ -36,16 +38,20 @@ static void export_bone_rotation(FbxNode* node, GR2_bone& bone)
 			bone.transform.rotation[3]);
 		node->LclRotation.Set(quat_to_euler(rotation));
 	}
+	else
+		node->LclRotation.Set(FbxDouble3(0, 0, 0));
 }
 
 static void export_bone_scaleshear(FbxNode* node, GR2_bone& bone)
 {
-	if (bone.transform.flags & 0x3) { // Has scale-shear
+	if (bone.transform.flags & 0x4) { // Has scale-shear
 		// FBX doesn't support local shear. We only export scale.
 		node->LclScaling.Set(FbxDouble3(bone.transform.scale_shear[0],
 			bone.transform.scale_shear[4],
 			bone.transform.scale_shear[8]));
 	}
+	else
+		node->LclScaling.Set(FbxDouble3(1, 1, 1));
 }
 
 static void export_bone_transform(FbxNode* node, GR2_bone& bone)

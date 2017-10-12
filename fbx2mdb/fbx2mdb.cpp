@@ -878,6 +878,10 @@ void print_bone(GR2_bone& bone)
 	cout << ' ' << bone.transform.rotation.z;
 	cout << ' ' << bone.transform.rotation.w << endl;
 
+	cout << "    Scale: " << bone.transform.scale_shear[0];
+	cout << ' ' << bone.transform.scale_shear[4];
+	cout << ' ' << bone.transform.scale_shear[8] << endl;
+
 	cout << "    Inverse World Transform:\n";
 	for (int row = 0; row < 4; ++row) {
 		cout << "        ";
@@ -885,6 +889,62 @@ void print_bone(GR2_bone& bone)
 			cout << ' ' << bone.inverse_world_transform[col * 4 + row];
 		}
 		cout << endl;
+	}
+}
+
+void import_bone_translation(FbxNode* node, GR2_bone& bone)
+{
+	bone.transform.translation.x = float(node->LclTranslation.Get()[0]);
+	bone.transform.translation.y = float(node->LclTranslation.Get()[1]);
+	bone.transform.translation.z = float(node->LclTranslation.Get()[2]);
+
+	if (bone.transform.translation.x != 0 || bone.transform.translation.y != 0 || bone.transform.translation.z != 0)
+		bone.transform.flags |= 1;
+}
+
+void import_bone_rotation(FbxNode* node, GR2_bone& bone)
+{
+	auto rotation = euler_to_quaternion(node->LclRotation.Get());
+	bone.transform.rotation.x = float(rotation[0]);
+	bone.transform.rotation.y = float(rotation[1]);
+	bone.transform.rotation.z = float(rotation[2]);
+	bone.transform.rotation.w = float(rotation[3]);
+
+	if (bone.transform.rotation.x != 0 || bone.transform.rotation.y != 0 || bone.transform.rotation.z != 0 || bone.transform.rotation.w != 1)
+		bone.transform.flags |= 2;
+}
+
+void import_bone_scale(FbxNode* node, GR2_bone& bone)
+{
+	bone.transform.scale_shear[0] = float(node->LclScaling.Get()[0]);
+	bone.transform.scale_shear[1] = 0;
+	bone.transform.scale_shear[2] = 0;
+	bone.transform.scale_shear[3] = 0;
+	bone.transform.scale_shear[4] = float(node->LclScaling.Get()[1]);
+	bone.transform.scale_shear[5] = 0;
+	bone.transform.scale_shear[6] = 0;
+	bone.transform.scale_shear[7] = 0;
+	bone.transform.scale_shear[8] = float(node->LclScaling.Get()[2]);
+
+	if (bone.transform.scale_shear[0] != 1 || bone.transform.scale_shear[4] != 1 || bone.transform.scale_shear[8] != 1)
+		bone.transform.flags |= 4;
+}
+
+void import_bone_transform(FbxNode* node, GR2_bone& bone)
+{
+	bone.transform.flags = 0;
+	import_bone_translation(node, bone);
+	import_bone_rotation(node, bone);
+	import_bone_scale(node, bone);
+}
+
+void import_bone_inv_world_transform(FbxNode* node, GR2_bone& bone)
+{	
+	auto inv_world_transform = node->EvaluateGlobalTransform(FBXSDK_TIME_INFINITE, FbxNode::eSourcePivot, false, true).Inverse();
+	for (int row = 0; row < 4; ++row) {
+		for (int col = 0; col < 4; ++col) {
+			bone.inverse_world_transform[row * 4 + col] = float(inv_world_transform.Get(row, col));
+		}
 	}
 }
 
@@ -901,39 +961,15 @@ void import_bone(GR2_import_info& import_info, FbxNode* node, int32_t parent_ind
 	GR2_bone bone;
 	bone.name = import_info.strings.get(node->GetName());
 	bone.parent_index = parent_index;
-	bone.transform.flags = 3;
-	bone.transform.translation.x = float(node->LclTranslation.Get()[0]);
-	bone.transform.translation.y = float(node->LclTranslation.Get()[1]);
-	bone.transform.translation.z = float(node->LclTranslation.Get()[2]);
-	auto rotation = euler_to_quaternion(node->LclRotation.Get());
-	bone.transform.rotation.x = float(rotation[0]);
-	bone.transform.rotation.y = float(rotation[1]);
-	bone.transform.rotation.z = float(rotation[2]);
-	bone.transform.rotation.w = float(rotation[3]);
-	bone.transform.scale_shear[0] = 1;
-	bone.transform.scale_shear[1] = 0;
-	bone.transform.scale_shear[2] = 0;
-	bone.transform.scale_shear[3] = 0;
-	bone.transform.scale_shear[4] = 1;
-	bone.transform.scale_shear[5] = 0;
-	bone.transform.scale_shear[6] = 0;
-	bone.transform.scale_shear[7] = 0;
-	bone.transform.scale_shear[8] = 1;
-
-	auto inv_world_transform = node->EvaluateGlobalTransform().Inverse();
-	for (int row = 0; row < 4; ++row) {
-		for (int col = 0; col < 4; ++col) {
-			bone.inverse_world_transform[row * 4 + col] = float(inv_world_transform.Get(row, col));
-		}
-	}	
-
+	import_bone_transform(node, bone);
+	import_bone_inv_world_transform(node, bone);
 	bone.light_info = nullptr;
 	bone.camera_info = nullptr;
 	bone.extended_data.keys = nullptr;
 	bone.extended_data.values = nullptr;
 	bones.push_back(bone);
 
-	print_bone(bone);	
+	print_bone(bone);
 }
 
 void import_bones(GR2_import_info& import_info, FbxNode* node, int32_t parent_index, std::vector<GR2_bone>& bones)
