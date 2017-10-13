@@ -18,6 +18,18 @@ static GR2_property_key CurveDataHeader_def[] = {
 	{ GR2_type_none, 0, 0, 0, 0, 0, 0, 0 }
 };
 
+static GR2_property_key Real32_def[] = {
+	{ GR2_type_real32, (char*)"Real32", nullptr, 0, 0, 0, 0, 0 },
+	{ GR2_type_none, 0, 0, 0, 0, 0, 0, 0 }
+};
+
+static GR2_property_key DaConstant32f_def[] = {
+	{ GR2_type_inline, (char*)"CurveDataHeader_DaConstant32f", CurveDataHeader_def, 0, 0, 0, 0, 0 },
+	{ GR2_type_int16, (char*)"Padding", nullptr, 0, 0, 0, 0, 0 },
+	{ GR2_type_pointer, (char*)"Controls", Real32_def, 0, 0, 0, 0, 0 },
+	{ GR2_type_none, 0, 0, 0, 0, 0, 0, 0 }
+};
+
 static GR2_property_key D3Constant32f_def[] = {
 	{ GR2_type_inline, (char*)"CurveDataHeader_D3Constant32f", CurveDataHeader_def, 0, 0, 0, 0, 0 },
 	{ GR2_type_int16, (char*)"Padding", nullptr, 0, 0, 0, 0, 0 },
@@ -28,11 +40,6 @@ static GR2_property_key D3Constant32f_def[] = {
 static GR2_property_key DaIdentity_def[] = {
 	{ GR2_type_inline, (char*)"CurveDataHeader_DaIdentity", CurveDataHeader_def, 0, 0, 0, 0, 0 },
 	{ GR2_type_int16, (char*)"Dimension", nullptr, 0, 0, 0, 0, 0 },	
-	{ GR2_type_none, 0, 0, 0, 0, 0, 0, 0 }
-};
-
-static GR2_property_key Real32_def[] = {
-	{ GR2_type_real32, (char*)"Real32", nullptr, 0, 0, 0, 0, 0 },
 	{ GR2_type_none, 0, 0, 0, 0, 0, 0, 0 }
 };
 
@@ -825,6 +832,7 @@ struct GR2_import_info {
 	std::vector<GR2_model*> model_pointers;
 	std::vector<GR2_track_group_info> track_groups;
 	std::list<GR2_curve_data_D3Constant32f> d3c_curves;
+	std::list<GR2_curve_data_DaConstant32f> dac_curves;
 	std::list<GR2_curve_data_DaK32fC32f> da_curves;
 	std::list<GR2_curve_data_DaIdentity> id_curves;
 	std::list<std::vector<float>> float_arrays;
@@ -1227,17 +1235,108 @@ void import_rotation(GR2_import_info& import_info, FbxNode* node,
 	tt.orientation_curve.curve_data = reinterpret_cast<GR2_curve_data*>(&curve);
 }
 
-void import_scaleshear(GR2_import_info& import_info, FbxNode* node,
-                       GR2_transform_track& tt)
+void import_scaleshear_DaK32fC32f(GR2_import_info& import_info, FbxNode* node,
+	GR2_transform_track& tt)
 {
-	tt.scale_shear_curve.keys = DaIdentity_def;
+	cout << "  Scaling:\n";
 
+	import_info.float_arrays.emplace_back();
+	auto& knots = import_info.float_arrays.back();
+
+	import_info.float_arrays.emplace_back();
+	auto& controls = import_info.float_arrays.back();
+
+	FbxTime time = import_info.anim_stack->LocalStart;
+	FbxTime dt;
+	dt.SetSecondDouble(time_step);
+	float t = 0;
+
+	while (time <= import_info.anim_stack->LocalStop) {
+		knots.push_back(t);
+
+		auto s = node->LclScaling.EvaluateValue(time);
+		controls.push_back(float(s[0]));
+		controls.push_back(0);
+		controls.push_back(0);
+		controls.push_back(0);
+		controls.push_back(float(s[1]));
+		controls.push_back(0);
+		controls.push_back(0);
+		controls.push_back(0);
+		controls.push_back(float(s[2]));
+
+		cout << "    " << knots.back() << ": " << s[0] << ' '
+			<< s[1] << ' ' << s[2] << endl;
+
+		time += dt;
+		t += time_step;
+	}
+
+	import_info.da_curves.emplace_back();
+	auto& curve = import_info.da_curves.back();
+	curve.curve_data_header_DaK32fC32f.format = DaK32fC32f;
+	curve.curve_data_header_DaK32fC32f.degree = 1;
+	curve.padding = 0;
+	curve.knots_count = knots.size();
+	curve.knots = knots.data();
+	curve.controls_count = controls.size();
+	curve.controls = controls.data();
+
+	tt.scale_shear_curve.keys = DaK32fC32f_def;
+	tt.scale_shear_curve.curve_data = reinterpret_cast<GR2_curve_data*>(&curve);
+}
+
+void import_scaleshear_DaConstant32f(GR2_import_info& import_info, FbxNode* node,
+	GR2_transform_track& tt)
+{
+	import_info.float_arrays.emplace_back();
+	auto& controls = import_info.float_arrays.back();
+	controls.push_back(float(node->LclScaling.Get()[0]));
+	controls.push_back(0);
+	controls.push_back(0);
+	controls.push_back(0);
+	controls.push_back(float(node->LclScaling.Get()[1]));
+	controls.push_back(0);
+	controls.push_back(0);
+	controls.push_back(0);
+	controls.push_back(float(node->LclScaling.Get()[2]));
+
+	import_info.dac_curves.emplace_back();
+	auto& curve = import_info.dac_curves.back();
+	curve.curve_data_header_DaConstant32f.format = DaConstant32f;
+	curve.curve_data_header_DaConstant32f.degree = 0;
+	curve.padding = 0;
+	curve.controls_count = controls.size();
+	curve.controls = controls.data();
+
+	tt.scale_shear_curve.keys = DaConstant32f_def;
+	tt.scale_shear_curve.curve_data = reinterpret_cast<GR2_curve_data*>(&curve);
+}
+
+void import_scaleshear_DaIdentity(GR2_import_info& import_info, GR2_transform_track& tt)
+{
 	import_info.id_curves.emplace_back();
 	auto& curve = import_info.id_curves.back();
 	curve.curve_data_header_DaIdentity.format = DaIdentity;
 	curve.curve_data_header_DaIdentity.degree = 0;
 	curve.dimension = 9;
+	tt.scale_shear_curve.keys = DaIdentity_def;
 	tt.scale_shear_curve.curve_data = reinterpret_cast<GR2_curve_data*>(&curve);
+}
+
+void import_scaleshear(GR2_import_info& import_info, FbxNode* node,
+	FbxAnimLayer* layer, GR2_transform_track& tt)
+{
+	auto curve_x = node->LclScaling.GetCurve(layer, FBXSDK_CURVENODE_COMPONENT_X);
+	auto curve_y = node->LclScaling.GetCurve(layer, FBXSDK_CURVENODE_COMPONENT_Y);
+	auto curve_z = node->LclScaling.GetCurve(layer, FBXSDK_CURVENODE_COMPONENT_Z);
+
+	if (curve_x || curve_y || curve_z)
+		import_scaleshear_DaK32fC32f(import_info, node, tt);
+	else if (node->LclScaling.Get()[0] != 1 || node->LclScaling.Get()[1] != 1 || node->LclScaling.Get()[2] != 1)
+		import_scaleshear_DaConstant32f(import_info, node, tt);
+	else
+		import_scaleshear_DaIdentity(import_info, tt);
 }
 
 void import_anim_layer(GR2_import_info& import_info, FbxAnimLayer* layer,
@@ -1261,7 +1360,7 @@ void import_anim_layer(GR2_import_info& import_info, FbxAnimLayer* layer,
 
 		import_position(import_info, node, layer, tt);
 		import_rotation(import_info, node, layer, tt);
-		import_scaleshear(import_info, node, tt);
+		import_scaleshear(import_info, node, layer, tt);
 	}
 
 	for(int i = 0; i < node->GetChildCount(); ++i)

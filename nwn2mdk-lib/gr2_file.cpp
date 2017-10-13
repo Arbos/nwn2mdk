@@ -512,6 +512,16 @@ uint32_t export_curve_data(GR2_export_info& export_info, GR2_curve_data* cd)
 	else if (cd->curve_data_header.format == DaIdentity) {
 		export_info.streams[6].write((char*)cd, sizeof(GR2_curve_data_DaIdentity));
 	}
+	else if (cd->curve_data_header.format == DaConstant32f) {
+		GR2_curve_data_DaConstant32f* data =
+			(GR2_curve_data_DaConstant32f*)cd;
+		export_info.streams[6].write((char*)cd, sizeof(GR2_curve_data_DaConstant32f));
+
+		uint32_t target_offset = uint32_t(export_info.streams[6].tellp());
+		export_info.streams[6].write((char*)data->controls, data->controls_count * sizeof(float));
+		export_info.relocations[0].push_back(
+		{ offset + offsetof(GR2_curve_data_DaConstant32f, controls), 66, target_offset });
+	}
 	else if (cd->curve_data_header.format == D3Constant32f) {
 		export_info.streams[6].write((char*)cd, sizeof(GR2_curve_data_D3Constant32f));
 	}
