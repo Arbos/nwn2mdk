@@ -278,21 +278,28 @@ void create_anim_rotation(FbxNode *node, FbxAnimLayer *anim_layer, GR2_animation
 	curvez->KeyModifyEnd();
 }
 
-std::pair<std::vector<float>, float*> scaleshear_curve_view(GR2_transform_track &transform_track)
+std::pair<std::vector<float>, std::vector<float>> scaleshear_curve_view(GR2_transform_track &transform_track)
 {
 	std::vector<float> knots;
-	float *controls;
+	std::vector<float> controls;
 
 	if (transform_track.scale_shear_curve.curve_data->curve_data_header.format == DaConstant32f) {
 		knots.push_back(0);
 		auto data = (GR2_curve_data_DaConstant32f*)transform_track.scale_shear_curve.curve_data;
-		controls = data->controls;
+		for (int i = 0; i < 9; ++i)
+			controls.push_back(data->controls[i]);
+	}
+	else if (transform_track.scale_shear_curve.curve_data->curve_data_header.format == DaK16uC16u) {
+		auto data = (GR2_curve_data_DaK16uC16u*)transform_track.scale_shear_curve.curve_data;
+		GR2_DaK16uC16u_view view(*data);
+		return { view.knots(), view.controls() };
 	}
 	else if (transform_track.scale_shear_curve.curve_data->curve_data_header.format == DaK32fC32f) {
 		auto data = (GR2_curve_data_DaK32fC32f*)transform_track.scale_shear_curve.curve_data;
 		for (int i = 0; i < data->knots_count; ++i)
 			knots.push_back(data->knots[i]);
-		controls = data->controls;
+		for (int i = 0; i < data->controls_count; ++i)
+			controls.push_back(data->controls[i]);		
 	}
 
 	return { knots, controls };
