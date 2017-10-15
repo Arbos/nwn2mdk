@@ -378,6 +378,42 @@ static void export_collision_spheres(Export_info& export_info,
 		export_collision_sphere(export_info, cs, i, *dep);
 }
 
+static FbxDouble3 hook_euler_rotation(const MDB_file::Hook& hook)
+{
+	FbxMatrix m(hook.header.orientation[1][0],
+		hook.header.orientation[1][1],
+		hook.header.orientation[1][2],
+		0,
+		hook.header.orientation[0][0],
+		hook.header.orientation[0][1],
+		hook.header.orientation[0][2],
+		0,
+		hook.header.orientation[2][0],
+		hook.header.orientation[2][1],
+		hook.header.orientation[2][2],
+		0,
+		0, 0, 0, 1);
+	FbxVector4 translation;
+	FbxVector4 rotation;
+	FbxVector4 shearing;
+	FbxVector4 scaling;
+	double sign;
+	m.GetElements(translation, rotation, shearing, scaling, sign);
+	return FbxDouble3(rotation[0] - 90, rotation[2], -rotation[1]);	
+}
+
+static void export_hook(Export_info& export_info, const MDB_file::Hook& hook)
+{	
+	string name(hook.header.name, 32);
+	cout << "Exporting: " << name.c_str() << endl;
+
+	auto node = FbxNode::Create(export_info.scene, name.c_str());	
+	node->LclTranslation.Set(FbxDouble3(hook.header.position.x * 100, hook.header.position.z * 100, -hook.header.position.y * 100));	
+	node->LclRotation.Set(hook_euler_rotation(hook));
+	node->LclScaling.Set(FbxDouble3(100, 100, 100));
+	export_info.scene->GetRootNode()->AddChild(node);	
+}
+
 static void export_rigid_mesh(Export_info& export_info,
 	const MDB_file::Rigid_mesh& rm)
 {
@@ -564,6 +600,8 @@ static void export_packet(Export_info& export_info,
 			*static_cast<const MDB_file::Collision_spheres*>(packet));
 		break;
 	case MDB_file::HOOK:
+		export_hook(export_info,
+			*static_cast<const MDB_file::Hook*>(packet));
 		break;
 	case MDB_file::RIGD:
 		export_rigid_mesh(export_info,
