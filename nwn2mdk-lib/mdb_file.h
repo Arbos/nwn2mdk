@@ -245,6 +245,7 @@ public:
 	public:
 		Hook_header header;
 
+		Hook();
 		Hook(std::istream& in);
 
 		virtual uint32_t packet_size() override;

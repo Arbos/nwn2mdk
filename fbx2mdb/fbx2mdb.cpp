@@ -562,6 +562,62 @@ void import_walk_mesh(MDB_file& mdb, FbxNode* node)
 	mdb.add_packet(move(walk_mesh));
 }
 
+void print_hook(MDB_file::Hook& hook)
+{
+	cout << "  Position: " << hook.header.position.x << ' '
+		<< hook.header.position.y << ' '
+		<< hook.header.position.z << endl;
+
+	cout << "  Orientation:\n";
+	for (int i = 0; i < 3; ++i) {
+		cout << "    ";
+		for (int j = 0; j < 3; ++j)
+			cout << hook.header.orientation[i][j] << ' ';
+		cout << endl;
+	}
+}
+
+void transform_to_orientation(const FbxAMatrix& m, float orientation[3][3])
+{
+	FbxAMatrix mp = m;
+	mp.SetS(FbxVector4(1, 1, 1)); // Reset scale
+
+	FbxAMatrix r90x;
+	r90x.SetR(FbxVector4(90, 0, 0));
+	mp = mp*r90x; // Undo rotation from the exporter
+
+	// Swap y-axis with z-axis.
+	// The negations are for flipping handedness.
+	orientation[0][0] = float(-mp.Get(2, 0));
+	orientation[0][1] = float(mp.Get(2, 2));
+	orientation[0][2] = float(-mp.Get(2, 1));
+	orientation[1][0] = float(mp.Get(0, 0));
+	orientation[1][1] = float(-mp.Get(0, 2));
+	orientation[1][2] = float(mp.Get(0, 1));
+	orientation[2][0] = float(mp.Get(1, 0));
+	orientation[2][1] = float(-mp.Get(1, 2));
+	orientation[2][2] = float(mp.Get(1, 1));
+}
+
+void import_hook_point(MDB_file& mdb, FbxNode* node)
+{
+	auto hook = make_unique<MDB_file::Hook>();
+	strncpy(hook->header.name, node->GetName(), 32);
+	
+	auto m = node->EvaluateGlobalTransform();
+
+	auto translation = m.GetT();	
+	hook->header.position.x = float(translation[0]/100);
+	hook->header.position.y = float(translation[1]/100);
+	hook->header.position.z = float(translation[2]/100);
+
+	transform_to_orientation(m, hook->header.orientation);
+
+	print_hook(*hook);
+	
+	mdb.add_packet(move(hook));
+}
+
 void import_polygon(MDB_file::Rigid_mesh& rigid_mesh, FbxMesh* mesh,
 	int polygon_index)
 {
@@ -798,6 +854,8 @@ void import_mesh(MDB_file& mdb, FbxNode* node)
 		import_collision_mesh(mdb, node);
 	else if (ends_with(node->GetName(), "_W"))
 		import_walk_mesh(mdb, node);
+	else if (starts_with(node->GetName(), "HP_DR_STD"))
+		import_hook_point(mdb, node);
 	else if (skin(node))
 		import_skin(mdb, node);
 	else if(!starts_with(node->GetName(), "COLS"))

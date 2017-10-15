@@ -395,6 +395,21 @@ void MDB_file::Skin::write(std::ostream& out)
 	::write(out, faces);
 }
 
+MDB_file::Hook::Hook()
+{
+	type = HOOK;
+	memcpy(header.type, type_str(), 4);
+	header.packet_size = 0;
+	memset(header.name, 0, sizeof(header.name));
+	header.point_type = 0;
+	header.point_size = 0;
+	header.position = Vector3<float>(0, 0, 0);
+
+	for (int i = 0; i < 3; ++i)
+		for (int j = 0; j < 3; ++j)
+			header.orientation[i][j] = 0;
+}
+
 MDB_file::Hook::Hook(std::istream& in)
 {
 	read(in);
@@ -414,7 +429,7 @@ void MDB_file::Hook::read(std::istream& in)
 
 void MDB_file::Hook::write(std::ostream& out)
 {
-	header.packet_size = packet_size();
+	header.packet_size = packet_size() - sizeof(Packet_header);
 
 	::write(out, header);
 }
