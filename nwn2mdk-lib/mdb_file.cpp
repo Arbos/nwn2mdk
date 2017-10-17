@@ -160,6 +160,8 @@ void MDB_file::read_packet(Packet_key& packet_key, std::istream& in)
 		packets.emplace_back(new Collision_mesh(in));
 	else if (strncmp(packet_key.type, "COLS", 4) == 0)
 		packets.emplace_back(new Collision_spheres(in));
+	else if (strncmp(packet_key.type, "HAIR", 4) == 0)
+		packets.emplace_back(new Hair(in));
 	else if (strncmp(packet_key.type, "HOOK", 4) == 0)
 		packets.emplace_back(new Hook(in));
 	else if (strncmp(packet_key.type, "RIGD", 4) == 0)
@@ -516,4 +518,42 @@ void MDB_file::Collision_spheres::write(std::ostream & out)
 
 	::write(out, header);
 	::write(out, spheres);	
+}
+
+MDB_file::Hair::Hair()
+{
+	type = HAIR;
+	memcpy(header.type, type_str(), 4);
+	header.packet_size = 0;
+	memset(header.name, 0, sizeof(header.name));
+	header.shortening_behavior = HSB_LOW;
+	header.position = Vector3<float>(0, 0, 0);
+
+	for (int i = 0; i < 3; ++i)
+		for (int j = 0; j < 3; ++j)
+			header.orientation[i][j] = 0;
+}
+
+MDB_file::Hair::Hair(std::istream & in)
+{
+	read(in);
+}
+
+uint32_t MDB_file::Hair::packet_size()
+{
+	return sizeof(Hair_header);
+}
+
+void MDB_file::Hair::read(std::istream & in)
+{
+	type = HAIR;
+
+	::read(in, header);
+}
+
+void MDB_file::Hair::write(std::ostream & out)
+{
+	header.packet_size = packet_size() - sizeof(Packet_header);
+
+	::write(out, header);
 }

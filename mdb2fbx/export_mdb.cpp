@@ -378,19 +378,19 @@ static void export_collision_spheres(Export_info& export_info,
 		export_collision_sphere(export_info, cs, i, *dep);
 }
 
-static FbxDouble3 hook_euler_rotation(const MDB_file::Hook& hook)
+static FbxDouble3 orientation_to_euler(const float orientation[3][3])
 {
-	FbxMatrix m(hook.header.orientation[1][0],
-		hook.header.orientation[1][1],
-		hook.header.orientation[1][2],
+	FbxMatrix m(orientation[1][0],
+		orientation[1][1],
+		orientation[1][2],
 		0,
-		hook.header.orientation[0][0],
-		hook.header.orientation[0][1],
-		hook.header.orientation[0][2],
+		orientation[0][0],
+		orientation[0][1],
+		orientation[0][2],
 		0,
-		hook.header.orientation[2][0],
-		hook.header.orientation[2][1],
-		hook.header.orientation[2][2],
+		orientation[2][0],
+		orientation[2][1],
+		orientation[2][2],
 		0,
 		0, 0, 0, 1);
 	FbxVector4 translation;
@@ -402,6 +402,36 @@ static FbxDouble3 hook_euler_rotation(const MDB_file::Hook& hook)
 	return FbxDouble3(rotation[0] - 90, rotation[2], -rotation[1]);	
 }
 
+static void create_user_property(FbxNode* node,
+	const MDB_file::Hair& hair, MDB_file::Hair_shortening_behavior hsb,
+	const char* property_name)
+{
+	auto prop = FbxProperty::Create(node, FbxFloatDT, property_name);
+	prop.Set(hair.header.shortening_behavior == hsb ? 1.0f : 0.0f);
+	prop.ModifyFlag(FbxPropertyFlags::eUserDefined, true);
+}
+
+static void create_user_properties(FbxNode* node, const MDB_file::Hair& hair)
+{
+	create_user_property(node, hair, MDB_file::HSB_LOW, "HSB_LOW");
+	create_user_property(node, hair, MDB_file::HSB_SHORT, "HSB_SHORT");
+	create_user_property(node, hair, MDB_file::HSB_PONYTAIL, "HSB_PONYTAIL");
+}
+
+static void export_hair(Export_info& export_info, const MDB_file::Hair& hair)
+{
+	string name(hair.header.name, 32);
+	cout << "Exporting: " << name.c_str() << endl;
+
+	auto node = FbxNode::Create(export_info.scene, name.c_str());
+	node->LclTranslation.Set(FbxDouble3(hair.header.position.x * 100, hair.header.position.z * 100, -hair.header.position.y * 100));
+	node->LclRotation.Set(orientation_to_euler(hair.header.orientation));
+	node->LclScaling.Set(FbxDouble3(100, 100, 100));
+	export_info.scene->GetRootNode()->AddChild(node);
+
+	create_user_properties(node, hair);
+}
+
 static void export_hook(Export_info& export_info, const MDB_file::Hook& hook)
 {	
 	string name(hook.header.name, 32);
@@ -409,7 +439,7 @@ static void export_hook(Export_info& export_info, const MDB_file::Hook& hook)
 
 	auto node = FbxNode::Create(export_info.scene, name.c_str());	
 	node->LclTranslation.Set(FbxDouble3(hook.header.position.x * 100, hook.header.position.z * 100, -hook.header.position.y * 100));	
-	node->LclRotation.Set(hook_euler_rotation(hook));
+	node->LclRotation.Set(orientation_to_euler(hook.header.orientation));
 	node->LclScaling.Set(FbxDouble3(100, 100, 100));
 	export_info.scene->GetRootNode()->AddChild(node);	
 }
@@ -598,6 +628,10 @@ static void export_packet(Export_info& export_info,
 	case MDB_file::COLS:
 		export_collision_spheres(export_info,
 			*static_cast<const MDB_file::Collision_spheres*>(packet));
+		break;
+	case MDB_file::HAIR:
+		export_hair(export_info,
+			*static_cast<const MDB_file::Hair*>(packet));
 		break;
 	case MDB_file::HOOK:
 		export_hook(export_info,

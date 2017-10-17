@@ -146,6 +146,42 @@ static void print_collision_spheres(const MDB_file::Collision_spheres& cs)
 	cout << "Spheres:        " << cs.header.sphere_count << endl;	
 }
 
+static void print_orientation(const float orientation[3][3])
+{
+	for (int i = 0; i < 3; ++i) {
+		cout << "  ";
+		for (int j = 0; j < 3; ++j)
+			cout << orientation[i][j] << ' ';
+		cout << endl;
+	}
+}
+
+static void print_hair(const MDB_file::Hair& hair)
+{
+	cout << "Signature:   " << string(hair.header.type, 4) << endl;
+	cout << "Size:        " << hair.header.packet_size << endl;
+	cout << "Name:        " << string(hair.header.name, 32).c_str() << endl;
+
+	cout << "Shortening:  " << hair.header.shortening_behavior;	
+	switch (hair.header.shortening_behavior) {
+	case MDB_file::HSB_LOW:
+		cout << " (LOW)\n";
+		break;
+	case MDB_file::HSB_SHORT:
+		cout << " (SHORT)\n";
+		break;
+	case MDB_file::HSB_PONYTAIL:
+		cout << " (PONYTAIL)\n";
+		break;
+	}
+
+	cout << "Position:    ";
+	print_vector3(hair.header.position);
+
+	cout << "Orientation:\n";
+	print_orientation(hair.header.orientation);	
+}
+
 static void print_hook(const MDB_file::Hook& hook)
 {
 	cout << "Signature:   " << string(hook.header.type, 4) << endl;
@@ -157,12 +193,7 @@ static void print_hook(const MDB_file::Hook& hook)
 	print_vector3(hook.header.position);
 
 	cout << "Orientation:\n";
-	for (int i = 0; i < 3; ++i) {
-		cout << "  ";
-		for (int j = 0; j < 3; ++j)
-			cout << hook.header.orientation[i][j] << ' ';
-		cout << endl;
-	}
+	print_orientation(hook.header.orientation);
 }
 
 static void print_rigid_mesh(const MDB_file::Rigid_mesh& rm)
@@ -230,6 +261,9 @@ static void print_packet(const MDB_file::Packet* packet)
 		break;
 	case MDB_file::COLS:
 		print_collision_spheres(*static_cast<const MDB_file::Collision_spheres*>(packet));
+		break;
+	case MDB_file::HAIR:
+		print_hair(*static_cast<const MDB_file::Hair*>(packet));
 		break;
 	case MDB_file::HOOK:
 		print_hook(*static_cast<const MDB_file::Hook*>(packet));

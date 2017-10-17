@@ -169,6 +169,20 @@ public:
 		uint32_t sphere_count; ///< Number of collision spheres
 	};
 
+	enum Hair_shortening_behavior {
+		HSB_LOW,
+		HSB_SHORT,
+		HSB_PONYTAIL
+	};
+
+	struct Hair_header : Packet_header {
+		/// Packet name. Don't assume it's null terminated.
+		char name[32];
+		Hair_shortening_behavior shortening_behavior;
+		Vector3<float> position;
+		float orientation[3][3];
+	};
+
 	enum Packet_type {
 		COL2, ///< Collision Mesh 2
 		COL3, ///< Collision Mesh 3
@@ -282,6 +296,18 @@ public:
 		void write(std::ostream& out) override;
 	};
 
+	class Hair : public Packet {
+	public:
+		Hair_header header;		
+
+		Hair();
+		Hair(std::istream& in);
+
+		uint32_t packet_size() override;
+		void read(std::istream& in) override;
+		void write(std::ostream& out) override;
+	};
+
 	struct Walk_mesh_material {
 		char *name;
 		uint16_t flags;
@@ -351,6 +377,7 @@ private:
 	static_assert(sizeof(Collision_sphere) == 8);
 	static_assert(sizeof(Collision_spheres_header) == 12);
 	static_assert(sizeof(Face) == 6);
+	static_assert(sizeof(Hair_header) == 92);
 	static_assert(sizeof(Header) == 12);
 	static_assert(sizeof(Hook_header) == 92);
 	static_assert(sizeof(Material) == 164);
