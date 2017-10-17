@@ -562,6 +562,21 @@ void import_walk_mesh(MDB_file& mdb, FbxNode* node)
 	mdb.add_packet(move(walk_mesh));
 }
 
+static void print_vector3(const Vector3<float>& v)
+{
+	cout << v.x << ", " << v.y << ", " << v.z << endl;
+}
+
+static void print_orientation(const float orientation[3][3])
+{
+	for (int i = 0; i < 3; ++i) {
+		cout << "    ";
+		for (int j = 0; j < 3; ++j)
+			cout << orientation[i][j] << ' ';
+		cout << endl;
+	}
+}
+
 void print_hook(MDB_file::Hook& hook)
 {
 	cout << "  Position: " << hook.header.position.x << ' '
@@ -616,6 +631,65 @@ void import_hook_point(MDB_file& mdb, FbxNode* node)
 	print_hook(*hook);
 	
 	mdb.add_packet(move(hook));
+}
+
+static void print_hair(const MDB_file::Hair& hair)
+{	
+	cout << "  Shortening: " << hair.header.shortening_behavior;
+	switch (hair.header.shortening_behavior) {
+	case MDB_file::HSB_LOW:
+		cout << " (LOW)\n";
+		break;
+	case MDB_file::HSB_SHORT:
+		cout << " (SHORT)\n";
+		break;
+	case MDB_file::HSB_PONYTAIL:
+		cout << " (PONYTAIL)\n";
+		break;
+	}
+
+	cout << "  Position: ";
+	print_vector3(hair.header.position);
+
+	cout << "  Orientation:\n";
+	print_orientation(hair.header.orientation);
+}
+
+MDB_file::Hair_shortening_behavior hair_shortening_behavior(FbxNode* node)
+{
+	auto prop = node->FindProperty("HSB_LOW");
+	if (prop.IsValid() && prop.Get<float>() != 0)
+		return MDB_file::HSB_LOW;
+
+	prop = node->FindProperty("HSB_SHORT");
+	if (prop.IsValid() && prop.Get<float>() != 0)
+		return MDB_file::HSB_SHORT;
+
+	prop = node->FindProperty("HSB_PONYTAIL");
+	if (prop.IsValid() && prop.Get<float>() != 0)
+		return MDB_file::HSB_PONYTAIL;
+
+	return MDB_file::HSB_LOW;
+}
+
+void import_hair(MDB_file& mdb, FbxNode* node)
+{
+	auto hair = make_unique<MDB_file::Hair>();
+	strncpy(hair->header.name, node->GetName(), 32);
+	hair->header.shortening_behavior = hair_shortening_behavior(node);
+
+	auto m = node->EvaluateGlobalTransform();
+
+	auto translation = m.GetT();
+	hair->header.position.x = float(translation[0] / 100);
+	hair->header.position.y = float(-translation[2] / 100);
+	hair->header.position.z = float(translation[1] / 100);
+
+	transform_to_orientation(m, hair->header.orientation);	
+
+	print_hair(*hair);
+
+	mdb.add_packet(move(hair));
 }
 
 void import_polygon(MDB_file::Rigid_mesh& rigid_mesh, FbxMesh* mesh,
@@ -856,6 +930,8 @@ void import_mesh(MDB_file& mdb, FbxNode* node)
 		import_walk_mesh(mdb, node);
 	else if (starts_with(node->GetName(), "HP_DR_STD"))
 		import_hook_point(mdb, node);
+	else if (node->FindProperty("HSB_LOW").IsValid())
+		import_hair(mdb, node);
 	else if (skin(node))
 		import_skin(mdb, node);
 	else if(!starts_with(node->GetName(), "COLS"))
