@@ -432,6 +432,37 @@ static void export_hair(Export_info& export_info, const MDB_file::Hair& hair)
 	create_user_properties(node, hair);
 }
 
+static void create_user_property(FbxNode* node,
+	const MDB_file::Helm& helm, MDB_file::Helm_hair_hiding_behavior hhhb,
+	const char* property_name)
+{
+	auto prop = FbxProperty::Create(node, FbxFloatDT, property_name);
+	prop.Set(helm.header.hiding_behavior == hhhb ? 1.0f : 0.0f);
+	prop.ModifyFlag(FbxPropertyFlags::eUserDefined, true);
+}
+
+static void create_user_properties(FbxNode* node, const MDB_file::Helm& helm)
+{
+	create_user_property(node, helm, MDB_file::HHHB_NONE_HIDDEN, "HHHB_NONE_HIDDEN");
+	create_user_property(node, helm, MDB_file::HHHB_HAIR_HIDDEN, "HHHB_HAIR_HIDDEN");
+	create_user_property(node, helm, MDB_file::HHHB_PARTIAL_HAIR, "HHHB_PARTIAL_HAIR");
+	create_user_property(node, helm, MDB_file::HHHB_HEAD_HIDDEN, "HHHB_HEAD_HIDDEN");
+}
+
+static void export_helm(Export_info& export_info, const MDB_file::Helm& helm)
+{
+	string name(helm.header.name, 32);
+	cout << "Exporting: " << name.c_str() << endl;
+
+	auto node = FbxNode::Create(export_info.scene, name.c_str());
+	node->LclTranslation.Set(FbxDouble3(helm.header.position.x * 100, helm.header.position.z * 100, -helm.header.position.y * 100));
+	node->LclRotation.Set(orientation_to_euler(helm.header.orientation));
+	node->LclScaling.Set(FbxDouble3(100, 100, 100));
+	export_info.scene->GetRootNode()->AddChild(node);
+
+	create_user_properties(node, helm);
+}
+
 static void export_hook(Export_info& export_info, const MDB_file::Hook& hook)
 {	
 	string name(hook.header.name, 32);
@@ -632,6 +663,10 @@ static void export_packet(Export_info& export_info,
 	case MDB_file::HAIR:
 		export_hair(export_info,
 			*static_cast<const MDB_file::Hair*>(packet));
+		break;
+	case MDB_file::HELM:
+		export_helm(export_info,
+			*static_cast<const MDB_file::Helm*>(packet));
 		break;
 	case MDB_file::HOOK:
 		export_hook(export_info,

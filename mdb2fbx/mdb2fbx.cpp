@@ -182,6 +182,35 @@ static void print_hair(const MDB_file::Hair& hair)
 	print_orientation(hair.header.orientation);	
 }
 
+static void print_helm(const MDB_file::Helm& helm)
+{
+	cout << "Signature:   " << string(helm.header.type, 4) << endl;
+	cout << "Size:        " << helm.header.packet_size << endl;
+	cout << "Name:        " << string(helm.header.name, 32).c_str() << endl;
+
+	cout << "Hiding:      " << helm.header.hiding_behavior;
+	switch (helm.header.hiding_behavior) {
+	case MDB_file::HHHB_NONE_HIDDEN:
+		cout << " (NONE_HIDDEN)\n";
+		break;
+	case MDB_file::HHHB_HAIR_HIDDEN:
+		cout << " (HAIR_HIDDEN)\n";
+		break;
+	case MDB_file::HHHB_PARTIAL_HAIR:
+		cout << " (PARTIAL_HAIR)\n";
+		break;
+	case MDB_file::HHHB_HEAD_HIDDEN:
+		cout << " (HEAD_HIDDEN)\n";
+		break;
+	}
+
+	cout << "Position:    ";
+	print_vector3(helm.header.position);
+
+	cout << "Orientation:\n";
+	print_orientation(helm.header.orientation);
+}
+
 static void print_hook(const MDB_file::Hook& hook)
 {
 	cout << "Signature:   " << string(hook.header.type, 4) << endl;
@@ -264,6 +293,9 @@ static void print_packet(const MDB_file::Packet* packet)
 		break;
 	case MDB_file::HAIR:
 		print_hair(*static_cast<const MDB_file::Hair*>(packet));
+		break;
+	case MDB_file::HELM:
+		print_helm(*static_cast<const MDB_file::Helm*>(packet));
 		break;
 	case MDB_file::HOOK:
 		print_hook(*static_cast<const MDB_file::Hook*>(packet));

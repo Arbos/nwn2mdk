@@ -181,6 +181,21 @@ public:
 		Hair_shortening_behavior shortening_behavior;
 		Vector3<float> position;
 		float orientation[3][3];
+	};	
+
+	enum Helm_hair_hiding_behavior {
+		HHHB_NONE_HIDDEN,
+		HHHB_HAIR_HIDDEN,
+		HHHB_PARTIAL_HAIR,
+		HHHB_HEAD_HIDDEN
+	};
+
+	struct Helm_header : Packet_header {
+		/// Packet name. Don't assume it's null terminated.
+		char name[32];
+		Helm_hair_hiding_behavior hiding_behavior;
+		Vector3<float> position;
+		float orientation[3][3];
 	};
 
 	enum Packet_type {
@@ -308,6 +323,18 @@ public:
 		void write(std::ostream& out) override;
 	};
 
+	class Helm : public Packet {
+	public:
+		Helm_header header;
+
+		Helm();
+		Helm(std::istream& in);
+
+		uint32_t packet_size() override;
+		void read(std::istream& in) override;
+		void write(std::ostream& out) override;
+	};
+
 	struct Walk_mesh_material {
 		char *name;
 		uint16_t flags;
@@ -379,6 +406,7 @@ private:
 	static_assert(sizeof(Face) == 6);
 	static_assert(sizeof(Hair_header) == 92);
 	static_assert(sizeof(Header) == 12);
+	static_assert(sizeof(Helm_header) == 92);
 	static_assert(sizeof(Hook_header) == 92);
 	static_assert(sizeof(Material) == 164);
 	static_assert(sizeof(Packet_key) == 8);
