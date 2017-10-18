@@ -692,6 +692,72 @@ void import_hair(MDB_file& mdb, FbxNode* node)
 	mdb.add_packet(move(hair));
 }
 
+MDB_file::Helm_hair_hiding_behavior helm_hair_hiding_behavior(FbxNode* node)
+{
+	auto prop = node->FindProperty("HHHB_NONE_HIDDEN");
+	if (prop.IsValid() && prop.Get<float>() != 0)
+		return MDB_file::HHHB_NONE_HIDDEN;
+
+	prop = node->FindProperty("HHHB_HAIR_HIDDEN");
+	if (prop.IsValid() && prop.Get<float>() != 0)
+		return MDB_file::HHHB_HAIR_HIDDEN;
+
+	prop = node->FindProperty("HHHB_PARTIAL_HAIR");
+	if (prop.IsValid() && prop.Get<float>() != 0)
+		return MDB_file::HHHB_PARTIAL_HAIR;
+
+	prop = node->FindProperty("HHHB_HEAD_HIDDEN");
+	if (prop.IsValid() && prop.Get<float>() != 0)
+		return MDB_file::HHHB_HEAD_HIDDEN;
+
+	return MDB_file::HHHB_NONE_HIDDEN;
+}
+
+static void print_helm(const MDB_file::Helm& helm)
+{	
+	cout << "  Hiding: " << helm.header.hiding_behavior;
+	switch (helm.header.hiding_behavior) {
+	case MDB_file::HHHB_NONE_HIDDEN:
+		cout << " (NONE_HIDDEN)\n";
+		break;
+	case MDB_file::HHHB_HAIR_HIDDEN:
+		cout << " (HAIR_HIDDEN)\n";
+		break;
+	case MDB_file::HHHB_PARTIAL_HAIR:
+		cout << " (PARTIAL_HAIR)\n";
+		break;
+	case MDB_file::HHHB_HEAD_HIDDEN:
+		cout << " (HEAD_HIDDEN)\n";
+		break;
+	}
+
+	cout << "  Position: ";
+	print_vector3(helm.header.position);
+
+	cout << "  Orientation:\n";
+	print_orientation(helm.header.orientation);
+}
+
+void import_helm(MDB_file& mdb, FbxNode* node)
+{
+	auto helm = make_unique<MDB_file::Helm>();
+	strncpy(helm->header.name, node->GetName(), 32);
+	helm->header.hiding_behavior = helm_hair_hiding_behavior(node);
+
+	auto m = node->EvaluateGlobalTransform();
+
+	auto translation = m.GetT();
+	helm->header.position.x = float(translation[0] / 100);
+	helm->header.position.y = float(-translation[2] / 100);
+	helm->header.position.z = float(translation[1] / 100);
+
+	transform_to_orientation(m, helm->header.orientation);
+
+	print_helm(*helm);
+
+	mdb.add_packet(move(helm));
+}
+
 void import_polygon(MDB_file::Rigid_mesh& rigid_mesh, FbxMesh* mesh,
 	int polygon_index)
 {
@@ -932,6 +998,8 @@ void import_mesh(MDB_file& mdb, FbxNode* node)
 		import_hook_point(mdb, node);
 	else if (node->FindProperty("HSB_LOW").IsValid())
 		import_hair(mdb, node);
+	else if (node->FindProperty("HHHB_NONE_HIDDEN").IsValid())
+		import_helm(mdb, node);
 	else if (skin(node))
 		import_skin(mdb, node);
 	else if(!starts_with(node->GetName(), "COLS"))
