@@ -623,8 +623,8 @@ void import_hook_point(MDB_file& mdb, FbxNode* node)
 
 	auto translation = m.GetT();	
 	hook->header.position.x = float(translation[0]/100);
-	hook->header.position.y = float(translation[1]/100);
-	hook->header.position.z = float(translation[2]/100);
+	hook->header.position.y = float(-translation[2]/100);
+	hook->header.position.z = float(translation[1]/100);
 
 	transform_to_orientation(m, hook->header.orientation);
 
