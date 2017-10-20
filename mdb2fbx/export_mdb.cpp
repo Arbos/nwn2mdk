@@ -526,7 +526,7 @@ static void export_skinning(Export_info& export_info,
 
 	for (unsigned i = 0; i < skin.verts.size(); ++i) {
 		auto &v = skin.verts[i];
-		assert(v.bone_count == 4);
+		assert(v.bone_count >= 0 && v.bone_count <= 4);
 		for (unsigned j = 0; j < 4; ++j) {
 			if (v.bone_weights[j] > 0) {
 				auto bone_index = v.bone_indices[j];
