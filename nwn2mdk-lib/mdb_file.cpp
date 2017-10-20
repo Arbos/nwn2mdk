@@ -500,7 +500,7 @@ MDB_file::Collision_spheres::Collision_spheres(std::istream & in)
 
 uint32_t MDB_file::Collision_spheres::packet_size()
 {
-	return sizeof(Collision_spheres_header) - sizeof(Packet_header) +
+	return sizeof(Collision_spheres_header) +
 		sizeof(Collision_sphere) * spheres.size();
 }
 
@@ -516,7 +516,7 @@ void MDB_file::Collision_spheres::read(std::istream & in)
 
 void MDB_file::Collision_spheres::write(std::ostream & out)
 {
-	header.packet_size = packet_size();
+	header.packet_size = packet_size() - sizeof(Packet_header);
 
 	::write(out, header);
 	::write(out, spheres);	
