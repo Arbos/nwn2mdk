@@ -501,14 +501,9 @@ static void export_rigid_mesh(Export_info& export_info,
 	create_user_properties(node, rm.header.material);
 }
 
-#ifdef _WIN32
-static void export_skinning(Export_info& export_info,
-	const MDB_file::Skin& skin, FbxMesh* mesh, 
-	Dependency& dep)
+static std::vector<FbxCluster*> create_clusters(Export_info& export_info,
+	const MDB_file::Skin& skin, Dependency& dep)
 {
-	FbxSkin *fbx_skin = FbxSkin::Create(export_info.scene, "");
-	fbx_skin->SetSkinningType(FbxSkin::eRigid);
-
 	std::vector<FbxCluster*> clusters(dep.fbx_body_bones.size());
 	for (unsigned i = 0; i < clusters.size(); ++i) {
 		auto fbx_bone = (skin.header.material.flags & MDB_file::CUTSCENE_MESH) && i < dep.fbx_face_bones.size() ?
@@ -524,20 +519,46 @@ static void export_skinning(Export_info& export_info,
 		clusters[i]->SetTransformLinkMatrix(fbx_bone->EvaluateGlobalTransform());
 	}
 
-	for (unsigned i = 0; i < skin.verts.size(); ++i) {
-		auto &v = skin.verts[i];
-		assert(v.bone_count >= 0 && v.bone_count <= 4);
-		for (unsigned j = 0; j < 4; ++j) {
-			if (v.bone_weights[j] > 0) {
-				auto bone_index = v.bone_indices[j];
-				assert(bone_index < clusters.size());
-				clusters[bone_index]->AddControlPointIndex(i, v.bone_weights[j]);
-			}
+	return clusters;
+}
+
+static void fill_vertex_clusters(const MDB_file::Skin& skin, unsigned vertex_index, std::vector<FbxCluster*>& clusters)
+{
+	auto& v = skin.verts[vertex_index];
+	assert(v.bone_count >= 0 && v.bone_count <= 4);
+
+	for (unsigned j = 0; j < 4; ++j) {
+		if (v.bone_weights[j] > 0) {
+			auto bone_index = v.bone_indices[j];
+			assert(bone_index < clusters.size());
+			clusters[bone_index]->AddControlPointIndex(vertex_index, v.bone_weights[j]);
 		}
 	}
+}
 
+static void fill_clusters(const MDB_file::Skin& skin, std::vector<FbxCluster*>& clusters)
+{
+	for (unsigned i = 0; i < skin.verts.size(); ++i)		
+		fill_vertex_clusters(skin, i, clusters);
+}
+
+static void add_clusters(FbxSkin* fbx_skin, const std::vector<FbxCluster*>& clusters)
+{
 	for (unsigned i = 0; i < clusters.size(); ++i)
 		fbx_skin->AddCluster(clusters[i]);
+}
+
+#ifdef _WIN32
+static void export_skinning(Export_info& export_info,
+	const MDB_file::Skin& skin, FbxMesh* mesh,
+	Dependency& dep)
+{
+	FbxSkin *fbx_skin = FbxSkin::Create(export_info.scene, "");
+	fbx_skin->SetSkinningType(FbxSkin::eRigid);
+
+	auto clusters = create_clusters(export_info, skin, dep);
+	fill_clusters(skin, clusters);
+	add_clusters(fbx_skin, clusters);
 
 	mesh->AddDeformer(fbx_skin);
 }
