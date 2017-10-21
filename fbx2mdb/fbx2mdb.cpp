@@ -579,17 +579,11 @@ static void print_orientation(const float orientation[3][3])
 
 void print_hook(MDB_file::Hook& hook)
 {
-	cout << "  Position: " << hook.header.position.x << ' '
-		<< hook.header.position.y << ' '
-		<< hook.header.position.z << endl;
+	cout << "  Position: ";
+	print_vector3(hook.header.position);
 
 	cout << "  Orientation:\n";
-	for (int i = 0; i < 3; ++i) {
-		cout << "    ";
-		for (int j = 0; j < 3; ++j)
-			cout << hook.header.orientation[i][j] << ' ';
-		cout << endl;
-	}
+	print_orientation(hook.header.orientation);	
 }
 
 void transform_to_orientation(const FbxAMatrix& m, float orientation[3][3])
@@ -601,8 +595,7 @@ void transform_to_orientation(const FbxAMatrix& m, float orientation[3][3])
 	r90x.SetR(FbxVector4(90, 0, 0));
 	mp = mp*r90x; // Undo rotation from the exporter
 
-	// Swap y-axis with z-axis.
-	// The negations are for flipping handedness.
+	// Swap y-axis with z-axis. The negations are for flipping handedness.
 	orientation[0][0] = float(-mp.Get(2, 0));
 	orientation[0][1] = float(mp.Get(2, 2));
 	orientation[0][2] = float(-mp.Get(2, 1));
