@@ -530,8 +530,10 @@ static void fill_vertex_clusters(const MDB_file::Skin& skin, unsigned vertex_ind
 	for (unsigned j = 0; j < 4; ++j) {
 		if (v.bone_weights[j] > 0) {
 			auto bone_index = v.bone_indices[j];
-			assert(bone_index < clusters.size());
-			clusters[bone_index]->AddControlPointIndex(vertex_index, v.bone_weights[j]);
+			if (bone_index < clusters.size())
+				clusters[bone_index]->AddControlPointIndex(vertex_index, v.bone_weights[j]);
+			else
+				cout << "  WARNING: bone index out of bounds (" << unsigned(bone_index) << " >= " << clusters.size() << ")\n";				
 		}
 	}
 }
