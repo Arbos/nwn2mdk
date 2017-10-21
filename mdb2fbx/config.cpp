@@ -27,17 +27,17 @@ static const char* nwn2_dirs[] = {
     "C:\\Program Files (x86)\\Atari\\Neverwinter Nights 2",
     "C:\\GOG Games\\Neverwinter Nights 2 Complete"};
 
-Config::Config()
+Config::Config(const char *filename)
 {
-	if(!exists("config.yml")) {
-		ofstream out("config.yml");
+	if(!exists(filename)) {
+		ofstream out(filename);
 		out << "# (Optional) Directory where NWN2 is installed.\n";
 		out << "# nwn2_home: C:\\Program Files\\Atari\\Neverwinter Nights 2\n";
 	}
 
-	auto config = YAML::LoadFile("config.yml");
+	auto config = YAML::LoadFile(filename);
 	if(!config) {
-		cout << "cannot open config.yml\n";
+		cout << "cannot open " << filename << endl;
 		return;
 	}
 

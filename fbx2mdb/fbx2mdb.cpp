@@ -1733,7 +1733,7 @@ void import_collision_spheres(MDB_file& mdb, FbxScene* scene)
 
 int main(int argc, char* argv[])
 {
-	Config config;
+	Config config((path(argv[0]).parent_path() / "config.yml").string().c_str());
 
 	if (config.nwn2_home.empty() || !exists(config.nwn2_home)) {
 		cout << "Cannot find a NWN2 installation directory. Edit the "

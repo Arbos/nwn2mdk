@@ -21,5 +21,5 @@ public:
 	/// Directory where NWN2 is installed.
 	std::string nwn2_home;
 
-	Config();
+	Config(const char *filename);
 };
