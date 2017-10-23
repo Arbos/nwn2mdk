@@ -476,6 +476,7 @@ bool process_args(Export_info& export_info, int argc, char* argv[],
 	}
 
 	struct Input {
+		std::string filename;
 		std::unique_ptr<MDB_file> mdb;
 		std::unique_ptr<GR2_file> gr2;
 	};
@@ -487,6 +488,7 @@ bool process_args(Export_info& export_info, int argc, char* argv[],
 		transform(ext.begin(), ext.end(), ext.begin(), ::toupper);
 		if (ext == ".MDB") {
 			Input input;
+			input.filename = filename;
 			input.mdb.reset(new MDB_file(filename.c_str()));
 			if (!(*input.mdb)) {
 				cout << input.mdb->error_str() << endl;
@@ -496,6 +498,7 @@ bool process_args(Export_info& export_info, int argc, char* argv[],
 		}
 		else if (ext == ".GR2") {
 			Input input;
+			input.filename = filename;
 			input.gr2.reset(new GR2_file(filename.c_str()));
 			if (!(*input.gr2)) {
 				cout << input.gr2->error_string() << endl;
@@ -507,7 +510,7 @@ bool process_args(Export_info& export_info, int argc, char* argv[],
 
 	for (auto &input : inputs) {
 		if (input.gr2 && input.gr2->file_info->skeletons_count > 0) {
-			auto &dep = export_info.dependencies[input.gr2->file_info->from_file_name];			
+			auto &dep = export_info.dependencies[input.filename];			
 			export_gr2(*input.gr2, export_info.scene, dep.fbx_bones);
 			dep.exported = true;
 			dep.extracted = true;

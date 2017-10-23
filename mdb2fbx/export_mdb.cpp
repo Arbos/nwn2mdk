@@ -569,7 +569,7 @@ static void export_skinning(Export_info& export_info,
 	const MDB_file::Skin& skin, FbxMesh* mesh)
 {
 	for (auto &dep : export_info.dependencies) {
-		if (dep.second.fbx_bones.size() > 0) {
+		if (dep.second.fbx_bones.size() > 0 && strcmpi(skin.header.skeleton_name, dep.second.fbx_bones[0]->GetName()) == 0) {
 			export_skinning(export_info, skin, mesh, dep.second);
 			return;
 		}
