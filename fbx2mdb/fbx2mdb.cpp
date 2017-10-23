@@ -1783,10 +1783,11 @@ int main(int argc, char* argv[])
 	import_animations(scene, argv[1]);
 	import_skeletons(scene, argv[1]);
 
-	string output_filename = path(argv[1]).stem().string() + ".MDB";
-	mdb.save(output_filename.c_str());
-
-	cout << "\nOutput is " << output_filename << endl;
+	if (mdb.packet_count() > 0) {
+		string output_filename = path(argv[1]).stem().string() + ".MDB";
+		mdb.save(output_filename.c_str());
+		cout << "\nOutput is " << output_filename << endl;
+	}	
 
 	// Destroy the sdk manager and all other objects it was handling.
 	manager->Destroy();

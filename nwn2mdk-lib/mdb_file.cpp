@@ -95,6 +95,8 @@ void MDB_file::add_packet(std::unique_ptr<Packet> packet)
 	packet_keys.push_back(packet_key);
 
 	packets.push_back(move(packet));
+
+	++header.packet_count;
 }
 
 const char* MDB_file::error_str() const
