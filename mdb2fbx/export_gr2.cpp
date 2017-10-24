@@ -210,6 +210,27 @@ FbxQuaternion de_boor_rotation(unsigned degree, float t, GR2_curve_view &v)
 	return de_boor_rotation(degree, padded_knots(v.knots(), degree), v.controls(), t);
 }
 
+void add_position_keyframe(FbxAnimCurve* curvex, FbxAnimCurve* curvey,
+	FbxAnimCurve* curvez, GR2_curve_view &view, float t)
+{
+	auto p = de_boor_position(view.degree(), t, view);
+
+	FbxTime time;
+	time.SetSecondDouble(t);
+
+	auto k = curvex->KeyAdd(time);
+	curvex->KeySetInterpolation(k, FbxAnimCurveDef::eInterpolationLinear);
+	curvex->KeySetValue(k, p.x);
+
+	k = curvey->KeyAdd(time);
+	curvey->KeySetInterpolation(k, FbxAnimCurveDef::eInterpolationLinear);
+	curvey->KeySetValue(k, p.y);
+
+	k = curvez->KeyAdd(time);
+	curvez->KeySetInterpolation(k, FbxAnimCurveDef::eInterpolationLinear);
+	curvez->KeySetValue(k, p.z);
+}
+
 void create_anim_position(FbxNode *node, FbxAnimLayer *anim_layer, GR2_animation *anim,
 	GR2_transform_track &transform_track)
 {
@@ -226,22 +247,34 @@ void create_anim_position(FbxNode *node, FbxAnimLayer *anim_layer, GR2_animation
 	curvey->KeyModifyBegin();
 	curvez->KeyModifyBegin();	
 
-	for (float t = 0; t < anim->duration; t += time_step) {
-		auto p = de_boor_position(view.degree(), t, view);
-			
-		FbxTime time;		
-		time.SetSecondDouble(t);
-		auto k = curvex->KeyAdd(time);
-		curvex->KeySetValue(k, p.x);
-		k = curvey->KeyAdd(time);
-		curvey->KeySetValue(k, p.y);
-		k = curvez->KeyAdd(time);
-		curvez->KeySetValue(k, p.z);
-	}
+	for (float t = 0; t < anim->duration; t += time_step)
+		add_position_keyframe(curvex, curvey, curvez, view, t);
 
 	curvex->KeyModifyEnd();
 	curvey->KeyModifyEnd();
 	curvez->KeyModifyEnd();
+}
+
+void add_rotation_keyframe(FbxAnimCurve* curvex, FbxAnimCurve* curvey,
+	FbxAnimCurve* curvez, GR2_curve_view &view, float t)
+{
+	auto r = de_boor_rotation(view.degree(), t, view);
+	auto e = quat_to_euler(r);
+
+	FbxTime time;
+	time.SetSecondDouble(t);
+
+	auto k = curvex->KeyAdd(time);
+	curvex->KeySetInterpolation(k, FbxAnimCurveDef::eInterpolationLinear);
+	curvex->KeySetValue(k, float(e[0]));
+
+	k = curvey->KeyAdd(time);
+	curvey->KeySetInterpolation(k, FbxAnimCurveDef::eInterpolationLinear);
+	curvey->KeySetValue(k, float(e[1]));
+
+	k = curvez->KeyAdd(time);
+	curvez->KeySetInterpolation(k, FbxAnimCurveDef::eInterpolationLinear);
+	curvez->KeySetValue(k, float(e[2]));
 }
 
 void create_anim_rotation(FbxNode *node, FbxAnimLayer *anim_layer, GR2_animation *anim, GR2_transform_track &transform_track)
@@ -259,19 +292,8 @@ void create_anim_rotation(FbxNode *node, FbxAnimLayer *anim_layer, GR2_animation
 	curvey->KeyModifyBegin();
 	curvez->KeyModifyBegin();	
 
-	for (float t = 0; t < anim->duration; t += time_step) {
-		auto r = de_boor_rotation(view.degree(), t, view);		
-		auto e = quat_to_euler(r);
-
-		FbxTime time;
-		time.SetSecondDouble(t);
-		auto k = curvex->KeyAdd(time);
-		curvex->KeySetValue(k, float(e[0]));
-		k = curvey->KeyAdd(time);
-		curvey->KeySetValue(k, float(e[1]));
-		k = curvez->KeyAdd(time);
-		curvez->KeySetValue(k, float(e[2]));
-	}
+	for (float t = 0; t < anim->duration; t += time_step)
+		add_rotation_keyframe(curvex, curvey, curvez, view, t);
 
 	curvex->KeyModifyEnd();
 	curvey->KeyModifyEnd();
@@ -305,6 +327,26 @@ std::pair<std::vector<float>, std::vector<float>> scaleshear_curve_view(GR2_tran
 	return { knots, controls };
 }
 
+void add_scaling_keyframe(FbxAnimCurve* curvex, FbxAnimCurve* curvey,
+	FbxAnimCurve* curvez, std::vector<float>& knots, std::vector<float>& controls,
+	unsigned i)
+{
+	FbxTime time;
+	time.SetSecondDouble(knots[i]);
+
+	auto k = curvex->KeyAdd(time);
+	curvex->KeySetInterpolation(k, FbxAnimCurveDef::eInterpolationLinear);
+	curvex->KeySetValue(k, controls[i * 9 + 0]);
+
+	k = curvey->KeyAdd(time);
+	curvey->KeySetInterpolation(k, FbxAnimCurveDef::eInterpolationLinear);
+	curvey->KeySetValue(k, controls[i * 9 + 4]);
+
+	k = curvez->KeyAdd(time);
+	curvez->KeySetInterpolation(k, FbxAnimCurveDef::eInterpolationLinear);
+	curvez->KeySetValue(k, controls[i * 9 + 8]);
+}
+
 void create_anim_scaling(FbxNode *node, FbxAnimLayer *anim_layer, GR2_animation *anim, GR2_transform_track &transform_track)
 {	
 	auto [knots, controls] = scaleshear_curve_view(transform_track);
@@ -320,17 +362,8 @@ void create_anim_scaling(FbxNode *node, FbxAnimLayer *anim_layer, GR2_animation 
 	curvey->KeyModifyBegin();
 	curvez->KeyModifyBegin();
 
-	for (unsigned i = 0; i < knots.size(); ++i) {
-		FbxTime time;
-		time.SetSecondDouble(knots[i]);
-
-		auto k = curvex->KeyAdd(time);
-		curvex->KeySetValue(k, controls[i * 9 + 0]);
-		k = curvey->KeyAdd(time);
-		curvey->KeySetValue(k, controls[i * 9 + 4]);
-		k = curvez->KeyAdd(time);
-		curvez->KeySetValue(k, controls[i * 9 + 8]);
-	}
+	for (unsigned i = 0; i < knots.size(); ++i)
+		add_scaling_keyframe(curvex, curvey, curvez, knots, controls, i);
 
 	curvex->KeyModifyEnd();
 	curvey->KeyModifyEnd();
