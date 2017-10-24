@@ -139,7 +139,7 @@ Vector3<float> de_boor_position(unsigned k, const std::vector<float>& knots, con
 {	
 	unsigned i = k;
 
-	while (knots[i] <= t)
+	while (i < knots.size() - k - 1 && knots[i] <= t)
 		++i;
 
 	i = i - 1;
@@ -178,7 +178,7 @@ FbxQuaternion de_boor_rotation(unsigned k, const std::vector<float>& knots, cons
 {
 	unsigned i = k;
 
-	while (knots[i] <= t)
+	while (i < knots.size() - k - 1 && knots[i] <= t)
 		++i;
 
 	i = i - 1;
@@ -247,8 +247,9 @@ void create_anim_position(FbxNode *node, FbxAnimLayer *anim_layer, GR2_animation
 	curvey->KeyModifyBegin();
 	curvez->KeyModifyBegin();	
 
-	for (float t = 0; t < anim->duration; t += time_step)
+	for (float t = 0; t < anim->duration + time_step; t += time_step) {		
 		add_position_keyframe(curvex, curvey, curvez, view, t);
+	}
 
 	curvex->KeyModifyEnd();
 	curvey->KeyModifyEnd();
@@ -292,8 +293,9 @@ void create_anim_rotation(FbxNode *node, FbxAnimLayer *anim_layer, GR2_animation
 	curvey->KeyModifyBegin();
 	curvez->KeyModifyBegin();	
 
-	for (float t = 0; t < anim->duration; t += time_step)
+	for (float t = 0; t < anim->duration + time_step; t += time_step) {		
 		add_rotation_keyframe(curvex, curvey, curvez, view, t);
+	}
 
 	curvex->KeyModifyEnd();
 	curvey->KeyModifyEnd();
