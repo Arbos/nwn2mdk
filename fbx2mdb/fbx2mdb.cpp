@@ -1334,9 +1334,9 @@ void import_position(GR2_import_info& import_info, FbxNode* node,
 		FbxTime time = import_info.anim_stack->LocalStart;
 		FbxTime dt;
 		dt.SetSecondDouble(time_step);
-		float t = 0;
 
 		while (time <= import_info.anim_stack->LocalStop) {
+			float t = float((time - import_info.anim_stack->LocalStart).GetSecondDouble());
 			knots.push_back(t);
 
 			auto p = node->LclTranslation.EvaluateValue(time);
@@ -1347,8 +1347,7 @@ void import_position(GR2_import_info& import_info, FbxNode* node,
 			cout << "    " << knots.back() << ": " << p[0] << ' '
 			     << p[1] << ' ' << p[2] << endl;
 
-			time += dt;
-			t += time_step;
+			time += dt;			
 		}
 
 		curve.knots_count = knots.size();
@@ -1394,11 +1393,11 @@ void import_rotation(GR2_import_info& import_info, FbxNode* node,
 	FbxTime time = import_info.anim_stack->LocalStart;
 	FbxTime dt;
 	dt.SetSecondDouble(time_step);
-	float t = 0;
 
 	FbxQuaternion prev_quat(0, 0, 0, 1);
 
 	while (time <= import_info.anim_stack->LocalStop) {
+		float t = float((time - import_info.anim_stack->LocalStart).GetSecondDouble());
 		knots.push_back(t);
 
 		auto p = node->LclRotation.EvaluateValue(time);
@@ -1419,7 +1418,6 @@ void import_rotation(GR2_import_info& import_info, FbxNode* node,
 		     << quat[1] << ' ' << quat[2] << ' ' << quat[3] << endl;
 
 		time += dt;
-		t += time_step;
 	}
 
 	curve.knots_count = knots.size();
@@ -1444,9 +1442,9 @@ void import_scaleshear_DaK32fC32f(GR2_import_info& import_info, FbxNode* node,
 	FbxTime time = import_info.anim_stack->LocalStart;
 	FbxTime dt;
 	dt.SetSecondDouble(time_step);
-	float t = 0;
 
 	while (time <= import_info.anim_stack->LocalStop) {
+		float t = float((time - import_info.anim_stack->LocalStart).GetSecondDouble());
 		knots.push_back(t);
 
 		auto s = node->LclScaling.EvaluateValue(time);
@@ -1463,8 +1461,7 @@ void import_scaleshear_DaK32fC32f(GR2_import_info& import_info, FbxNode* node,
 		cout << "    " << knots.back() << ": " << s[0] << ' '
 			<< s[1] << ' ' << s[2] << endl;
 
-		time += dt;
-		t += time_step;
+		time += dt;		
 	}
 
 	import_info.da_curves.emplace_back();

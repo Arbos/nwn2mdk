@@ -6,7 +6,7 @@
 
 using namespace std;
 
-const float time_step = 1 / 30.0f;
+const double time_step = 1 / 30.0;
 
 static FbxVector4 quat_to_euler(FbxQuaternion &q)
 {
@@ -247,9 +247,8 @@ void create_anim_position(FbxNode *node, FbxAnimLayer *anim_layer, GR2_animation
 	curvey->KeyModifyBegin();
 	curvez->KeyModifyBegin();	
 
-	for (float t = 0; t < anim->duration + time_step; t += time_step) {		
-		add_position_keyframe(curvex, curvey, curvez, view, t);
-	}
+	for (double i = 0, t = 0; t < anim->duration + time_step / 2; ++i, t = i*time_step)
+		add_position_keyframe(curvex, curvey, curvez, view, float(t));
 
 	curvex->KeyModifyEnd();
 	curvey->KeyModifyEnd();
@@ -293,9 +292,8 @@ void create_anim_rotation(FbxNode *node, FbxAnimLayer *anim_layer, GR2_animation
 	curvey->KeyModifyBegin();
 	curvez->KeyModifyBegin();	
 
-	for (float t = 0; t < anim->duration + time_step; t += time_step) {		
-		add_rotation_keyframe(curvex, curvey, curvez, view, t);
-	}
+	for (double i = 0, t = 0; t < anim->duration + time_step / 2; ++i, t = i*time_step)
+		add_rotation_keyframe(curvex, curvey, curvez, view, float(t));
 
 	curvex->KeyModifyEnd();
 	curvey->KeyModifyEnd();
