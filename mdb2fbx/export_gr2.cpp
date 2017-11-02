@@ -112,8 +112,9 @@ static void export_skeleton(FbxScene *scene, GR2_skeleton *skel,
 static void export_skeletons(FbxScene *scene, GR2_file_info *info,
 	std::vector<FbxNode*> &fbx_bones)
 {
-	for (int i = 0; i < info->skeletons_count; ++i) {
-		export_skeleton(scene, info->skeletons[i], fbx_bones);
+	for (int i = 0; i < info->models_count; ++i) {
+		if(info->models[i]->skeleton)
+			export_skeleton(scene, info->models[i]->skeleton, fbx_bones);
 	}
 }
 
@@ -435,6 +436,7 @@ void export_gr2(GR2_file& gr2, FbxScene *scene,
 	cout << "GR2\n";
 	cout << "===\n";
 	cout << "Skeletons: " << gr2.file_info->skeletons_count << endl;
+	cout << "Models: " << gr2.file_info->models_count << endl;
 	cout << "Animations: " << gr2.file_info->animations_count << endl;
 	cout << endl;
 
