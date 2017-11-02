@@ -1015,7 +1015,7 @@ void GR2_file::read(GR2_file_info* file_info)
 		relocations[i] = export_info.relocations[i];
 	
 	export_info.streams[0].read((char*)sections_data.data(), export_info.streams[0].tellp());
-	export_info.streams[6].read((char*)sections_data.data() + export_info.streams[0].tellp(), export_info.streams[6].tellp());
+	export_info.streams[6].read((char*)sections_data.data() + int(export_info.streams[0].tellp()), export_info.streams[6].tellp());
 	export_info.streams[1].read((char*)sections_data.data() + section_offsets[1], export_info.streams[1].tellp());
 	export_info.streams[2].read((char*)sections_data.data() + section_offsets[2], export_info.streams[2].tellp());
 	export_info.streams[3].read((char*)sections_data.data() + section_offsets[3], export_info.streams[3].tellp());
