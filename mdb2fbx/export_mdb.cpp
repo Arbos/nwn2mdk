@@ -53,12 +53,14 @@ static void create_user_properties(FbxNode* node,
 static FbxFileTexture* create_texture(FbxScene* scene, const char* name)
 {
 	FbxFileTexture* texture = FbxFileTexture::Create(scene, name);
-
-	// Assuming all texture extensions are dds.
-	string path = string(name) + ".dds";
+	
+	path p = name;
+	p.concat(".tga");
+	if (!exists(p))
+		p.replace_extension(".dds");
 
 	// Set texture properties.
-	texture->SetFileName(path.c_str());
+	texture->SetFileName(p.string().c_str());
 	texture->SetName(name);
 	texture->SetTextureUse(FbxTexture::eStandard);
 	texture->SetMappingType(FbxTexture::eUV);
@@ -712,6 +714,16 @@ static void export_packet(Export_info& export_info,
 	}
 }
 
+static bool exists_texture(const char* name)
+{
+	if (exists(path(name).concat(".dds")))
+		return true;
+	else if (exists(path(name).concat(".tga")))
+		return true;
+
+	return false;
+}
+
 static void extract_dependency(Export_info& export_info, const char* str,
 	const Archive_container& archives)
 {
@@ -751,19 +763,19 @@ static void extract_textures(Export_info& export_info,
 	const MDB_file::Material& material)
 {
 	string diffuse_map = string(material.diffuse_map_name, 32).c_str();
-	if (!diffuse_map.empty())
+	if (!diffuse_map.empty() && !exists_texture(diffuse_map.c_str()))
 		extract_dependency(export_info, diffuse_map.c_str(), export_info.materials);
 
 	string normal_map = string(material.normal_map_name, 32).c_str();
-	if (!normal_map.empty())
+	if (!normal_map.empty() && !exists_texture(normal_map.c_str()))
 		extract_dependency(export_info, normal_map.c_str(), export_info.materials);
 
 	string tint_map = string(material.tint_map_name, 32).c_str();
-	if (!tint_map.empty())
+	if (!tint_map.empty() && !exists_texture(tint_map.c_str()))
 		extract_dependency(export_info, tint_map.c_str(), export_info.materials);
 
 	string glow_map = string(material.glow_map_name, 32).c_str();
-	if (!glow_map.empty())
+	if (!glow_map.empty() && !exists_texture(glow_map.c_str()))
 		extract_dependency(export_info, glow_map.c_str(), export_info.materials);
 }
 
