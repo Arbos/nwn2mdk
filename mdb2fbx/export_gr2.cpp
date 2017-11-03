@@ -95,7 +95,7 @@ static void export_bones(FbxScene *scene, FbxNode *parent_node, GR2_skeleton *sk
 static void export_skeleton(FbxScene *scene, GR2_skeleton *skel,
 	std::vector<FbxNode*> &fbx_bones)
 {
-	cout << "Exporting: " << skel->name << endl;
+	cout << "Exporting skeleton: " << skel->name << endl;
 
 	auto node = FbxNode::Create(scene, skel->name);
 	node->LclRotation.Set(FbxDouble3(-90, 0, 0));
@@ -399,7 +399,7 @@ static void export_animation(FbxScene *scene, GR2_animation *anim, GR2_track_gro
 
 static void export_animation(FbxScene *scene, GR2_animation *anim)
 {
-	cout << "Exporting: " << anim->name << endl;
+	cout << "Exporting animation: " << anim->name << endl;
 
 	auto anim_stack = FbxAnimStack::Create(scene, anim->name);
 	auto anim_layer = FbxAnimLayer::Create(scene, "Layer");

@@ -198,7 +198,7 @@ static void export_collision_mesh_2(Export_info& export_info,
 	const MDB_file::Collision_mesh& cm)
 {	
 	string name(cm.header.name, 32);
-	cout << "Exporting: " << name.c_str() << endl;
+	cout << "Exporting COL2: " << name.c_str() << endl;
 
 	auto mesh = FbxMesh::Create(export_info.scene, name.c_str());
 
@@ -226,7 +226,7 @@ static void export_collision_mesh_3(Export_info& export_info,
 	const MDB_file::Collision_mesh& cm)
 {
 	string name(cm.header.name, 32);
-	cout << "Exporting: " << name.c_str() << endl;
+	cout << "Exporting COL3: " << name.c_str() << endl;
 
 	auto mesh = FbxMesh::Create(export_info.scene, name.c_str());
 
@@ -423,7 +423,7 @@ static void create_user_properties(FbxNode* node, const MDB_file::Hair& hair)
 static void export_hair(Export_info& export_info, const MDB_file::Hair& hair)
 {
 	string name(hair.header.name, 32);
-	cout << "Exporting: " << name.c_str() << endl;
+	cout << "Exporting HAIR: " << name.c_str() << endl;
 
 	auto node = FbxNode::Create(export_info.scene, name.c_str());
 	node->LclTranslation.Set(FbxDouble3(hair.header.position.x * 100, hair.header.position.z * 100, -hair.header.position.y * 100));
@@ -454,7 +454,7 @@ static void create_user_properties(FbxNode* node, const MDB_file::Helm& helm)
 static void export_helm(Export_info& export_info, const MDB_file::Helm& helm)
 {
 	string name(helm.header.name, 32);
-	cout << "Exporting: " << name.c_str() << endl;
+	cout << "Exporting HELM: " << name.c_str() << endl;
 
 	auto node = FbxNode::Create(export_info.scene, name.c_str());
 	node->LclTranslation.Set(FbxDouble3(helm.header.position.x * 100, helm.header.position.z * 100, -helm.header.position.y * 100));
@@ -468,7 +468,7 @@ static void export_helm(Export_info& export_info, const MDB_file::Helm& helm)
 static void export_hook(Export_info& export_info, const MDB_file::Hook& hook)
 {	
 	string name(hook.header.name, 32);
-	cout << "Exporting: " << name.c_str() << endl;
+	cout << "Exporting HOOK: " << name.c_str() << endl;
 
 	auto node = FbxNode::Create(export_info.scene, name.c_str());	
 	node->LclTranslation.Set(FbxDouble3(hook.header.position.x * 100, hook.header.position.z * 100, -hook.header.position.y * 100));	
@@ -481,7 +481,7 @@ static void export_rigid_mesh(Export_info& export_info,
 	const MDB_file::Rigid_mesh& rm)
 {
 	string name(rm.header.name, 32);
-	cout << "Exporting: " << name.c_str() << endl;
+	cout << "Exporting RIGD: " << name.c_str() << endl;
 
 	auto mesh = FbxMesh::Create(export_info.scene, name.c_str());
 
@@ -582,7 +582,7 @@ static void export_skinning(Export_info& export_info,
 static void export_skin(Export_info& export_info, const MDB_file::Skin& skin)
 {
 	string name(skin.header.name, 32);
-	cout << "Exporting: " << name.c_str() << endl;
+	cout << "Exporting SKIN: " << name.c_str() << endl;
 
 	auto mesh = FbxMesh::Create(export_info.scene, name.c_str());
 
@@ -655,7 +655,7 @@ static void export_faces(FbxMesh* mesh, const MDB_file::Walk_mesh& wm)
 static void export_walk_mesh(Export_info& export_info, const MDB_file::Walk_mesh& wm)
 {
 	string name(wm.header.name, 32);
-	cout << "Exporting: " << name.c_str() << endl;	
+	cout << "Exporting WALK: " << name.c_str() << endl;	
 
 	auto mesh = FbxMesh::Create(export_info.scene, name.c_str());
 	auto node = create_node(export_info.scene, mesh, name.c_str());

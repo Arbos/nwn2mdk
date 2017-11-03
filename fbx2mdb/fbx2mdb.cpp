@@ -349,7 +349,7 @@ void import_skinning(FbxMesh *mesh, int vertex_index, Fbx_bones& fbx_bones,
 		for (int j = 0; j < cluster->GetControlPointIndicesCount(); ++j) {
 			if (vertex_index == cluster->GetControlPointIndices()[j]) {
 				if (bone_count == 4) {
-					cout << "  A vertex cannot be influence by more than 4 bones\n";
+					cout << "  A vertex cannot be influenced by more than 4 bones\n";
 					return;
 				}
 				poly_vertex.bone_indices[bone_count] = bone_index(cluster->GetLink()->GetName(), fbx_bones);
@@ -471,7 +471,9 @@ void import_collision_mesh(MDB_file& mdb, FbxNode* node)
 	if (!mesh)
 		return;
 
-	cout << "  Polygons: " << mesh->GetPolygonCount() << endl;
+	cout << "Importing COL2|COL3: " << node->GetName() << endl;
+
+	cout << "  Polygons: #" << mesh->GetPolygonCount() << endl;
 
 	auto col_mesh = make_unique<MDB_file::Collision_mesh>(
 	    ends_with(node->GetName(), "_C2") ? MDB_file::COL2
@@ -553,6 +555,8 @@ void import_walk_mesh(MDB_file& mdb, FbxNode* node)
 	if (!mesh)
 		return;
 
+	cout << "Importing WALK: " << node->GetName() << endl;
+
 	auto walk_mesh = make_unique<MDB_file::Walk_mesh>();
 	strncpy(walk_mesh->header.name, node->GetName(), 32);
 
@@ -609,6 +613,8 @@ void transform_to_orientation(const FbxAMatrix& m, float orientation[3][3])
 
 void import_hook_point(MDB_file& mdb, FbxNode* node)
 {
+	cout << "Importing HOOK: " << node->GetName() << endl;
+
 	auto hook = make_unique<MDB_file::Hook>();
 	strncpy(hook->header.name, node->GetName(), 32);
 	
@@ -667,6 +673,8 @@ MDB_file::Hair_shortening_behavior hair_shortening_behavior(FbxNode* node)
 
 void import_hair(MDB_file& mdb, FbxNode* node)
 {
+	cout << "Importing HAIR: " << node->GetName() << endl;
+
 	auto hair = make_unique<MDB_file::Hair>();
 	strncpy(hair->header.name, node->GetName(), 32);
 	hair->header.shortening_behavior = hair_shortening_behavior(node);
@@ -733,6 +741,8 @@ static void print_helm(const MDB_file::Helm& helm)
 
 void import_helm(MDB_file& mdb, FbxNode* node)
 {
+	cout << "Importing HELM: " << node->GetName() << endl;
+
 	auto helm = make_unique<MDB_file::Helm>();
 	strncpy(helm->header.name, node->GetName(), 32);
 	helm->header.hiding_behavior = helm_hair_hiding_behavior(node);
@@ -818,7 +828,7 @@ void print_mesh(FbxMesh *mesh)
 	}
 	cout << endl;
 
-	cout << "  Polygons: " << mesh->GetPolygonCount() << endl;
+	cout << "  Polygons: #" << mesh->GetPolygonCount() << endl;
 }
 
 void import_user_property(FbxProperty& p, MDB_file::Material& material)
@@ -854,6 +864,8 @@ void import_rigid_mesh(MDB_file& mdb, FbxNode* node)
 
 	if (!mesh)
 		return;
+
+	cout << "Importing RIGD: " << node->GetName() << endl;
 
 	print_mesh(mesh);
 
@@ -953,6 +965,8 @@ void import_skin(MDB_file& mdb, FbxNode* node)
 	if (!mesh)
 		return;
 
+	cout << "Importing SKIN: " << node->GetName() << endl;
+
 	print_mesh(mesh);
 
 #ifdef _WIN32
@@ -979,8 +993,6 @@ void import_skin(MDB_file& mdb, FbxNode* node)
 
 void import_mesh(MDB_file& mdb, FbxNode* node)
 {
-	cout << node->GetName() << endl;
-
 	if (ends_with(node->GetName(), "_C2"))
 		import_collision_mesh(mdb, node);
 	else if (ends_with(node->GetName(), "_C3"))
@@ -996,9 +1008,7 @@ void import_mesh(MDB_file& mdb, FbxNode* node)
 	else if (skin(node))
 		import_skin(mdb, node);
 	else if(!starts_with(node->GetName(), "COLS"))
-		import_rigid_mesh(mdb, node);
-
-	cout << endl;
+		import_rigid_mesh(mdb, node);	
 }
 
 void import_meshes(MDB_file& mdb, FbxScene* scene)
@@ -1052,7 +1062,7 @@ void import_art_tool_info(GR2_import_info& import_info)
 void import_exporter_info(GR2_import_info& import_info)
 {
 	import_info.exporter_info.exporter_name =
-		import_info.strings.get("NWN2 MDK 0.2");
+		import_info.strings.get("NWN2 MDK 0.3");
 	import_info.exporter_info.exporter_major_revision = 2;
 	import_info.exporter_info.exporter_minor_revision = 6;
 	import_info.exporter_info.exporter_customization = 0;
@@ -1534,7 +1544,7 @@ void import_scaleshear(GR2_import_info& import_info, FbxNode* node,
 void import_anim_layer(GR2_import_info& import_info, FbxAnimLayer* layer,
                        FbxNode* node)
 {
-	cout << node->GetName() << endl;
+	cout << "Importing animation: " << node->GetName() << endl;
 
 	auto attr = node->GetNodeAttribute();	
 	if(attr && attr->GetAttributeType() == FbxNodeAttribute::eSkeleton && node->GetParent() != node->GetScene()->GetRootNode())	{
@@ -1561,8 +1571,8 @@ void import_anim_layer(GR2_import_info& import_info, FbxAnimLayer* layer,
 
 void import_anim_layer(GR2_import_info& import_info, FbxAnimLayer* layer)
 {
-	printf("    - Name: %s\n", layer->GetName());
-	printf("      Animation curve nodes: %d\n", layer->GetMemberCount<FbxAnimCurveNode>());
+	cout << "    - Name: " << layer->GetName() << endl;
+	cout << "      Animation curve nodes: " << layer->GetMemberCount<FbxAnimCurveNode>() << endl;
 
 	import_anim_layer(import_info, layer, layer->GetScene()->GetRootNode());
 }
@@ -1588,7 +1598,7 @@ void import_animation(FbxAnimStack *stack, const char* filename)
 	import_info.file_info.models_count = 0;
 	import_info.file_info.track_groups_count = 0;
 
-	printf("  Animation layers: #%d\n", stack->GetMemberCount<FbxAnimLayer>());
+	cout << "  Animation layers: #" << stack->GetMemberCount<FbxAnimLayer>() << endl;
 	for(int i = 0; i < stack->GetMemberCount<FbxAnimLayer>(); ++i) {
 		import_anim_layer(import_info,
 		                  stack->GetMember<FbxAnimLayer>(i));
@@ -1634,7 +1644,7 @@ void import_animation(FbxAnimStack *stack, const char* filename)
 
 void import_animations(FbxScene* scene, const char* filename)
 {
-	printf("Animation stacks: #%d\n", scene->GetSrcObjectCount<FbxAnimStack>());
+	cout << "\nAnimation stacks: #" << scene->GetSrcObjectCount<FbxAnimStack>() << endl;
 	for(int i = 0; i < scene->GetSrcObjectCount<FbxAnimStack>(); ++i)
 		import_animation(scene->GetSrcObject<FbxAnimStack>(i), filename);
 }
@@ -1695,7 +1705,7 @@ float sphere_radius(FbxNode *node)
 
 void import_collision_sphere(MDB_file::Collision_spheres& cs, FbxNode* node, const std::vector<Bone_info>& bone_infos)
 {
-	cout << "Importing collision sphere: " << node->GetName() << endl;	
+	cout << "Importing COLS: " << node->GetName() << endl;	
 
 	MDB_file::Collision_sphere s;
 	s.bone_index = nearest_bone_index(bone_infos, node->EvaluateGlobalTransform().GetT());
