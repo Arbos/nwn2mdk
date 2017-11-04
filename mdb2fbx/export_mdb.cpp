@@ -503,6 +503,7 @@ static void export_rigid_mesh(Export_info& export_info,
 	create_user_properties(node, rm.header.material);
 }
 
+#ifdef _WIN32
 static std::vector<FbxCluster*> create_clusters(Export_info& export_info,
 	const MDB_file::Skin& skin, Dependency& dep)
 {
@@ -552,7 +553,6 @@ static void add_clusters(FbxSkin* fbx_skin, const std::vector<FbxCluster*>& clus
 		fbx_skin->AddCluster(clusters[i]);
 }
 
-#ifdef _WIN32
 static void export_skinning(Export_info& export_info,
 	const MDB_file::Skin& skin, FbxMesh* mesh,
 	Dependency& dep)
@@ -611,7 +611,7 @@ static void export_skin(Export_info& export_info, const MDB_file::Skin& skin)
 static void add_walk_mesh_materials(FbxScene* scene, FbxNode* node)
 {
 	for (unsigned i = 0; i < size(MDB_file::walk_mesh_materials); ++i)
-		node->AddMaterial(scene->GetMaterial(MDB_file::walk_mesh_materials[i].name));
+		node->AddMaterial(scene->GetMaterial((char*)MDB_file::walk_mesh_materials[i].name));
 }
 
 static void export_vertices(FbxMesh* mesh, const MDB_file::Walk_mesh& wm)

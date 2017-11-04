@@ -358,27 +358,6 @@ static Archive_container get_model_archives(const Config& config)
 	return archives;
 }
 
-static Archive_container get_lod_archives(const Config& config)
-{
-	const char* files[] = {
-		"Data/lod-merged_X2_v121.zip", "Data/lod-merged_X2.zip",
-		"Data/lod-merged_X1_v121.zip", "Data/lod-merged_X1.zip",
-		"Data/lod-merged_v121.zip",    "Data/lod-merged_v107.zip",
-		"Data/lod-merged_v101.zip",    "Data/lod-merged.zip" };
-
-	Archive_container archives;
-	for (unsigned i = 0; i < sizeof(files) / sizeof(char*); ++i) {
-		cout << "Indexing: " << files[i];
-		path p = path(config.nwn2_home) / path(files[i]);
-		if (!archives.add_archive(p.string().c_str())) {
-			cout << " : Cannot open zip";
-		}
-		cout << endl;
-	}
-
-	return archives;
-}
-
 static Archive_container get_material_archives(const Config& config)
 {
 	const char* files[] = { "Data/NWN2_Materials_X2.zip",
@@ -437,6 +416,7 @@ static bool process_arg(const Config& config, char *arg,
 	return true;
 }
 
+#ifdef _WIN32
 static void process_fbx_bones(Dependency& dep)
 {
 	FbxNode* ribcage = nullptr;
@@ -466,6 +446,7 @@ static void process_fbx_bones(Dependency& dep)
 		dep.fbx_body_bones.push_back(ribcage);
 	}
 }
+#endif
 
 bool process_args(Export_info& export_info, int argc, char* argv[],
 	std::vector<std::string> &filenames)
@@ -497,6 +478,7 @@ bool process_args(Export_info& export_info, int argc, char* argv[],
 			inputs.push_back(move(input));
 		}
 		else if (ext == ".GR2") {
+#ifdef _WIN32
 			Input input;
 			input.filename = filename;
 			input.gr2.reset(new GR2_file(filename.c_str()));
@@ -505,9 +487,11 @@ bool process_args(Export_info& export_info, int argc, char* argv[],
 				return false;
 			}
 			inputs.push_back(move(input));
+#endif
 		}
 	}
 
+#ifdef _WIN32
 	for (auto &input : inputs) {
 		if (input.gr2 && input.gr2->file_info->skeletons_count > 0) {
 			auto &dep = export_info.dependencies[input.filename];			
@@ -524,6 +508,7 @@ bool process_args(Export_info& export_info, int argc, char* argv[],
 			export_gr2(*input.gr2, export_info.scene, fbx_bones);
 		}
 	}
+#endif
 
 	for (auto &input : inputs) {
 		if (input.mdb) {
@@ -550,7 +535,9 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
+#ifdef _WIN32
 	GR2_file::granny2dll_filename = config.nwn2_home + "\\granny2.dll";
+#endif
 
 	if (argc < 2) {
 		cout << "Usage: nw2fbx <file|substring ...>\n";
