@@ -336,7 +336,7 @@ public:
 	};
 
 	struct Walk_mesh_material {
-		char *name;
+		const char* name;
 		uint16_t flags;
 		Vector3<float> color;
 	};
