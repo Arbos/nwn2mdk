@@ -386,10 +386,10 @@ static Archive_container get_material_archives(const Config& config)
 	return archives;
 }
 
-static bool process_arg(const Config& config, char *arg,
+static bool extract_arg(const Config& config, char *arg,
 	std::vector<std::string> &filenames)
 {
-	if (exists(arg)) {
+	if (exists(arg)) { // File is already extracted
 		filenames.push_back(arg);
 		return true;
 	}
@@ -413,6 +413,79 @@ static bool process_arg(const Config& config, char *arg,
 
 	filenames.push_back(filename);
 	
+	return true;
+}
+
+static bool extract_args(Export_info& export_info, int argc, char* argv[],
+	std::vector<std::string> &filenames)
+{
+	for (int i = 1; i < argc; ++i) {
+		if (!extract_arg(export_info.config, argv[i], filenames))
+			return false;
+	}
+
+	return true;
+}
+
+struct Input {
+	std::string filename;
+	std::unique_ptr<MDB_file> mdb;
+	std::unique_ptr<GR2_file> gr2;
+};
+
+static bool open_mdb(vector<Input>& inputs, const char* filename)
+{
+	Input input;
+	input.filename = filename;
+	input.mdb.reset(new MDB_file(filename));
+	if (!(*input.mdb)) {
+		cout << input.mdb->error_str() << endl;
+		return false;
+	}
+	inputs.push_back(move(input));
+
+	return true;
+}
+
+static bool open_gr2(vector<Input>& inputs, const char* filename)
+{
+#ifdef _WIN32
+	Input input;
+	input.filename = filename;
+	input.gr2.reset(new GR2_file(filename));
+	if (!(*input.gr2)) {
+		cout << input.gr2->error_string() << endl;
+		return false;
+	}
+	inputs.push_back(move(input));
+#endif
+
+	return true;
+}
+
+static bool open_file(vector<Input>& inputs, const char* filename)
+{
+	auto ext = path(filename).extension().string();
+	transform(ext.begin(), ext.end(), ext.begin(), ::toupper);
+	if (ext == ".MDB") {
+		if (!open_mdb(inputs, filename))
+			return false;
+	}
+	else if (ext == ".GR2") {
+		if (!open_gr2(inputs, filename))
+			return false;
+	}
+
+	return true;
+}
+
+static bool open_files(vector<Input>& inputs, const std::vector<std::string>& filenames)
+{
+	for (auto &filename : filenames) {
+		if (!open_file(inputs, filename.c_str()))
+			return false;
+	}
+
 	return true;
 }
 
@@ -448,60 +521,26 @@ static void process_fbx_bones(Dependency& dep)
 }
 #endif
 
-bool process_args(Export_info& export_info, int argc, char* argv[],
-	std::vector<std::string> &filenames)
+static bool export_skeletons(Export_info& export_info, vector<Input>& inputs)
 {
-	for (int i = 1; i < argc; ++i) {
-		if (!process_arg(export_info.config, argv[i], filenames))
-			return false;
-	}
-
-	struct Input {
-		std::string filename;
-		std::unique_ptr<MDB_file> mdb;
-		std::unique_ptr<GR2_file> gr2;
-	};
-
-	vector<Input> inputs;
-
-	for (auto &filename : filenames) {
-		auto ext = path(filename).extension().string();
-		transform(ext.begin(), ext.end(), ext.begin(), ::toupper);
-		if (ext == ".MDB") {
-			Input input;
-			input.filename = filename;
-			input.mdb.reset(new MDB_file(filename.c_str()));
-			if (!(*input.mdb)) {
-				cout << input.mdb->error_str() << endl;
-				return false;
-			}
-			inputs.push_back(move(input));
-		}
-		else if (ext == ".GR2") {
-#ifdef _WIN32
-			Input input;
-			input.filename = filename;
-			input.gr2.reset(new GR2_file(filename.c_str()));
-			if (!(*input.gr2)) {
-				cout << input.gr2->error_string() << endl;
-				return false;
-			}
-			inputs.push_back(move(input));
-#endif
-		}
-	}
-
 #ifdef _WIN32
 	for (auto &input : inputs) {
 		if (input.gr2 && input.gr2->file_info->skeletons_count > 0) {
-			auto &dep = export_info.dependencies[input.filename];			
+			auto &dep = export_info.dependencies[input.filename];
 			export_gr2(*input.gr2, export_info.scene, dep.fbx_bones);
 			dep.exported = true;
 			dep.extracted = true;
 			process_fbx_bones(dep);
 		}
 	}
+#endif
 
+	return true;
+}
+
+static bool export_animations(Export_info& export_info, vector<Input>& inputs)
+{
+#ifdef _WIN32
 	for (auto &input : inputs) {
 		if (input.gr2 && input.gr2->file_info->skeletons_count == 0) {
 			vector<FbxNode*> fbx_bones;
@@ -510,6 +549,11 @@ bool process_args(Export_info& export_info, int argc, char* argv[],
 	}
 #endif
 
+	return true;
+}
+
+static bool export_mdb_files(Export_info& export_info, vector<Input>& inputs)
+{
 	for (auto &input : inputs) {
 		if (input.mdb) {
 			print_mdb(*input.mdb);
@@ -520,6 +564,29 @@ bool process_args(Export_info& export_info, int argc, char* argv[],
 			}
 		}
 	}
+
+	return true;
+}
+
+static bool process_args(Export_info& export_info, int argc, char* argv[],
+	std::vector<std::string> &filenames)
+{
+	if (!extract_args(export_info, argc, argv, filenames))
+		return false;
+
+	vector<Input> inputs;
+
+	if (!open_files(inputs, filenames))
+		return false;
+	
+	if (!export_skeletons(export_info, inputs))
+		return false;
+
+	if (!export_animations(export_info, inputs))
+		return false;
+
+	if (!export_mdb_files(export_info, inputs))
+		return false;
 
 	return true;
 }
