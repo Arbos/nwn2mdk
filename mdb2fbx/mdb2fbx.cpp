@@ -578,14 +578,14 @@ static bool process_args(Export_info& export_info, int argc, char* argv[],
 
 	if (!open_files(inputs, filenames))
 		return false;
-	
+
+	if (!export_mdb_files(export_info, inputs))
+		return false;
+
 	if (!export_skeletons(export_info, inputs))
 		return false;
 
 	if (!export_animations(export_info, inputs))
-		return false;
-
-	if (!export_mdb_files(export_info, inputs))
 		return false;
 
 	return true;
