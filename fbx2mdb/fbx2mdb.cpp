@@ -1045,6 +1045,21 @@ struct GR2_import_info {
 	std::vector<GR2_track_group*> track_group_pointers;
 };
 
+void init_file_info(GR2_file_info& file_info)
+{
+	file_info.textures_count = 0;
+	file_info.materials_count = 0;
+	file_info.skeletons_count = 0;
+	file_info.vertex_datas_count = 0;
+	file_info.tri_topologies_count = 0;
+	file_info.meshes_count = 0;
+	file_info.models_count = 0;
+	file_info.track_groups_count = 0;
+	file_info.animations_count = 0;
+	file_info.extended_data.keys = nullptr;
+	file_info.extended_data.values = nullptr;
+}
+
 void import_art_tool_info(GR2_import_info& import_info)
 {
 	import_info.art_tool_info.from_art_tool_name =
@@ -1062,7 +1077,7 @@ void import_art_tool_info(GR2_import_info& import_info)
 void import_exporter_info(GR2_import_info& import_info)
 {
 	import_info.exporter_info.exporter_name =
-		import_info.strings.get("NWN2 MDK 0.3");
+		import_info.strings.get("NWN2 MDK 0.4");
 	import_info.exporter_info.exporter_major_revision = 2;
 	import_info.exporter_info.exporter_minor_revision = 6;
 	import_info.exporter_info.exporter_customization = 0;
@@ -1070,14 +1085,25 @@ void import_exporter_info(GR2_import_info& import_info)
 	import_info.file_info.exporter_info = &import_info.exporter_info;
 }
 
+bool has_skeleton_attribute(FbxNode* node)
+{
+	auto attr = node->GetNodeAttribute();
+	return attr && attr->GetAttributeType() == FbxNodeAttribute::eSkeleton;
+}
+
+bool is_pivot_node(FbxNode* node)
+{
+	return ends_with(node->GetName(), ".PIVOT");
+}
+
 bool is_skeleton(FbxNode* node)
 {
 	// A skeleton should have atleast a bone.
 	if (node->GetChildCount() == 0)
 		return false;
-
-	auto attr = node->GetChild(0)->GetNodeAttribute();
-	return attr && attr->GetAttributeType() == FbxNodeAttribute::eSkeleton;	
+	
+	return has_skeleton_attribute(node->GetChild(0))
+		|| is_pivot_node(node->GetChild(0));
 }
 
 void print_bone(GR2_bone& bone)
@@ -1240,24 +1266,12 @@ void import_skeletons(FbxScene* scene, const char* filename)
 {
 	GR2_import_info import_info;
 
+	init_file_info(import_info.file_info);
 	import_art_tool_info(import_info);
 	import_exporter_info(import_info);
-
 	import_info.file_info.from_file_name =
 		import_info.strings.get(path(filename).filename().string().c_str());
 
-	import_info.file_info.textures_count = 0;
-	import_info.file_info.materials_count = 0;
-	import_info.file_info.skeletons_count = 0;
-	import_info.file_info.vertex_datas_count = 0;
-	import_info.file_info.tri_topologies_count = 0;
-	import_info.file_info.meshes_count = 0;
-	import_info.file_info.models_count = 0;
-	import_info.file_info.track_groups_count = 0;
-	import_info.file_info.animations_count = 0;
-	import_info.file_info.extended_data.keys = nullptr;
-	import_info.file_info.extended_data.values = nullptr;
-	
 	for (int i = 0; i < scene->GetRootNode()->GetChildCount(); ++i) {
 		auto node = scene->GetRootNode()->GetChild(i);
 		if (is_skeleton(node))
@@ -1583,20 +1597,11 @@ void import_animation(FbxAnimStack *stack, const char* filename)
 
 	import_info.anim_stack = stack;
 
+	init_file_info(import_info.file_info);
 	import_art_tool_info(import_info);
-	import_exporter_info(import_info);	
-	
+	import_exporter_info(import_info);
 	import_info.file_info.from_file_name =
 		import_info.strings.get(path(filename).filename().string().c_str());
-
-	import_info.file_info.textures_count = 0;
-	import_info.file_info.materials_count = 0;
-	import_info.file_info.skeletons_count = 0;
-	import_info.file_info.vertex_datas_count = 0;
-	import_info.file_info.tri_topologies_count = 0;
-	import_info.file_info.meshes_count = 0;
-	import_info.file_info.models_count = 0;
-	import_info.file_info.track_groups_count = 0;
 
 	cout << "  Animation layers: #" << stack->GetMemberCount<FbxAnimLayer>() << endl;
 	for(int i = 0; i < stack->GetMemberCount<FbxAnimLayer>(); ++i) {
