@@ -991,7 +991,7 @@ void import_skin(MDB_file& mdb, FbxNode* node)
 #endif
 }
 
-void import_mesh(MDB_file& mdb, FbxNode* node)
+void import_meshes(MDB_file& mdb, FbxNode* node)
 {
 	if (ends_with(node->GetName(), "_C2"))
 		import_collision_mesh(mdb, node);
@@ -1007,14 +1007,16 @@ void import_mesh(MDB_file& mdb, FbxNode* node)
 		import_helm(mdb, node);
 	else if (skin(node))
 		import_skin(mdb, node);
-	else if(!starts_with(node->GetName(), "COLS"))
-		import_rigid_mesh(mdb, node);	
+	else if (!starts_with(node->GetName(), "COLS"))
+		import_rigid_mesh(mdb, node);
+
+	for (int i = 0; i < node->GetChildCount(); ++i)
+		import_meshes(mdb, node->GetChild(i));
 }
 
 void import_meshes(MDB_file& mdb, FbxScene* scene)
-{
-	for (int i = 0; i < scene->GetRootNode()->GetChildCount(); ++i)
-		import_mesh(mdb, scene->GetRootNode()->GetChild(i));
+{	
+	import_meshes(mdb, scene->GetRootNode());
 }
 
 struct GR2_track_group_info {
