@@ -1105,7 +1105,7 @@ bool is_skeleton(FbxNode* node)
 		return false;
 	
 	return has_skeleton_attribute(node->GetChild(0))
-		|| is_pivot_node(node->GetChild(0));
+		|| is_pivot_node(node);
 }
 
 void print_bone(GR2_bone& bone)
@@ -1237,7 +1237,7 @@ void import_skeleton(GR2_import_info& import_info, FbxNode* node)
 	import_bones(import_info, node, -1, import_info.bone_arrays.back());
 
 	GR2_skeleton skel;
-	skel.name = import_info.strings.get(node->GetName());
+	skel.name = import_info.strings.get(path(node->GetName()).stem().string().c_str());
 	skel.bones_count = import_info.bone_arrays.back().size();
 	skel.bones = import_info.bone_arrays.back().data();
 	import_info.skeletons.push_back(skel);
