@@ -21,9 +21,9 @@ void export_bones(FbxScene *scene, FbxNode *parent_node, GR2_skeleton *skel,
 static void export_bone_translation(FbxNode* node, GR2_bone& bone)
 {
 	if (bone.transform.flags & 0x1) { // Has translation
-		node->LclTranslation.Set(FbxDouble3(bone.transform.translation[0],
-			bone.transform.translation[1],
-			bone.transform.translation[2]));
+		node->LclTranslation.Set(FbxDouble3(bone.transform.translation[0]/100,
+			bone.transform.translation[1]/100,
+			bone.transform.translation[2]/100));
 	}
 	else
 		node->LclTranslation.Set(FbxDouble3(0, 0, 0));
@@ -99,7 +99,7 @@ static void export_skeleton(FbxScene *scene, GR2_skeleton *skel,
 
 	auto node = FbxNode::Create(scene, skel->name);
 	node->LclRotation.Set(FbxDouble3(-90, 0, 0));
-	node->LclScaling.Set(FbxDouble3(1, 1, 1));
+	node->LclScaling.Set(FbxDouble3(100, 100, 100));
 
 	auto null_attr = FbxNull::Create(scene, skel->name);
 	node->SetNodeAttribute(null_attr);
@@ -221,15 +221,15 @@ void add_position_keyframe(FbxAnimCurve* curvex, FbxAnimCurve* curvey,
 
 	auto k = curvex->KeyAdd(time);
 	curvex->KeySetInterpolation(k, FbxAnimCurveDef::eInterpolationLinear);
-	curvex->KeySetValue(k, p.x);
+	curvex->KeySetValue(k, p.x/100);
 
 	k = curvey->KeyAdd(time);
 	curvey->KeySetInterpolation(k, FbxAnimCurveDef::eInterpolationLinear);
-	curvey->KeySetValue(k, p.y);
+	curvey->KeySetValue(k, p.y/100);
 
 	k = curvez->KeyAdd(time);
 	curvez->KeySetInterpolation(k, FbxAnimCurveDef::eInterpolationLinear);
-	curvez->KeySetValue(k, p.z);
+	curvez->KeySetValue(k, p.z/100);
 }
 
 void create_anim_position(FbxNode *node, FbxAnimLayer *anim_layer, GR2_animation *anim,
