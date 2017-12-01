@@ -389,7 +389,7 @@ static FbxNode* create_animation_pivot(FbxScene* scene, GR2_track_group *track_g
 	if (!pivot) {
 		pivot = FbxNode::Create(scene, pivot_name.c_str());
 		pivot->LclRotation.Set(FbxDouble3(-90, 0, 0));
-		pivot->LclScaling.Set(FbxDouble3(1, 1, 1));
+		pivot->LclScaling.Set(FbxDouble3(100, 100, 100));
 		scene->GetRootNode()->AddChild(pivot);
 	}
 
@@ -408,7 +408,7 @@ static void parent_to_animation_pivot(FbxNode* node, GR2_track_group *track_grou
 	pivot->AddChild(node);
 
 	node->LclRotation.Set(FbxDouble3(0, 0, 0));
-	node->LclScaling.Set(FbxDouble3(100, 100, 100));
+	node->LclScaling.Set(FbxDouble3(1, 1, 1));
 }
 
 static void export_animation(FbxNode* node, FbxAnimLayer *anim_layer,
