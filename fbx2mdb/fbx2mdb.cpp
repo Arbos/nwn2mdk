@@ -1561,16 +1561,16 @@ void import_anim_layer(GR2_import_info& import_info, FbxAnimLayer* layer,
                        FbxNode* node)
 {
 	cout << "Importing animation: " << node->GetName() << endl;
-
-	auto attr = node->GetNodeAttribute();	
-	if(attr && attr->GetAttributeType() == FbxNodeAttribute::eSkeleton && node->GetParent() != node->GetScene()->GetRootNode())	{
+	
+	if((has_skeleton_attribute(node) && node->GetParent() != node->GetScene()->GetRootNode())
+		|| (node->GetParent() && is_pivot_node(node->GetParent()))) {
 		auto skel_node = skeleton_node(node);
 
 		import_info.bone_scaling.x = skel_node->LclScaling.Get()[0];
 		import_info.bone_scaling.y = skel_node->LclScaling.Get()[1];
 		import_info.bone_scaling.z = skel_node->LclScaling.Get()[2];
 
-		auto &tg = track_group(import_info, skel_node->GetName());				
+		auto &tg = track_group(import_info, path(skel_node->GetName()).stem().string().c_str());
 
 		tg.transform_tracks.emplace_back();
 		auto& tt = tg.transform_tracks.back();
