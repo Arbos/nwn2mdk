@@ -379,18 +379,25 @@ static void create_animation(FbxNode* node,	FbxAnimLayer *anim_layer,
 	create_anim_scaling(node, anim_layer, anim, transform_track);
 }
 
-static FbxNode* create_animation_pivot(FbxScene* scene, GR2_track_group *track_group)
+static bool node_is_animated(FbxNode* node, GR2_transform_track &transform_track)
+{
+	return strcmp(node->GetName(), transform_track.name) == 0 &&
+		(node->GetChildCount() == 0 || strcmp(node->GetName(), node->GetChild(0)->GetName()) != 0);
+}
+
+static FbxNode* create_animation_pivot(FbxNode* node, GR2_track_group *track_group)
 {
 	string pivot_name = track_group->name;
-	pivot_name += ".PIVOT";
+	if(strcmp(node->GetName(), track_group->name) == 0)
+		pivot_name += ".PIVOT";
 
-	auto pivot = scene->FindNodeByName(pivot_name.c_str());
+	auto pivot = node->GetScene()->FindNodeByName(pivot_name.c_str());
 
 	if (!pivot) {
-		pivot = FbxNode::Create(scene, pivot_name.c_str());
+		pivot = FbxNode::Create(node->GetScene(), pivot_name.c_str());
 		pivot->LclRotation.Set(FbxDouble3(-90, 0, 0));
 		pivot->LclScaling.Set(FbxDouble3(100, 100, 100));
-		scene->GetRootNode()->AddChild(pivot);
+		node->GetScene()->GetRootNode()->AddChild(pivot);
 	}
 
 	return pivot;
@@ -401,27 +408,31 @@ static void parent_to_animation_pivot(FbxNode* node, GR2_track_group *track_grou
 	if (!node->GetMesh())
 		return; // Animation pivot is only for meshes
 
-	auto pivot = create_animation_pivot(node->GetScene(), track_group);
+	auto pivot = create_animation_pivot(node, track_group);
 
 	// Make node child of pivot
 	node->GetParent()->RemoveChild(node);
 	pivot->AddChild(node);
 
+	// Reset rotation and scaling since the node is not root anymore
 	node->LclRotation.Set(FbxDouble3(0, 0, 0));
 	node->LclScaling.Set(FbxDouble3(1, 1, 1));
 }
 
-static void export_animation(FbxNode* node, FbxAnimLayer *anim_layer,
+static bool export_animation(FbxNode* node, FbxAnimLayer *anim_layer,
 	GR2_animation *anim, GR2_track_group *track_group, GR2_transform_track &transform_track)
 {
-	if (strcmp(node->GetName(), transform_track.name) == 0 && 
-		(node->GetChildCount() == 0 || strcmp(node->GetName(), node->GetChild(0)->GetName()) != 0)) {		
+	if (node_is_animated(node, transform_track)) {		
 		create_animation(node, anim_layer, anim, transform_track);
 		parent_to_animation_pivot(node, track_group);
+		return true;
 	}
 
 	for (int i = 0; i < node->GetChildCount(); ++i)
-		export_animation(node->GetChild(i), anim_layer, anim, track_group, transform_track);
+		if (export_animation(node->GetChild(i), anim_layer, anim, track_group, transform_track))
+			return true;
+
+	return false;
 }
 
 static void export_animation(FbxScene *scene, GR2_animation *anim, GR2_track_group *track_group,

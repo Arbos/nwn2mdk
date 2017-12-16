@@ -883,8 +883,9 @@ void import_rigid_mesh(MDB_file& mdb, FbxNode* node)
 }
 
 FbxNode* skeleton_node(FbxNode* node)
-{
-	if (!node)
+{	
+	if (!node || node == node->GetScene()->GetRootNode() ||
+		node->GetParent() == node->GetScene()->GetRootNode())
 		return nullptr;
 
 	while (node->GetParent() != node->GetScene()->GetRootNode())
@@ -1562,10 +1563,9 @@ void import_anim_layer(GR2_import_info& import_info, FbxAnimLayer* layer,
 {
 	cout << "Importing animation: " << node->GetName() << endl;
 	
-	if((has_skeleton_attribute(node) && node->GetParent() != node->GetScene()->GetRootNode())
-		|| (node->GetParent() && is_pivot_node(node->GetParent()))) {
-		auto skel_node = skeleton_node(node);
+	auto skel_node = skeleton_node(node);
 
+	if(skel_node && (has_skeleton_attribute(node) || is_pivot_node(skel_node))) {
 		import_info.bone_scaling.x = skel_node->LclScaling.Get()[0];
 		import_info.bone_scaling.y = skel_node->LclScaling.Get()[1];
 		import_info.bone_scaling.z = skel_node->LclScaling.Get()[2];
