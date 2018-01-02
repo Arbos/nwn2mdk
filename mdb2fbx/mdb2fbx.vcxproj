@@ -154,6 +154,7 @@
     <ClInclude Include="export_gr2.h" />
     <ClInclude Include="export_mdb.h" />
     <ClInclude Include="miniz.h" />
+    <ClInclude Include="redirect_output_handle.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="archive_container.cpp" />
@@ -162,6 +163,7 @@
     <ClCompile Include="export_mdb.cpp" />
     <ClCompile Include="mdb2fbx.cpp" />
     <ClCompile Include="miniz.c" />
+    <ClCompile Include="redirect_output_handle.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\externals\yaml-cpp\build\yaml-cpp.vcxproj">

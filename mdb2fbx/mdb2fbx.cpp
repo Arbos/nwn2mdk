@@ -23,6 +23,7 @@
 #include "fbxsdk.h"
 #include "gr2_file.h"
 #include "mdb_file.h"
+#include "redirect_output_handle.h"
 
 // Uncomment for print extra info
 //#define VERBOSE
@@ -593,6 +594,8 @@ static bool process_args(Export_info& export_info, int argc, char* argv[],
 
 int main(int argc, char* argv[])
 {
+	Redirect_output_handle redirect_output_handle;
+
 	Config config((path(argv[0]).parent_path() / "config.yml").string().c_str());
 
 	if (config.nwn2_home.empty() || !exists(config.nwn2_home)) {

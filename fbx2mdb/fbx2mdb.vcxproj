@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\mdb2fbx\config.cpp" />
+    <ClCompile Include="..\mdb2fbx\redirect_output_handle.cpp" />
     <ClCompile Include="fbx2mdb.cpp" />
   </ItemGroup>
   <ItemGroup>

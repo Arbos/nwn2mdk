@@ -21,5 +21,8 @@
     <ClCompile Include="..\mdb2fbx\config.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\mdb2fbx\redirect_output_handle.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
