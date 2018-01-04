@@ -1223,6 +1223,29 @@ void import_bones(GR2_import_info& import_info, FbxNode* node, int32_t parent_in
 	}
 }
 
+void import_model(GR2_import_info& import_info, GR2_skeleton* skel)
+{
+	GR2_model model;
+	model.name = skel->name;
+	model.skeleton = skel;
+	model.initial_placement.flags = 0;
+	model.initial_placement.translation = Vector3<float>(0, 0, 0);
+	model.initial_placement.rotation = Vector4<float>(0, 0, 0, 1);
+	model.initial_placement.scale_shear[0] = 1;
+	model.initial_placement.scale_shear[1] = 0;
+	model.initial_placement.scale_shear[2] = 0;
+	model.initial_placement.scale_shear[3] = 0;
+	model.initial_placement.scale_shear[4] = 1;
+	model.initial_placement.scale_shear[5] = 0;
+	model.initial_placement.scale_shear[6] = 0;
+	model.initial_placement.scale_shear[7] = 0;
+	model.initial_placement.scale_shear[8] = 1;
+	model.mesh_bindings_count = 0;
+	model.mesh_bindings = nullptr;
+	import_info.models.push_back(model);
+	import_info.model_pointers.push_back(&import_info.models.back());
+}
+
 void import_skeleton(GR2_import_info& import_info, FbxNode* node)
 {
 	cout << "Importing skeleton: " << node->GetName() << endl;
@@ -1245,25 +1268,7 @@ void import_skeleton(GR2_import_info& import_info, FbxNode* node)
 	import_info.skeletons.push_back(skel);
 	import_info.skeleton_pointers.push_back(&import_info.skeletons.back());
 
-	GR2_model model;
-	model.name = skel.name;
-	model.skeleton = &import_info.skeletons.back();
-	model.initial_placement.flags = 0;
-	model.initial_placement.translation = Vector3<float>(0, 0, 0);
-	model.initial_placement.rotation = Vector4<float>(0, 0, 0, 1);
-	model.initial_placement.scale_shear[0] = 1;
-	model.initial_placement.scale_shear[1] = 0;
-	model.initial_placement.scale_shear[2] = 0;
-	model.initial_placement.scale_shear[3] = 0;
-	model.initial_placement.scale_shear[4] = 1;
-	model.initial_placement.scale_shear[5] = 0;
-	model.initial_placement.scale_shear[6] = 0;
-	model.initial_placement.scale_shear[7] = 0;
-	model.initial_placement.scale_shear[8] = 1;
-	model.mesh_bindings_count = 0;
-	model.mesh_bindings = nullptr;
-	import_info.models.push_back(model);
-	import_info.model_pointers.push_back(&import_info.models.back());
+	import_model(import_info, &import_info.skeletons.back());	
 }
 
 void import_skeletons(FbxScene* scene, const char* filename)
