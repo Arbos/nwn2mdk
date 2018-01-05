@@ -1110,6 +1110,53 @@ bool is_skeleton(FbxNode* node)
 		|| is_pivot_node(node);
 }
 
+bool is_facial_bone(FbxNode* node)
+{
+	return starts_with(node->GetName(), "f_");
+}
+
+bool is_attachment_point(FbxNode* node)
+{
+	return starts_with(node->GetName(), "ap_");
+}
+
+int skeleton_bone_count(FbxNode* node)
+{
+	int c = 0;
+
+	if (has_skeleton_attribute(node) && !is_facial_bone(node)
+		&& !is_attachment_point(node))
+		c++;
+
+	for (int i = 0; i < node->GetChildCount(); ++i)
+		c += skeleton_bone_count(node->GetChild(i));
+
+	return c;
+}
+
+bool validate_skeleton(FbxNode* node)
+{
+	if (node->GetChildCount() == 0) {
+		cout << "  ERROR: Skeleton has no root bone.\n";
+		return false;
+	}
+	else if (node->GetChildCount() > 1) {
+		cout << "  ERROR: Skeleton has more than one root bone.\n";
+		return false;
+	}
+	else if (strcmp(node->GetName(), node->GetChild(0)->GetName()) != 0) {
+		cout << "  ERROR: Skeleton name is not equal to root bone name: " <<
+			node->GetName() << " != " << node->GetChild(0)->GetName() << '\n';
+		return false;
+	}
+	else if (skeleton_bone_count(node) > 54) {
+		cout << "  ERROR: Skeleton has more than 54 render bones.\n";
+		return false;
+	}
+
+	return true;
+}
+
 void print_bone(GR2_bone& bone)
 {
 	cout << "    Translation: " << bone.transform.translation.x;
@@ -1193,7 +1240,7 @@ void import_bone_inv_world_transform(FbxNode* node, GR2_bone& bone)
 
 void import_bone(GR2_import_info& import_info, FbxNode* node, int32_t parent_index, std::vector<GR2_bone>& bones)
 {
-	cout << "  Importing bone: " << node->GetName() << endl;
+	cout << "  Importing bone: " << node->GetName() << endl;	
 
 	auto translation = node->LclTranslation.Get();
 	translation[0] *= import_info.bone_scaling.x;
@@ -1249,6 +1296,9 @@ void import_model(GR2_import_info& import_info, GR2_skeleton* skel)
 void import_skeleton(GR2_import_info& import_info, FbxNode* node)
 {
 	cout << "Importing skeleton: " << node->GetName() << endl;
+
+	if (!validate_skeleton(node))
+		return;
 
 	import_info.bone_scaling.x = node->LclScaling.Get()[0];
 	import_info.bone_scaling.y = node->LclScaling.Get()[1];
