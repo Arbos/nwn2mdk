@@ -330,18 +330,37 @@ int bone_index(const char* bone_name, Fbx_bones& fbx_bones)
 	return 0;
 }
 
+bool validate_vertex_weights(FbxCluster* cluster, int bone_count)
+{
+	if (bone_count == 4) {
+		cout << "  ERROR: Vertex has more than 4 weights.\n";
+		return false;
+	}
+	else if (starts_with(cluster->GetLink()->GetName(), "ap_")) {
+		cout << "  ERROR: Vertex is weighted to non-rendering bone (" << cluster->GetLink()->GetName() << ").\n";
+		return false;
+	}
+
+	return true;
+}
+
+void init_skin_vertex(MDB_file::Skin_vertex &v)
+{
+	for (int i = 0; i < 4; ++i) {
+		v.bone_indices[i] = 0;
+		v.bone_weights[i] = 0;
+	}
+
+	v.bone_count = 4;
+}
+
 void import_skinning(FbxMesh *mesh, int vertex_index, Fbx_bones& fbx_bones,
 	MDB_file::Skin_vertex &poly_vertex)
 {
 	auto s = skin(mesh);
 	assert(s);
 
-	for (int i = 0; i < 4; ++i) {
-		poly_vertex.bone_indices[i] = 0;
-		poly_vertex.bone_weights[i] = 0;
-	}
-
-	poly_vertex.bone_count = 4;
+	init_skin_vertex(poly_vertex);
 
 	int bone_count = 0;
 
@@ -349,10 +368,9 @@ void import_skinning(FbxMesh *mesh, int vertex_index, Fbx_bones& fbx_bones,
 		auto cluster = s->GetCluster(i);
 		for (int j = 0; j < cluster->GetControlPointIndicesCount(); ++j) {
 			if (vertex_index == cluster->GetControlPointIndices()[j]) {
-				if (bone_count == 4) {
-					cout << "  A vertex cannot be influenced by more than 4 bones\n";
+				if (!validate_vertex_weights(cluster, bone_count))
 					return;
-				}
+
 				poly_vertex.bone_indices[bone_count] = bone_index(cluster->GetLink()->GetName(), fbx_bones);
 				poly_vertex.bone_weights[bone_count] = float(cluster->GetControlPointWeights()[j]);
 				++bone_count;
