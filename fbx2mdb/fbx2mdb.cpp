@@ -1154,22 +1154,30 @@ int skeleton_bone_count(FbxNode* node)
 
 bool validate_skeleton(FbxNode* node)
 {
-	if (node->GetChildCount() == 0) {
-		cout << "  ERROR: Skeleton has no root bone.\n";
-		return false;
+	if (is_pivot_node(node)) {
+		if (node->GetChildCount() > 1) {
+			cout << "  ERROR: PIVOT has more than one child.\n";
+			return false;
+		}
 	}
-	else if (node->GetChildCount() > 1) {
-		cout << "  ERROR: Skeleton has more than one root bone.\n";
-		return false;
-	}
-	else if (strcmp(node->GetName(), node->GetChild(0)->GetName()) != 0) {
-		cout << "  ERROR: Skeleton name is not equal to root bone name: " <<
-			node->GetName() << " != " << node->GetChild(0)->GetName() << '\n';
-		return false;
-	}
-	else if (skeleton_bone_count(node) > 54) {
-		cout << "  ERROR: Skeleton has more than 54 render bones.\n";
-		return false;
+	else {
+		if (node->GetChildCount() == 0) {
+			cout << "  ERROR: Skeleton has no root bone.\n";
+			return false;
+		}
+		else if (node->GetChildCount() > 1) {
+			cout << "  ERROR: Skeleton has more than one root bone.\n";
+			return false;
+		}
+		else if (strcmp(node->GetName(), node->GetChild(0)->GetName()) != 0) {
+			cout << "  ERROR: Skeleton name is not equal to root bone name: " <<
+				node->GetName() << " != " << node->GetChild(0)->GetName() << '\n';
+			return false;
+		}
+		else if (skeleton_bone_count(node) > 54) {
+			cout << "  ERROR: Skeleton has more than 54 render bones.\n";
+			return false;
+		}
 	}
 
 	return true;
