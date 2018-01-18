@@ -389,22 +389,31 @@ void import_skinning(FbxMesh *mesh, int polygon_index,
 	}
 }
 
+void set_map_name(char* map_name, const char* texture_filename)
+{
+	strncpy(map_name, texture_filename, 31);
+	map_name[31] = '\0';
+
+	if (strlen(texture_filename) > 31)
+		cout << "  ERROR: Map name greater than 31 chars, truncating: " << map_name << endl;
+}
+
 void import_map(char* map_name, FbxSurfaceMaterial* fbx_material,
-                const char* name)
+	const char* name)
 {
 	FbxProperty property =
-	    fbx_material->FindProperty(name);
+		fbx_material->FindProperty(name);
 	int textures = property.GetSrcObjectCount<FbxTexture>();
-	if(textures <= 0)
+	if (textures <= 0)
 		return;
 
 	FbxTexture *texture = property.GetSrcObject<FbxTexture>(0);
 	FbxFileTexture *file_texture = FbxCast<FbxFileTexture>(texture);
-	if(!file_texture)
+	if (!file_texture)
 		return;
 
-	strncpy(map_name,
-	        path(file_texture->GetFileName()).stem().string().c_str(), 32);
+	set_map_name(map_name,
+		path(file_texture->GetFileName()).stem().string().c_str());
 }
 
 void import_material(MDB_file::Material& material, FbxMesh* mesh)
