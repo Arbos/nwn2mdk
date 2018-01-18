@@ -185,6 +185,15 @@ FbxSkin *skin(FbxNode* node)
 	return skin(mesh);	
 }
 
+void set_packet_name(char* packet_name, const char* node_name)
+{
+	strncpy(packet_name, node_name, 31);
+	packet_name[31] = '\0';
+
+	if (strlen(node_name) > 31)
+		cout << "  ERROR: Packet name greater than 31 chars, truncating: " << packet_name << endl;
+}
+
 template <typename T>
 void import_positions(FbxMesh* mesh, int polygon_index, T* poly_vertices)
 {
@@ -506,7 +515,7 @@ void import_collision_mesh(MDB_file& mdb, FbxNode* node)
 	auto col_mesh = make_unique<MDB_file::Collision_mesh>(
 	    ends_with(node->GetName(), "_C2") ? MDB_file::COL2
 	                                      : MDB_file::COL3);
-	strncpy(col_mesh->header.name, node->GetName(), 32);
+	set_packet_name(col_mesh->header.name, node->GetName());
 
 	for(int i = 0; i < mesh->GetPolygonCount(); ++i)
 		import_polygon(*col_mesh.get(), mesh, i);
@@ -586,7 +595,7 @@ void import_walk_mesh(MDB_file& mdb, FbxNode* node)
 	cout << "Importing WALK: " << node->GetName() << endl;
 
 	auto walk_mesh = make_unique<MDB_file::Walk_mesh>();
-	strncpy(walk_mesh->header.name, node->GetName(), 32);
+	set_packet_name(walk_mesh->header.name, node->GetName());
 
 	for (int i = 0; i < mesh->GetPolygonCount(); ++i)
 		import_polygon(*walk_mesh, mesh, i);
@@ -644,7 +653,7 @@ void import_hook_point(MDB_file& mdb, FbxNode* node)
 	cout << "Importing HOOK: " << node->GetName() << endl;
 
 	auto hook = make_unique<MDB_file::Hook>();
-	strncpy(hook->header.name, node->GetName(), 32);
+	set_packet_name(hook->header.name, node->GetName());
 	
 	auto m = node->EvaluateGlobalTransform();
 
@@ -704,7 +713,7 @@ void import_hair(MDB_file& mdb, FbxNode* node)
 	cout << "Importing HAIR: " << node->GetName() << endl;
 
 	auto hair = make_unique<MDB_file::Hair>();
-	strncpy(hair->header.name, node->GetName(), 32);
+	set_packet_name(hair->header.name, node->GetName());
 	hair->header.shortening_behavior = hair_shortening_behavior(node);
 
 	auto m = node->EvaluateGlobalTransform();
@@ -772,7 +781,7 @@ void import_helm(MDB_file& mdb, FbxNode* node)
 	cout << "Importing HELM: " << node->GetName() << endl;
 
 	auto helm = make_unique<MDB_file::Helm>();
-	strncpy(helm->header.name, node->GetName(), 32);
+	set_packet_name(helm->header.name, node->GetName());
 	helm->header.hiding_behavior = helm_hair_hiding_behavior(node);
 
 	auto m = node->EvaluateGlobalTransform();
@@ -898,7 +907,7 @@ void import_rigid_mesh(MDB_file& mdb, FbxNode* node)
 	print_mesh(mesh);
 
 	auto rigid_mesh = make_unique<MDB_file::Rigid_mesh>();
-	strncpy(rigid_mesh->header.name, node->GetName(), 32);
+	set_packet_name(rigid_mesh->header.name, node->GetName());
 
 	import_material(rigid_mesh->header.material, mesh);
 
@@ -1000,7 +1009,7 @@ void import_skin(MDB_file& mdb, FbxNode* node)
 
 #ifdef _WIN32
 	auto skin = make_unique<MDB_file::Skin>();
-	strncpy(skin->header.name, node->GetName(), 32);
+	set_packet_name(skin->header.name, node->GetName());
 	auto skel_node = skeleton_node(mesh);
 	cout << "  Skeleton name: " << skel_node->GetName() << endl;
 
