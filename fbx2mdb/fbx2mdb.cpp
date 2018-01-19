@@ -476,7 +476,7 @@ void import_polygon(MDB_file::Collision_mesh& col_mesh, FbxMesh* mesh,
                     int polygon_index)
 {
 	if(mesh->GetPolygonSize(polygon_index) != 3) {
-		cout << "  WARNING: Polygon is not a triangle\n";
+		cout << "  ERROR: Polygon is not a triangle\n";
 		return;
 	}
 	
@@ -868,6 +868,28 @@ void print_mesh(FbxMesh *mesh)
 	cout << "  Polygons: #" << mesh->GetPolygonCount() << endl;
 }
 
+bool validate_rigid_mesh(FbxMesh* mesh)
+{
+	if (mesh->GetElementUVCount() == 0) {
+		cout << "  ERROR: There is no UV information.\n";
+		return false;
+	}
+	else if (mesh->GetElementNormalCount() == 0) {
+		cout << "  ERROR: There is no normal vector information.\n";
+		return false;
+	}
+	else if (mesh->GetElementTangentCount() == 0) {
+		cout << "  ERROR: There is no tangent vector information.\n";
+		return false;
+	}
+	else if (mesh->GetElementBinormalCount() == 0) {
+		cout << "  ERROR: There is no binormal vector information.\n";
+		return false;
+	}
+
+	return true;
+}
+
 void import_user_property(FbxProperty& p, MDB_file::Material& material)
 {
 	if (p.GetName() == "TRANSPARENCY_MASK")
@@ -905,6 +927,9 @@ void import_rigid_mesh(MDB_file& mdb, FbxNode* node)
 	cout << "Importing RIGD: " << node->GetName() << endl;
 
 	print_mesh(mesh);
+
+	if (!validate_rigid_mesh(mesh))
+		return;
 
 	auto rigid_mesh = make_unique<MDB_file::Rigid_mesh>();
 	set_packet_name(rigid_mesh->header.name, node->GetName());
