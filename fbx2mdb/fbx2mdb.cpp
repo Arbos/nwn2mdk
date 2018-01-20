@@ -1032,6 +1032,9 @@ void import_skin(MDB_file& mdb, FbxNode* node)
 
 	print_mesh(mesh);
 
+	if (!validate_rigid_mesh(mesh))
+		return;
+
 #ifdef _WIN32
 	auto skin = make_unique<MDB_file::Skin>();
 	set_packet_name(skin->header.name, node->GetName());
