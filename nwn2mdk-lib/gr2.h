@@ -121,7 +121,7 @@ struct GR2_model {
 struct GR2_curve_data_header {
 	/// @see GR2_curve_format
 	uint8_t format;
-	/// Unknown, ignored for now.
+	/// Degree of the B-spline (0: constant; 1: linear; 2: quadratic; 3: cubic).
 	uint8_t degree;
 };
 
@@ -131,7 +131,7 @@ struct GR2_curve_data {
 
 struct GR2_curve_data_D3Constant32f {
 	GR2_curve_data_header curve_data_header_D3Constant32f;
-	/// Unknown, ignored for now.
+	/// Unused. It's declared here to pad the header, forcing proper alignment.
 	int16_t padding;
 	float controls[3];
 };
@@ -249,6 +249,7 @@ struct GR2_curve_data_DaIdentity {
 
 struct GR2_curve_data_DaConstant32f {
 	GR2_curve_data_header curve_data_header_DaConstant32f;
+	/// Unused. It's declared here to pad the header, forcing proper alignment.
 	int16_t padding;
 	int32_t controls_count;
 	float *controls;
@@ -281,7 +282,7 @@ private:
 
 struct GR2_curve_data_DaK32fC32f {
 	GR2_curve_data_header curve_data_header_DaK32fC32f;
-	/// Unknown, ignored for now.
+	/// Unused. It's declared here to pad the header, forcing proper alignment.
 	int16_t padding;
 	int32_t knots_count;
 	float* knots;
