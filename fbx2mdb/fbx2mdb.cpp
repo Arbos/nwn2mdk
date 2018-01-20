@@ -476,7 +476,7 @@ void import_polygon(MDB_file::Collision_mesh& col_mesh, FbxMesh* mesh,
                     int polygon_index)
 {
 	if(mesh->GetPolygonSize(polygon_index) != 3) {
-		cout << "  ERROR: Polygon is not a triangle\n";
+		cout << "  ERROR: Polygon is not a triangle.\n";
 		return;
 	}
 	
@@ -560,7 +560,7 @@ void import_polygon(MDB_file::Walk_mesh& walk_mesh, FbxMesh* mesh,
 	int polygon_index)
 {
 	if (mesh->GetPolygonSize(polygon_index) != 3) {
-		cout << "  WARNING: Polygon is not a triangle\n";
+		cout << "  ERROR: Polygon is not a triangle.\n";
 		return;
 	}
 
@@ -802,7 +802,7 @@ void import_polygon(MDB_file::Rigid_mesh& rigid_mesh, FbxMesh* mesh,
 	int polygon_index)
 {
 	if(mesh->GetPolygonSize(polygon_index) != 3) {
-		cout << "  WARNING: Polygon is not a triangle\n";
+		cout << "  ERROR: Polygon is not a triangle.\n";
 		return;
 	}
 	
@@ -972,7 +972,7 @@ void import_polygon(MDB_file::Skin& skin, Fbx_bones& fbx_bones, FbxMesh* mesh,
 	int polygon_index)
 {
 	if (mesh->GetPolygonSize(polygon_index) != 3) {
-		cout << "  WARNING: Polygon is not a triangle\n";
+		cout << "  ERROR: Polygon is not a triangle.\n";
 		return;
 	}
 
