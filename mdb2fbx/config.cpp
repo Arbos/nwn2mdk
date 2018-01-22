@@ -27,28 +27,43 @@ static const char* nwn2_dirs[] = {
     "C:\\Program Files (x86)\\Atari\\Neverwinter Nights 2",
     "C:\\GOG Games\\Neverwinter Nights 2 Complete"};
 
+static void create_config_file(const char *filename)
+{
+	ofstream out(filename);
+	out << "# (Optional) Directory where NWN2 is installed.\n";
+	out << "# nwn2_home: C:\\Program Files\\Atari\\Neverwinter Nights 2\n";
+}
+
+static void find_nwn2_home(Config& config, YAML::Node& config_file)
+{
+	if (config_file["nwn2_home"]) {
+		auto nwn2_home = config_file["nwn2_home"].as<string>("");
+		if(exists(nwn2_home))
+			config.nwn2_home = nwn2_home;
+	}
+	else {
+		for (unsigned i = 0; i < sizeof(nwn2_dirs) / sizeof(char*); ++i)
+			if (exists(nwn2_dirs[i]))
+				config.nwn2_home = nwn2_dirs[i];			
+	}
+}
+
 Config::Config(const char *filename)
 {
-	if(!exists(filename)) {
-		ofstream out(filename);
-		out << "# (Optional) Directory where NWN2 is installed.\n";
-		out << "# nwn2_home: C:\\Program Files\\Atari\\Neverwinter Nights 2\n";
-	}
+	if (!exists(filename))
+		create_config_file(filename);
 
-	auto config = YAML::LoadFile(filename);
-	if(!config) {
+	auto config_file = YAML::LoadFile(filename);
+	if(!config_file) {
 		cout << "cannot open " << filename << endl;
 		return;
 	}
 
-	if (config["nwn2_home"]) {
-		nwn2_home = config["nwn2_home"].as<string>("");
-	}
-	else {
-		for(unsigned i = 0; i < sizeof(nwn2_dirs)/sizeof(char*); ++i) {
-			if(exists(nwn2_dirs[i])) {
-				nwn2_home = nwn2_dirs[i];
-			}
-		}
+	find_nwn2_home(*this, config_file);
+
+	if (nwn2_home.empty()) {
+		cout << "Cannot find a NWN2 installation directory. Edit the "
+			"config.yml file and put the directory where NWN2 is "
+			"installed.\n";
 	}
 }

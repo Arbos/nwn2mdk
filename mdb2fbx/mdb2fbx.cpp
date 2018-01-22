@@ -598,12 +598,8 @@ int main(int argc, char* argv[])
 
 	Config config((path(argv[0]).parent_path() / "config.yml").string().c_str());
 
-	if (config.nwn2_home.empty() || !exists(config.nwn2_home)) {
-		cout << "Cannot find a NWN2 installation directory. Edit the "
-		        "config.yml file and put the directory where NWN2 is "
-		        "installed.\n";
+	if (config.nwn2_home.empty())		
 		return 1;
-	}
 
 #ifdef _WIN32
 	GR2_file::granny2dll_filename = config.nwn2_home + "\\granny2.dll";
