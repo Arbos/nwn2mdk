@@ -53,13 +53,19 @@ Config::Config(const char *filename)
 	if (!exists(filename))
 		create_config_file(filename);
 
-	auto config_file = YAML::LoadFile(filename);
-	if(!config_file) {
-		cout << "cannot open " << filename << endl;
+	try {
+		auto config_file = YAML::LoadFile(filename);
+		if (!config_file) {
+			cout << "ERROR: Cannot open " << filename << endl;
+			return;
+		}
+
+		find_nwn2_home(*this, config_file);
+	}
+	catch (...) {
+		cout << "ERROR: Cannot open " << filename << ": It's ill-formed." << endl;
 		return;
 	}
-
-	find_nwn2_home(*this, config_file);
 
 	if (nwn2_home.empty()) {
 		cout << "Cannot find a NWN2 installation directory. Edit the "
