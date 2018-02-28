@@ -612,7 +612,7 @@ int main(int argc, char* argv[])
 
 	auto manager = FbxManager::Create();
 	if (!manager) {
-		cout << "Unable to create FBX manager\n";
+		cout << "ERROR: Unable to create FBX manager\n";
 		return 1;
 	}
 
@@ -625,7 +625,7 @@ int main(int argc, char* argv[])
 	// from/to files.
 	auto scene = FbxScene::Create(manager, "Scene");
 	if (!scene) {
-		cout << "Unable to create FBX scene\n";
+		cout << "ERROR: Unable to create FBX scene\n";
 		return 1;
 	}
 
@@ -643,7 +643,7 @@ int main(int argc, char* argv[])
 	auto fbx_filename =
 		path(filenames[0]).stem().concat(".fbx").string();
 	if (!exporter->Initialize(fbx_filename.c_str(), -1, manager->GetIOSettings())) {
-		cout << exporter->GetStatus().GetErrorString() << endl;
+		cout << "ERROR: " << exporter->GetStatus().GetErrorString() << endl;
 		return false;
 	}
 	exporter->SetFileExportVersion(

@@ -1891,7 +1891,7 @@ int main(int argc, char* argv[])
 
 	auto manager = FbxManager::Create();
 	if (!manager) {
-		cout << "Unable to create FBX manager\n";
+		cout << "ERROR: Unable to create FBX manager\n";
 		return 1;
 	}
 
@@ -1903,7 +1903,7 @@ int main(int argc, char* argv[])
 	// Create an importer.
 	auto importer = FbxImporter::Create(manager, "");
 	if(!importer->Initialize(argv[1], -1, manager->GetIOSettings())) {
-		cout << importer->GetStatus().GetErrorString() << endl;
+		cout << "ERROR: " << importer->GetStatus().GetErrorString() << endl;
 		return 1;
 	}
 
