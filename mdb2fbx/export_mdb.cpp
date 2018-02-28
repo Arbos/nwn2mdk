@@ -82,7 +82,7 @@ static void export_map(Export_info& export_info, FbxPropertyT<T>& property,
 		property.ConnectSrcObject(create_texture(export_info.scene, map_name));
 }
 
-static void export_maps(Export_info& export_info, FbxSurfacePhong* material,
+static void export_maps(Export_info& export_info, FbxNode* node, FbxSurfacePhong* material,
 	const MDB_file::Material& mdb_material)
 {
 	export_map(export_info, material->Diffuse,
@@ -93,6 +93,11 @@ static void export_maps(Export_info& export_info, FbxSurfacePhong* material,
 		string(mdb_material.tint_map_name, 32).c_str());
 	export_map(export_info, material->EmissiveFactor,
 		string(mdb_material.glow_map_name, 32).c_str());
+	
+	// Export tint map as a node property
+	auto prop_tint_map = FbxProperty::Create(node, FbxStringDT, "TINT_MAP");
+	prop_tint_map.Set<FbxString>(string(mdb_material.tint_map_name, 32).c_str());	
+	prop_tint_map.ModifyFlag(FbxPropertyFlags::eUserDefined, true);
 }
 
 template <class T>
@@ -497,7 +502,7 @@ static void export_rigid_mesh(Export_info& export_info,
 
 	auto material =
 		create_material(export_info.scene, node, rm.header.material, name.c_str());
-	export_maps(export_info, material, rm.header.material);
+	export_maps(export_info, node, material, rm.header.material);
 	node->AddMaterial(material);
 
 	create_user_properties(node, rm.header.material);
@@ -598,7 +603,7 @@ static void export_skin(Export_info& export_info, const MDB_file::Skin& skin)
 
 	auto material =
 		create_material(export_info.scene, node, skin.header.material, name.c_str());
-	export_maps(export_info, material, skin.header.material);
+	export_maps(export_info, node, material, skin.header.material);
 	node->AddMaterial(material);
 
 	create_user_properties(node, skin.header.material);
