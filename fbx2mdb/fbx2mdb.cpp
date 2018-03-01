@@ -431,7 +431,16 @@ void import_map(char* map_name, FbxNode* node, const char* property_name)
 	if (!prop.IsValid())
 		return;
 
-	set_map_name(map_name, prop.Get<FbxString>().Buffer());
+	string s = prop.Get<FbxString>().Buffer();
+	// Trim start spaces
+	s.erase(s.begin(),
+	        find_if(s.begin(), s.end(),
+				    [](int c) { return !isspace(c); }));
+	// Trim end spaces
+	s.erase(std::find_if(s.rbegin(), s.rend(),
+	                     [](int ch) { return !isspace(ch); }).base(),
+	        s.end());
+	set_map_name(map_name, s.c_str());
 }
 
 void import_material(MDB_file::Material& material, FbxMesh* mesh)
