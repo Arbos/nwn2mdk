@@ -449,6 +449,8 @@ void import_material(MDB_file::Material& material, FbxMesh* mesh)
 	import_map(material.tint_map_name, mesh->GetNode(),
 	           "TINT_MAP");
 	import_map(material.glow_map_name, fbx_material,
+	           FbxSurfaceMaterial::sEmissiveFactor);
+	import_map(material.glow_map_name, fbx_material,
 	           FbxSurfaceMaterial::sEmissive);
 
 	if(fbx_material->ShadingModel.Get() != "Phong")
