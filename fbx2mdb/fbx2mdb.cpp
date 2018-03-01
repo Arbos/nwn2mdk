@@ -425,6 +425,15 @@ void import_map(char* map_name, FbxSurfaceMaterial* fbx_material,
 		path(file_texture->GetFileName()).stem().string().c_str());
 }
 
+void import_map(char* map_name, FbxNode* node, const char* property_name)
+{
+	auto prop = node->FindProperty(property_name, false);
+	if (!prop.IsValid())
+		return;
+
+	set_map_name(map_name, prop.Get<FbxString>().Buffer());
+}
+
 void import_material(MDB_file::Material& material, FbxMesh* mesh)
 {
 	if(mesh->GetNode()->GetMaterialCount() <= 0)
@@ -434,9 +443,11 @@ void import_material(MDB_file::Material& material, FbxMesh* mesh)
 	import_map(material.diffuse_map_name, fbx_material,
 	           FbxSurfaceMaterial::sDiffuse);
 	import_map(material.normal_map_name, fbx_material,
+	           FbxSurfaceMaterial::sBump);
+	import_map(material.normal_map_name, fbx_material,
 	           FbxSurfaceMaterial::sNormalMap);
-	import_map(material.tint_map_name, fbx_material,
-	           FbxSurfaceMaterial::sDisplacementColor);
+	import_map(material.tint_map_name, mesh->GetNode(),
+	           "TINT_MAP");
 	import_map(material.glow_map_name, fbx_material,
 	           FbxSurfaceMaterial::sEmissive);
 
