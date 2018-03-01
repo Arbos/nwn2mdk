@@ -704,15 +704,15 @@ static void print_hair(const MDB_file::Hair& hair)
 
 MDB_file::Hair_shortening_behavior hair_shortening_behavior(FbxNode* node)
 {
-	auto prop = node->FindProperty("HSB_LOW");
+	auto prop = node->FindProperty("HSB_LOW", false);
 	if (prop.IsValid() && prop.Get<float>() != 0)
 		return MDB_file::HSB_LOW;
 
-	prop = node->FindProperty("HSB_SHORT");
+	prop = node->FindProperty("HSB_SHORT", false);
 	if (prop.IsValid() && prop.Get<float>() != 0)
 		return MDB_file::HSB_SHORT;
 
-	prop = node->FindProperty("HSB_PONYTAIL");
+	prop = node->FindProperty("HSB_PONYTAIL", false);
 	if (prop.IsValid() && prop.Get<float>() != 0)
 		return MDB_file::HSB_PONYTAIL;
 
@@ -743,19 +743,19 @@ void import_hair(MDB_file& mdb, FbxNode* node)
 
 MDB_file::Helm_hair_hiding_behavior helm_hair_hiding_behavior(FbxNode* node)
 {
-	auto prop = node->FindProperty("HHHB_NONE_HIDDEN");
+	auto prop = node->FindProperty("HHHB_NONE_HIDDEN", false);
 	if (prop.IsValid() && prop.Get<float>() != 0)
 		return MDB_file::HHHB_NONE_HIDDEN;
 
-	prop = node->FindProperty("HHHB_HAIR_HIDDEN");
+	prop = node->FindProperty("HHHB_HAIR_HIDDEN", false);
 	if (prop.IsValid() && prop.Get<float>() != 0)
 		return MDB_file::HHHB_HAIR_HIDDEN;
 
-	prop = node->FindProperty("HHHB_PARTIAL_HAIR");
+	prop = node->FindProperty("HHHB_PARTIAL_HAIR", false);
 	if (prop.IsValid() && prop.Get<float>() != 0)
 		return MDB_file::HHHB_PARTIAL_HAIR;
 
-	prop = node->FindProperty("HHHB_HEAD_HIDDEN");
+	prop = node->FindProperty("HHHB_HEAD_HIDDEN", false);
 	if (prop.IsValid() && prop.Get<float>() != 0)
 		return MDB_file::HHHB_HEAD_HIDDEN;
 
@@ -1078,9 +1078,9 @@ void import_meshes(MDB_file& mdb, FbxNode* node)
 		import_walk_mesh(mdb, node);
 	else if (starts_with(node->GetName(), "HP_DR_STD"))
 		import_hook_point(mdb, node);
-	else if (node->FindProperty("HSB_LOW").IsValid())
+	else if (node->FindProperty("HSB_LOW", false).IsValid())
 		import_hair(mdb, node);
-	else if (node->FindProperty("HHHB_NONE_HIDDEN").IsValid())
+	else if (node->FindProperty("HHHB_NONE_HIDDEN", false).IsValid())
 		import_helm(mdb, node);
 	else if (skin(node))
 		import_skin(mdb, node);
