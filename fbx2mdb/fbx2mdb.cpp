@@ -905,17 +905,17 @@ bool validate_rigid_mesh(FbxMesh* mesh)
 
 void import_user_property(FbxProperty& p, MDB_file::Material& material)
 {
-	if (p.GetName() == "TRANSPARENCY_MASK")
+	if (p.GetName().CompareNoCase("TRANSPARENCY_MASK") == 0)
 		material.flags |= p.Get<float>() == 0 ? 0 : MDB_file::ALPHA_TEST;
-	else if (p.GetName() == "ENVIRONMENT_MAP")
+	else if (p.GetName().CompareNoCase("ENVIRONMENT_MAP") == 0)
 		material.flags |= p.Get<float>() == 0 ? 0 : MDB_file::ENVIRONMENT_MAPPING;
-	else if (p.GetName() == "HEAD")
+	else if (p.GetName().CompareNoCase("HEAD") == 0)
 		material.flags |= p.Get<float>() == 0 ? 0 : MDB_file::CUTSCENE_MESH;
-	else if (p.GetName() == "GLOW")
+	else if (p.GetName().CompareNoCase("GLOW") == 0)
 		material.flags |= p.Get<float>() == 0 ? 0 : MDB_file::GLOW;
-	else if (p.GetName() == "DONT_CAST_SHADOWS")
+	else if (p.GetName().CompareNoCase("DONT_CAST_SHADOWS") == 0)
 		material.flags |= p.Get<float>() == 0 ? 0 : MDB_file::CAST_NO_SHADOWS;
-	else if (p.GetName() == "PROJECTED_TEXTURES")
+	else if (p.GetName().CompareNoCase("PROJECTED_TEXTURES") == 0)
 		material.flags |= p.Get<float>() == 0 ? 0 : MDB_file::PROJECTED_TEXTURES;
 }
 
