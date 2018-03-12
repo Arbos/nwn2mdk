@@ -39,6 +39,9 @@
     <ClInclude Include="string_collection.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="gr2_decompress.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="module_handle.cpp">
@@ -60,6 +63,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="string_collection.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="gr2_decompress.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

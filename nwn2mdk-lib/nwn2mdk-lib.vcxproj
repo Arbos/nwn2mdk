@@ -134,6 +134,7 @@
   <ItemGroup>
     <ClInclude Include="cgmath.h" />
     <ClInclude Include="crc32.h" />
+    <ClInclude Include="gr2_decompress.h" />
     <ClInclude Include="gr2_file.h" />
     <ClInclude Include="gr2.h" />
     <ClInclude Include="granny2dll_handle.h" />
@@ -143,6 +144,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="crc32.cpp" />
+    <ClCompile Include="gr2_decompress.cpp" />
     <ClCompile Include="gr2_file.cpp" />
     <ClCompile Include="gr2.cpp" />
     <ClCompile Include="granny2dll_handle.cpp" />
