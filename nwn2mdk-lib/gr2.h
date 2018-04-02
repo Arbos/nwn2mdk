@@ -35,9 +35,15 @@ enum GR2_curve_format {
 	D3K8uC8u = 11
 };
 
+enum GR2_transform_flags {
+	GR2_has_position = 0x01,
+	GR2_has_rotation = 0x02,
+	GR2_has_scale_shear = 0x04
+};
+
 struct GR2_transform {
-	/// Bitmask: 0: Has Translation; 1: Has Rotation; 2: Has ScaleShear
-	int32_t flags;
+	/// GR2_transform_flags
+	uint32_t flags;
 	Vector3<float> translation;
 	/// Quaternion (x, y, z, w).
 	Vector4<float> rotation;

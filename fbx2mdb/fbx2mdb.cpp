@@ -90,28 +90,29 @@ bool operator==(const MDB_file::Walk_mesh_vertex &v1, const MDB_file::Walk_mesh_
 	return v1.position == v2.position;
 }
 
+// Assumes the euler angles are from a right-handed system with y-axis up.
 FbxQuaternion euler_to_quaternion(const FbxVector4 &v)
 {
-	double y = v[0];
-	double p = v[1];
-	double r = v[2];
+	double pitch = v[0];
+	double roll = v[1];
+	double yaw = v[2];
 
-	y = y * M_PI / 180; // To radians
-	p = p * M_PI / 180; // To radians
-	r = r * M_PI / 180; // To radians
-
-	double sp = sin(p * 0.5);
-	double cp = cos(p * 0.5);
-	double sr = sin(y * 0.5);
-	double cr = cos(y * 0.5);
-	double sy = sin(r * 0.5);
-	double cy = cos(r * 0.5);
+	pitch = pitch * M_PI / 180; // To radians
+	roll = roll * M_PI / 180; // To radians
+	yaw = yaw * M_PI / 180; // To radians
+	
+	double sinp = sin(pitch * 0.5);
+	double cosp = cos(pitch * 0.5);
+	double sinr = sin(roll * 0.5);
+	double cosr = cos(roll * 0.5);
+	double siny = sin(yaw * 0.5);
+	double cosy = cos(yaw * 0.5);
 
 	FbxQuaternion q;
-	q[0] = cy*sr*cp - sy*cr*sp;
-	q[1] = cy*cr*sp + sy*sr*cp;
-	q[2] = sy*cr*cp - cy*sr*sp;
-	q[3] = cy*cr*cp + sy*sr*sp;
+	q[0] = sinp*cosr*cosy - cosp*sinr*siny;
+	q[1] = cosp*sinr*cosy + sinp*cosr*siny;
+	q[2] = cosp*cosr*siny - sinp*sinr*cosy;
+	q[3] = cosp*cosr*cosy + sinp*sinr*siny;
 
 	return q;
 }
@@ -127,6 +128,20 @@ bool ends_with(const char *s1, const char *s2)
 	auto l2 = strlen(s2);
 
 	return l1 >= l2 && strcmp(s1 + l1 - l2, s2) == 0;
+}
+
+void trim_start_spaces(std::string& s)
+{
+	s.erase(s.begin(),
+		find_if(s.begin(), s.end(),
+			[](int ch) { return !isspace(ch); }));
+}
+
+void trim_end_spaces(std::string& s)
+{
+	s.erase(std::find_if(s.rbegin(), s.rend(),
+		[](int ch) { return !isspace(ch); }).base(),
+		s.end());
 }
 
 const char* mapping_mode_str(FbxLayerElement::EMappingMode m)
@@ -432,14 +447,8 @@ void import_map(char* map_name, FbxNode* node, const char* property_name)
 		return;
 
 	string s = prop.Get<FbxString>().Buffer();
-	// Trim start spaces
-	s.erase(s.begin(),
-	        find_if(s.begin(), s.end(),
-				    [](int c) { return !isspace(c); }));
-	// Trim end spaces
-	s.erase(std::find_if(s.rbegin(), s.rend(),
-	                     [](int ch) { return !isspace(ch); }).base(),
-	        s.end());
+	trim_start_spaces(s);
+	trim_end_spaces(s);	
 	set_map_name(map_name, s.c_str());
 }
 
@@ -691,6 +700,13 @@ void import_hook_point(MDB_file& mdb, FbxNode* node)
 	mdb.add_packet(move(hook));
 }
 
+static bool is_hair_packet(FbxNode* node)
+{
+	return node->FindProperty("HSB_LOW", false).IsValid() ||
+		node->FindProperty("HSB_SHORT", false).IsValid() ||
+		node->FindProperty("HSB_PONYTAIL", false).IsValid();	
+}
+
 static void print_hair(const MDB_file::Hair& hair)
 {	
 	cout << "  Shortening: " << hair.header.shortening_behavior;
@@ -750,6 +766,14 @@ void import_hair(MDB_file& mdb, FbxNode* node)
 	print_hair(*hair);
 
 	mdb.add_packet(move(hair));
+}
+
+static bool is_helm_packet(FbxNode* node)
+{
+	return node->FindProperty("HHHB_NONE_HIDDEN", false).IsValid() ||
+		node->FindProperty("HHHB_HAIR_HIDDEN", false).IsValid() ||
+		node->FindProperty("HHHB_PARTIAL_HAIR", false).IsValid() ||
+		node->FindProperty("HHHB_HEAD_HIDDEN", false).IsValid();
 }
 
 MDB_file::Helm_hair_hiding_behavior helm_hair_hiding_behavior(FbxNode* node)
@@ -1089,9 +1113,9 @@ void import_meshes(MDB_file& mdb, FbxNode* node)
 		import_walk_mesh(mdb, node);
 	else if (starts_with(node->GetName(), "HP_DR_STD"))
 		import_hook_point(mdb, node);
-	else if (node->FindProperty("HSB_LOW", false).IsValid())
+	else if (is_hair_packet(node))
 		import_hair(mdb, node);
-	else if (node->FindProperty("HHHB_NONE_HIDDEN", false).IsValid())
+	else if (is_helm_packet(node))
 		import_helm(mdb, node);
 	else if (skin(node))
 		import_skin(mdb, node);
@@ -1167,7 +1191,7 @@ void import_art_tool_info(GR2_import_info& import_info)
 void import_exporter_info(GR2_import_info& import_info)
 {
 	import_info.exporter_info.exporter_name =
-		import_info.strings.get("NWN2 MDK 0.4");
+		import_info.strings.get("NWN2 MDK 0.7");
 	import_info.exporter_info.exporter_major_revision = 2;
 	import_info.exporter_info.exporter_minor_revision = 6;
 	import_info.exporter_info.exporter_customization = 0;
@@ -1206,16 +1230,21 @@ bool is_attachment_point(FbxNode* node)
 	return starts_with(node->GetName(), "ap_");
 }
 
-int skeleton_bone_count(FbxNode* node)
+bool is_rendering_bone(FbxNode *node)
+{
+	return has_skeleton_attribute(node) && !is_facial_bone(node)
+		&& !is_attachment_point(node);
+}
+
+int rendering_bone_count(FbxNode* node)
 {
 	int c = 0;
 
-	if (has_skeleton_attribute(node) && !is_facial_bone(node)
-		&& !is_attachment_point(node))
+	if (is_rendering_bone(node))
 		c++;
 
 	for (int i = 0; i < node->GetChildCount(); ++i)
-		c += skeleton_bone_count(node->GetChild(i));
+		c += rendering_bone_count(node->GetChild(i));
 
 	return c;
 }
@@ -1242,7 +1271,7 @@ bool validate_skeleton(FbxNode* node)
 				node->GetName() << " != " << node->GetChild(0)->GetName() << '\n';
 			return false;
 		}
-		else if (skeleton_bone_count(node) > 54) {
+		else if (rendering_bone_count(node) > 54) {
 			cout << "  ERROR: Skeleton has more than 54 render bones.\n";
 			return false;
 		}
@@ -1283,7 +1312,7 @@ void import_bone_translation(FbxNode* node, GR2_bone& bone)
 	bone.transform.translation.z = float(node->LclTranslation.Get()[2]);
 
 	if (bone.transform.translation.x != 0 || bone.transform.translation.y != 0 || bone.transform.translation.z != 0)
-		bone.transform.flags |= 1;
+		bone.transform.flags |= GR2_has_position;
 }
 
 void import_bone_rotation(FbxNode* node, GR2_bone& bone)
@@ -1295,7 +1324,7 @@ void import_bone_rotation(FbxNode* node, GR2_bone& bone)
 	bone.transform.rotation.w = float(rotation[3]);
 
 	if (bone.transform.rotation.x != 0 || bone.transform.rotation.y != 0 || bone.transform.rotation.z != 0 || bone.transform.rotation.w != 1)
-		bone.transform.flags |= 2;
+		bone.transform.flags |= GR2_has_rotation;
 }
 
 void import_bone_scale(FbxNode* node, GR2_bone& bone)
@@ -1311,7 +1340,7 @@ void import_bone_scale(FbxNode* node, GR2_bone& bone)
 	bone.transform.scale_shear[8] = float(node->LclScaling.Get()[2]);
 
 	if (bone.transform.scale_shear[0] != 1 || bone.transform.scale_shear[4] != 1 || bone.transform.scale_shear[8] != 1)
-		bone.transform.flags |= 4;
+		bone.transform.flags |= GR2_has_scale_shear;
 }
 
 void import_bone_transform(FbxNode* node, GR2_bone& bone)
@@ -1454,9 +1483,8 @@ GR2_track_group_info &track_group(GR2_import_info& import_info, const char *name
 	for(auto &tg : import_info.track_groups)
 		if(strcmp(tg.track_group.name, name) == 0)
 			return tg;
-
-	import_info.track_groups.emplace_back();
-	auto& tg = import_info.track_groups.back();
+	
+	auto& tg = import_info.track_groups.emplace_back();
 	tg.track_group.name = import_info.strings.get(name);
 	tg.track_group.vector_tracks_count = 0;
 	tg.track_group.transform_LOD_errors_count = 0;
@@ -1485,87 +1513,86 @@ GR2_track_group_info &track_group(GR2_import_info& import_info, const char *name
 	return tg;
 }
 
-void import_position(GR2_import_info& import_info, FbxNode* node,
-                     FbxAnimLayer* layer, GR2_transform_track& tt)
+void import_position_DaK32fC32f(GR2_import_info& import_info, FbxNode* node,
+	GR2_transform_track& tt)
 {
-	auto curve_x = node->LclTranslation.GetCurve(layer, FBXSDK_CURVENODE_COMPONENT_X);
-	auto curve_y = node->LclTranslation.GetCurve(layer, FBXSDK_CURVENODE_COMPONENT_Y);
-	auto curve_z = node->LclTranslation.GetCurve(layer, FBXSDK_CURVENODE_COMPONENT_Z);
+	cout << "  Positions:\n";
 
-	if (curve_x || curve_y || curve_z) {
-		cout << "  Positions:\n";
+	tt.position_curve.keys = DaK32fC32f_def;
 
-		tt.position_curve.keys = DaK32fC32f_def;
+	auto& curve = import_info.da_curves.emplace_back();
+	curve.curve_data_header_DaK32fC32f.format = DaK32fC32f;
+	curve.curve_data_header_DaK32fC32f.degree = 1;
 
-		import_info.da_curves.emplace_back();
-		auto& curve = import_info.da_curves.back();
-		curve.curve_data_header_DaK32fC32f.format = DaK32fC32f;
-		curve.curve_data_header_DaK32fC32f.degree = 1;
+	auto& knots = import_info.float_arrays.emplace_back();
+	auto& controls = import_info.float_arrays.emplace_back();
 
-		import_info.float_arrays.emplace_back();
-		auto& knots = import_info.float_arrays.back();
+	FbxTime time = import_info.anim_stack->LocalStart;
+	FbxTime dt;
+	dt.SetSecondDouble(time_step);
 
-		import_info.float_arrays.emplace_back();
-		auto& controls = import_info.float_arrays.back();
+	while (time <= import_info.anim_stack->LocalStop) {
+		float t = float((time - import_info.anim_stack->LocalStart).GetSecondDouble());
+		knots.push_back(t);
 
-		FbxTime time = import_info.anim_stack->LocalStart;
-		FbxTime dt;
-		dt.SetSecondDouble(time_step);
+		auto p = node->LclTranslation.EvaluateValue(time);
+		controls.push_back(float(p[0] * import_info.bone_scaling.x));
+		controls.push_back(float(p[1] * import_info.bone_scaling.y));
+		controls.push_back(float(p[2] * import_info.bone_scaling.z));
 
-		while (time <= import_info.anim_stack->LocalStop) {
-			float t = float((time - import_info.anim_stack->LocalStart).GetSecondDouble());
-			knots.push_back(t);
+		cout << "    " << knots.back() << ": " << p[0] << ' '
+			<< p[1] << ' ' << p[2] << endl;
 
-			auto p = node->LclTranslation.EvaluateValue(time);
-			controls.push_back(float(p[0] * import_info.bone_scaling.x));
-			controls.push_back(float(p[1] * import_info.bone_scaling.y));
-			controls.push_back(float(p[2] * import_info.bone_scaling.z));
+		time += dt;
+	}
 
-			cout << "    " << knots.back() << ": " << p[0] << ' '
-			     << p[1] << ' ' << p[2] << endl;
+	curve.knots_count = knots.size();
+	curve.knots = knots.data();
+	curve.controls_count = controls.size();
+	curve.controls = controls.data();
 
-			time += dt;			
-		}
+	tt.position_curve.curve_data = reinterpret_cast<GR2_curve_data*>(&curve);
+}
 
-		curve.knots_count = knots.size();
-		curve.knots = knots.data();
-		curve.controls_count = controls.size();
-		curve.controls = controls.data();
+void import_position_D3Constant32f(GR2_import_info& import_info, FbxNode* node,
+	GR2_transform_track& tt)
+{
+	tt.position_curve.keys = D3Constant32f_def;
 
-		tt.position_curve.curve_data = reinterpret_cast<GR2_curve_data*>(&curve);
+	auto& curve = import_info.d3c_curves.emplace_back();
+	curve.curve_data_header_D3Constant32f.format = D3Constant32f;
+	curve.curve_data_header_D3Constant32f.degree = 0;
+	curve.controls[0] = float(node->LclTranslation.Get()[0] * import_info.bone_scaling.x);
+	curve.controls[1] = float(node->LclTranslation.Get()[1] * import_info.bone_scaling.y);
+	curve.controls[2] = float(node->LclTranslation.Get()[2] * import_info.bone_scaling.z);
+	tt.position_curve.curve_data =
+		reinterpret_cast<GR2_curve_data*>(&curve);
+}
+
+void import_position_anim(GR2_import_info& import_info, FbxNode* node, 
+	FbxAnimLayer* layer, GR2_transform_track& tt)
+{	
+	if (node->LclTranslation.GetCurveNode(layer)) {
+		import_position_DaK32fC32f(import_info, node, tt);
 	}
 	else {
-		tt.position_curve.keys = D3Constant32f_def;
-
-		import_info.d3c_curves.emplace_back();
-		auto& curve = import_info.d3c_curves.back();
-		curve.curve_data_header_D3Constant32f.format = D3Constant32f;
-		curve.curve_data_header_D3Constant32f.degree = 0;
-		curve.controls[0] = float(node->LclTranslation.Get()[0] * import_info.bone_scaling.x);
-		curve.controls[1] = float(node->LclTranslation.Get()[1] * import_info.bone_scaling.y);
-		curve.controls[2] = float(node->LclTranslation.Get()[2] * import_info.bone_scaling.z);
-		tt.position_curve.curve_data =
-		    reinterpret_cast<GR2_curve_data*>(&curve);
+		import_position_D3Constant32f(import_info, node, tt);
 	}
 }
 
-void import_rotation(GR2_import_info& import_info, FbxNode* node,
-                     FbxAnimLayer* layer, GR2_transform_track& tt)
+void import_rotation_anim(GR2_import_info& import_info, FbxNode* node,
+	FbxAnimLayer* layer, GR2_transform_track& tt)
 {
 	cout << "  Rotations:\n";
 
 	tt.orientation_curve.keys = DaK32fC32f_def;
 
-	import_info.da_curves.emplace_back();
-	auto& curve = import_info.da_curves.back();
+	auto& curve = import_info.da_curves.emplace_back();
 	curve.curve_data_header_DaK32fC32f.format = DaK32fC32f;
 	curve.curve_data_header_DaK32fC32f.degree = 1;
 
-	import_info.float_arrays.emplace_back();
-	auto& knots = import_info.float_arrays.back();
-
-	import_info.float_arrays.emplace_back();
-	auto& controls = import_info.float_arrays.back();
+	auto& knots = import_info.float_arrays.emplace_back();
+	auto& controls = import_info.float_arrays.emplace_back();
 
 	FbxTime time = import_info.anim_stack->LocalStart;
 	FbxTime dt;
@@ -1581,6 +1608,8 @@ void import_rotation(GR2_import_info& import_info, FbxNode* node,
 		
 		auto quat = euler_to_quaternion(p);		
 
+		// GR2 animation requires two consecutive quaternions have the
+		// shortest path.
 		if (quat.DotProduct(prev_quat) < 0)
 			quat = -quat;
 
@@ -1610,11 +1639,8 @@ void import_scaleshear_DaK32fC32f(GR2_import_info& import_info, FbxNode* node,
 {
 	cout << "  Scaling:\n";
 
-	import_info.float_arrays.emplace_back();
-	auto& knots = import_info.float_arrays.back();
-
-	import_info.float_arrays.emplace_back();
-	auto& controls = import_info.float_arrays.back();
+	auto& knots = import_info.float_arrays.emplace_back();
+	auto& controls = import_info.float_arrays.emplace_back();
 
 	FbxTime time = import_info.anim_stack->LocalStart;
 	FbxTime dt;
@@ -1641,8 +1667,7 @@ void import_scaleshear_DaK32fC32f(GR2_import_info& import_info, FbxNode* node,
 		time += dt;		
 	}
 
-	import_info.da_curves.emplace_back();
-	auto& curve = import_info.da_curves.back();
+	auto& curve = import_info.da_curves.emplace_back();
 	curve.curve_data_header_DaK32fC32f.format = DaK32fC32f;
 	curve.curve_data_header_DaK32fC32f.degree = 1;
 	curve.padding = 0;
@@ -1658,8 +1683,7 @@ void import_scaleshear_DaK32fC32f(GR2_import_info& import_info, FbxNode* node,
 void import_scaleshear_DaConstant32f(GR2_import_info& import_info, FbxNode* node,
 	GR2_transform_track& tt)
 {
-	import_info.float_arrays.emplace_back();
-	auto& controls = import_info.float_arrays.back();
+	auto& controls = import_info.float_arrays.emplace_back();
 	controls.push_back(float(node->LclScaling.Get()[0]));
 	controls.push_back(0);
 	controls.push_back(0);
@@ -1670,8 +1694,7 @@ void import_scaleshear_DaConstant32f(GR2_import_info& import_info, FbxNode* node
 	controls.push_back(0);
 	controls.push_back(float(node->LclScaling.Get()[2]));
 
-	import_info.dac_curves.emplace_back();
-	auto& curve = import_info.dac_curves.back();
+	auto& curve = import_info.dac_curves.emplace_back();
 	curve.curve_data_header_DaConstant32f.format = DaConstant32f;
 	curve.curve_data_header_DaConstant32f.degree = 0;
 	curve.padding = 0;
@@ -1696,11 +1719,7 @@ void import_scaleshear_DaIdentity(GR2_import_info& import_info, GR2_transform_tr
 void import_scaleshear(GR2_import_info& import_info, FbxNode* node,
 	FbxAnimLayer* layer, GR2_transform_track& tt)
 {
-	auto curve_x = node->LclScaling.GetCurve(layer, FBXSDK_CURVENODE_COMPONENT_X);
-	auto curve_y = node->LclScaling.GetCurve(layer, FBXSDK_CURVENODE_COMPONENT_Y);
-	auto curve_z = node->LclScaling.GetCurve(layer, FBXSDK_CURVENODE_COMPONENT_Z);
-
-	if (curve_x || curve_y || curve_z)
+	if (node->LclScaling.GetCurveNode(layer))
 		import_scaleshear_DaK32fC32f(import_info, node, tt);
 	else if (node->LclScaling.Get()[0] != 1 || node->LclScaling.Get()[1] != 1 || node->LclScaling.Get()[2] != 1)
 		import_scaleshear_DaConstant32f(import_info, node, tt);
@@ -1722,12 +1741,11 @@ void import_anim_layer(GR2_import_info& import_info, FbxAnimLayer* layer,
 
 		auto &tg = track_group(import_info, path(skel_node->GetName()).stem().string().c_str());
 
-		tg.transform_tracks.emplace_back();
-		auto& tt = tg.transform_tracks.back();
+		auto& tt = tg.transform_tracks.emplace_back();
 		tt.name = import_info.strings.get(node->GetName());
 
-		import_position(import_info, node, layer, tt);
-		import_rotation(import_info, node, layer, tt);
+		import_position_anim(import_info, node, layer, tt);
+		import_rotation_anim(import_info, node, layer, tt);
 		import_scaleshear(import_info, node, layer, tt);
 	}
 
@@ -1762,6 +1780,7 @@ void import_animation(FbxAnimStack *stack, const char* filename)
 	}
 
 	for(auto &tg : import_info.track_groups) {
+		// GR2 animation requires transform tracks sorted by name.
 		sort(tg.transform_tracks.begin(), tg.transform_tracks.end(), 
 			[](GR2_transform_track &t1, GR2_transform_track &t2) {
 			return strcmp(t1.name, t2.name) < 0;
@@ -1832,6 +1851,7 @@ uint32_t gather_bone_info(FbxNode* node, uint32_t bone_index, std::vector<Bone_i
 	return bone_index;
 }
 
+// Returns the nearest bone index from a given position.
 uint32_t nearest_bone_index(const std::vector<Bone_info>& bone_infos, FbxVector4 &position)
 {
 	double min_distance = 1e6;
@@ -1895,6 +1915,64 @@ void import_collision_spheres(MDB_file& mdb, FbxScene* scene)
 		mdb.add_packet(move(cs));
 }
 
+void import_models(FbxScene* scene, const char* filename)
+{
+	MDB_file mdb;
+
+	import_meshes(mdb, scene);
+	import_collision_spheres(mdb, scene);
+
+	if (mdb.packet_count() > 0) {
+		string output_filename = path(filename).stem().string() + ".MDB";
+		mdb.save(output_filename.c_str());
+		cout << "\nOutput is " << output_filename << endl;
+	}
+}
+
+void import_scene(FbxScene* scene, const char* filename)
+{
+	import_models(scene, filename);
+	import_animations(scene, filename);
+	import_skeletons(scene, filename);
+}
+
+bool import_fbx(const char* filename)
+{
+	auto manager = FbxManager::Create();
+	if (!manager) {
+		cout << "ERROR: Unable to create FBX manager\n";
+		return false;
+	}
+
+	// Create an IOSettings object. This object holds all import/export
+	// settings.
+	auto ios = FbxIOSettings::Create(manager, IOSROOT);
+	manager->SetIOSettings(ios);
+
+	// Create an importer.
+	auto importer = FbxImporter::Create(manager, "");
+	if (!importer->Initialize(filename, -1, manager->GetIOSettings())) {
+		cout << "ERROR: " << importer->GetStatus().GetErrorString() << endl;
+		return false;
+	}
+
+	// Create a new scene so it can be populated by the imported file.
+	FbxScene* scene = FbxScene::Create(manager, "");
+
+	// Import the contents of the file into the scene.
+	importer->Import(scene);
+
+	// The file has been imported; we can get rid of the importer.
+	importer->Destroy();
+
+	import_scene(scene, filename);
+
+	// Destroy the sdk manager and all other objects it was handling.
+	manager->Destroy();
+
+	return true;
+}
+
 int main(int argc, char* argv[])
 {
 	Redirect_output_handle redirect_output_handle;
@@ -1911,48 +1989,8 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	auto manager = FbxManager::Create();
-	if (!manager) {
-		cout << "ERROR: Unable to create FBX manager\n";
-		return 1;
-	}
-
-	// Create an IOSettings object. This object holds all import/export
-	// settings.
-	auto ios = FbxIOSettings::Create(manager, IOSROOT);
-	manager->SetIOSettings(ios);
-
-	// Create an importer.
-	auto importer = FbxImporter::Create(manager, "");
-	if(!importer->Initialize(argv[1], -1, manager->GetIOSettings())) {
-		cout << "ERROR: " << importer->GetStatus().GetErrorString() << endl;
-		return 1;
-	}
-
-	// Create a new scene so it can be populated by the imported file.
-	FbxScene* scene = FbxScene::Create(manager, "");
-
-	// Import the contents of the file into the scene.
-	importer->Import(scene);
-
-	// The file has been imported; we can get rid of the importer.
-	importer->Destroy();
-
-	MDB_file mdb;
-
-	import_meshes(mdb, scene);
-	import_collision_spheres(mdb, scene);
-	import_animations(scene, argv[1]);
-	import_skeletons(scene, argv[1]);
-
-	if (mdb.packet_count() > 0) {
-		string output_filename = path(argv[1]).stem().string() + ".MDB";
-		mdb.save(output_filename.c_str());
-		cout << "\nOutput is " << output_filename << endl;
-	}	
-
-	// Destroy the sdk manager and all other objects it was handling.
-	manager->Destroy();
+	if (!import_fbx(argv[1]))
+		return 1;	
 
 	return 0;
 }
