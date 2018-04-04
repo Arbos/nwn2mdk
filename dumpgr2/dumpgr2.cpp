@@ -441,49 +441,49 @@ void print_curve(GR2_curve& curve)
 
 	if (curve.curve_data->curve_data_header.format == DaK32fC32f) {
 		GR2_curve_data_DaK32fC32f* data =
-		    (GR2_curve_data_DaK32fC32f*)curve.curve_data;
+		    (GR2_curve_data_DaK32fC32f*)curve.curve_data.get();
 		print_curve_data(data);
 	}
 	else if (curve.curve_data->curve_data_header.format == DaIdentity) {
 		GR2_curve_data_DaIdentity* data =
-		    (GR2_curve_data_DaIdentity*)curve.curve_data;
+		    (GR2_curve_data_DaIdentity*)curve.curve_data.get();
 		cout << "    Dimension: " << data->dimension << endl;
 	}
 	else if (curve.curve_data->curve_data_header.format == DaConstant32f) {
 		GR2_curve_data_DaConstant32f* data =
-			(GR2_curve_data_DaConstant32f*)curve.curve_data;
+			(GR2_curve_data_DaConstant32f*)curve.curve_data.get();
 		print_curve_data(data);		
 	}
 	else if (curve.curve_data->curve_data_header.format == DaK16uC16u) {
 		GR2_curve_data_DaK16uC16u* data =
-			(GR2_curve_data_DaK16uC16u*)curve.curve_data;
+			(GR2_curve_data_DaK16uC16u*)curve.curve_data.get();
 		print_curve_data(data);
 	}
 	else if (curve.curve_data->curve_data_header.format == D3Constant32f) {
 		GR2_curve_data_D3Constant32f* data =
-		    (GR2_curve_data_D3Constant32f*)curve.curve_data;
+		    (GR2_curve_data_D3Constant32f*)curve.curve_data.get();
 		cout << "    Padding: " << data->padding << endl;
 		cout << "    Controls: [" << data->controls[0] << ", "
 		     << data->controls[1] << ", " << data->controls[2] << "]\n";
 	}
 	else if (curve.curve_data->curve_data_header.format == D4nK16uC15u) {
 		GR2_curve_data_D4nK16uC15u* data =
-		    (GR2_curve_data_D4nK16uC15u*)curve.curve_data;
+		    (GR2_curve_data_D4nK16uC15u*)curve.curve_data.get();
 		print_curve_data(data);
 	}
 	else if (curve.curve_data->curve_data_header.format == D4nK8uC7u) {
 		GR2_curve_data_D4nK8uC7u* data =
-		    (GR2_curve_data_D4nK8uC7u*)curve.curve_data;
+		    (GR2_curve_data_D4nK8uC7u*)curve.curve_data.get();
 		print_curve_data(data);
 	}
 	else if (curve.curve_data->curve_data_header.format == D3K16uC16u) {
 		GR2_curve_data_D3K16uC16u* data =
-			(GR2_curve_data_D3K16uC16u*)curve.curve_data;
+			(GR2_curve_data_D3K16uC16u*)curve.curve_data.get();
 		print_curve_data(data);
 	}
 	else if (curve.curve_data->curve_data_header.format == D3K8uC8u) {
 		GR2_curve_data_D3K8uC8u* data =
-		    (GR2_curve_data_D3K8uC8u*)curve.curve_data;
+		    (GR2_curve_data_D3K8uC8u*)curve.curve_data.get();
 		print_curve_data(data);
 	}
 	else {

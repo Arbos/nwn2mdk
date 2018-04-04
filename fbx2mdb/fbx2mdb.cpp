@@ -1142,13 +1142,13 @@ struct GR2_import_info {
 	GR2_art_tool_info art_tool_info;
 	GR2_exporter_info exporter_info;
 	GR2_animation animation;
-	GR2_animation *animations[1];
+	Virtual_ptr<GR2_animation> animations[1];
 	Vector3<double> bone_scaling;
 	std::list<GR2_skeleton> skeletons;
 	std::list<std::vector<GR2_bone>> bone_arrays;
-	std::vector<GR2_skeleton*> skeleton_pointers;
+	std::vector<Virtual_ptr<GR2_skeleton>> skeleton_pointers;
 	std::list<GR2_model> models;
-	std::vector<GR2_model*> model_pointers;
+	std::vector<Virtual_ptr<GR2_model>> model_pointers;
 	std::vector<GR2_track_group_info> track_groups;
 	std::list<GR2_curve_data_D3Constant32f> d3c_curves;
 	std::list<GR2_curve_data_DaConstant32f> dac_curves;
@@ -1156,7 +1156,7 @@ struct GR2_import_info {
 	std::list<GR2_curve_data_DaIdentity> id_curves;
 	std::list<std::vector<float>> float_arrays;
 	String_collection strings;
-	std::vector<GR2_track_group*> track_group_pointers;
+	std::vector<Virtual_ptr<GR2_track_group>> track_group_pointers;
 };
 
 void init_file_info(GR2_file_info& file_info)

@@ -457,7 +457,7 @@ GR2_curve_view::GR2_curve_view(GR2_curve& curve)
 
 	if (curve.curve_data->curve_data_header.format == DaK32fC32f) {
 		GR2_curve_data_DaK32fC32f* data =
-			(GR2_curve_data_DaK32fC32f*)curve.curve_data;
+			(GR2_curve_data_DaK32fC32f*)curve.curve_data.get();
 		GR2_DaK32fC32f_view view(*data);
 		knots_ = view.knots();
 		controls_ = view.controls();
@@ -466,28 +466,28 @@ GR2_curve_view::GR2_curve_view(GR2_curve& curve)
 	}
 	else if (curve.curve_data->curve_data_header.format == D3Constant32f) {
 		GR2_curve_data_D3Constant32f* data =
-			(GR2_curve_data_D3Constant32f*)curve.curve_data;
+			(GR2_curve_data_D3Constant32f*)curve.curve_data.get();
 		knots_.push_back(0.0f);
 		controls_.emplace_back(data->controls[0],
 			data->controls[1], data->controls[2], 1.0f);
 	}
 	else if (curve.curve_data->curve_data_header.format == D4nK16uC15u) {
 		GR2_curve_data_D4nK16uC15u* data =
-			(GR2_curve_data_D4nK16uC15u*)curve.curve_data;
+			(GR2_curve_data_D4nK16uC15u*)curve.curve_data.get();
 		GR2_D4nK16uC15u_view view(*data);
 		knots_ = view.knots();
 		controls_ = view.controls();		
 	}
 	else if (curve.curve_data->curve_data_header.format == D4nK8uC7u) {
 		GR2_curve_data_D4nK8uC7u* data =
-			(GR2_curve_data_D4nK8uC7u*)curve.curve_data;
+			(GR2_curve_data_D4nK8uC7u*)curve.curve_data.get();
 		GR2_D4nK8uC7u_view view(*data);
 		knots_ = view.knots();
 		controls_ = view.controls();		
 	}
 	else if (curve.curve_data->curve_data_header.format == D3K16uC16u) {
 		GR2_curve_data_D3K16uC16u* data =
-			(GR2_curve_data_D3K16uC16u*)curve.curve_data;
+			(GR2_curve_data_D3K16uC16u*)curve.curve_data.get();
 		GR2_D3K16uC16u_view view(*data);
 		knots_ = view.knots();
 		for (auto &c : view.controls())
@@ -495,7 +495,7 @@ GR2_curve_view::GR2_curve_view(GR2_curve& curve)
 	}
 	else if (curve.curve_data->curve_data_header.format == D3K8uC8u) {
 		GR2_curve_data_D3K8uC8u* data =
-			(GR2_curve_data_D3K8uC8u*)curve.curve_data;
+			(GR2_curve_data_D3K8uC8u*)curve.curve_data.get();
 		GR2_D3K8uC8u_view view(*data);
 		knots_ = view.knots();
 		for (auto &c : view.controls())

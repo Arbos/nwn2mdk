@@ -308,17 +308,17 @@ std::pair<std::vector<float>, std::vector<float>> scaleshear_curve_view(GR2_tran
 
 	if (transform_track.scale_shear_curve.curve_data->curve_data_header.format == DaConstant32f) {
 		knots.push_back(0);
-		auto data = (GR2_curve_data_DaConstant32f*)transform_track.scale_shear_curve.curve_data;
+		auto data = (GR2_curve_data_DaConstant32f*)transform_track.scale_shear_curve.curve_data.get();
 		for (int i = 0; i < 9; ++i)
 			controls.push_back(data->controls[i]);
 	}
 	else if (transform_track.scale_shear_curve.curve_data->curve_data_header.format == DaK16uC16u) {
-		auto data = (GR2_curve_data_DaK16uC16u*)transform_track.scale_shear_curve.curve_data;
+		auto data = (GR2_curve_data_DaK16uC16u*)transform_track.scale_shear_curve.curve_data.get();
 		GR2_DaK16uC16u_view view(*data);
 		return { view.knots(), view.controls() };
 	}
 	else if (transform_track.scale_shear_curve.curve_data->curve_data_header.format == DaK32fC32f) {
-		auto data = (GR2_curve_data_DaK32fC32f*)transform_track.scale_shear_curve.curve_data;
+		auto data = (GR2_curve_data_DaK32fC32f*)transform_track.scale_shear_curve.curve_data.get();
 		for (int i = 0; i < data->knots_count; ++i)
 			knots.push_back(data->knots[i]);
 		for (int i = 0; i < data->controls_count; ++i)

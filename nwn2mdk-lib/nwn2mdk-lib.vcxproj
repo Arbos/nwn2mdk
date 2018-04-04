@@ -141,6 +141,7 @@
     <ClInclude Include="mdb_file.h" />
     <ClInclude Include="module_handle.h" />
     <ClInclude Include="string_collection.h" />
+    <ClInclude Include="virtual_ptr.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="crc32.cpp" />
@@ -151,6 +152,7 @@
     <ClCompile Include="mdb_file.cpp" />
     <ClCompile Include="module_handle.cpp" />
     <ClCompile Include="string_collection.cpp" />
+    <ClCompile Include="virtual_ptr.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

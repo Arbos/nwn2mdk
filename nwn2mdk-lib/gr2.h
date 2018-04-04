@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "cgmath.h"
+#include "virtual_ptr.h"
 
 enum GR2_property_type {
 	GR2_type_none = 0,
@@ -53,8 +54,8 @@ struct GR2_transform {
 
 struct GR2_property_key {
 	GR2_property_type type;
-	char* name;
-	GR2_property_key* keys;
+	Virtual_ptr<char> name;
+	Virtual_ptr<GR2_property_key> keys;
 	int32_t length;
 	/// Always seems 0.
 	int32_t unknown1;
@@ -69,16 +70,16 @@ struct GR2_property_key {
 union GR2_property_value {
 	int32_t int32;
 	float real32;
-	char* text;
+	Virtual_ptr<char> text;
 };
 
 struct GR2_extended_data {
-	GR2_property_key* keys;
-	GR2_property_value* values;
+	Virtual_ptr<GR2_property_key> keys;
+	Virtual_ptr<GR2_property_value> values;
 };
 
 struct GR2_art_tool_info {
-	char* from_art_tool_name;
+	Virtual_ptr<char> from_art_tool_name;
 	int32_t art_tool_major_revision;
 	int32_t art_tool_minor_revision;
 	float units_per_meter;
@@ -89,7 +90,7 @@ struct GR2_art_tool_info {
 };
 
 struct GR2_exporter_info {
-	char* exporter_name;
+	Virtual_ptr<char> exporter_name;
 	int32_t exporter_major_revision;
 	int32_t exporter_minor_revision;
 	int32_t exporter_customization;
@@ -97,31 +98,31 @@ struct GR2_exporter_info {
 };
 
 struct GR2_bone {
-	char* name;
+	Virtual_ptr<char> name;
 	int32_t parent_index;
 	GR2_transform transform;
 	float inverse_world_transform[16];
 	/// Always seems 0.
-	void* light_info;
+	Virtual_ptr<void> light_info;
 	/// Always seems 0.
-	void* camera_info;
+	Virtual_ptr<void> camera_info;
 	GR2_extended_data extended_data;
 };
 
 struct GR2_skeleton {
-	char* name;
+	Virtual_ptr<char> name;
 	int32_t bones_count;
-	GR2_bone* bones;
+	Virtual_ptr<GR2_bone> bones;
 };
 
 struct GR2_model {
-	char* name;
-	GR2_skeleton* skeleton;
+	Virtual_ptr<char> name;
+	Virtual_ptr<GR2_skeleton> skeleton;
 	GR2_transform initial_placement;
 	/// Always seems 0.
 	int32_t mesh_bindings_count;
 	/// Always seems 0.
-	void* mesh_bindings;
+	Virtual_ptr<void> mesh_bindings;
 };
 
 struct GR2_curve_data_header {
@@ -148,7 +149,7 @@ struct GR2_curve_data_D3K16uC16u {
 	float control_scales[3];
 	float control_offsets[3];
 	int32_t knots_controls_count;
-	uint16_t* knots_controls;
+	Virtual_ptr<uint16_t> knots_controls;
 };
 
 class GR2_D3K16uC16u_view {
@@ -173,7 +174,7 @@ struct GR2_curve_data_D3K8uC8u {
 	float control_scales[3];
 	float control_offsets[3];
 	int32_t knots_controls_count;
-	uint8_t* knots_controls;
+	Virtual_ptr<uint8_t> knots_controls;
 };
 
 class GR2_D3K8uC8u_view {
@@ -197,7 +198,7 @@ struct GR2_curve_data_D4nK16uC15u {
 	uint16_t scale_offset_table_entries;
 	float one_over_knot_scale;
 	int32_t knots_controls_count;
-	uint16_t* knots_controls;
+	Virtual_ptr<uint16_t> knots_controls;
 };
 
 class GR2_D4nK16uC15u_view {
@@ -225,7 +226,7 @@ struct GR2_curve_data_D4nK8uC7u {
 	uint16_t scale_offset_table_entries;
 	float one_over_knot_scale;
 	int32_t knots_controls_count;
-	uint8_t* knots_controls;
+	Virtual_ptr<uint8_t> knots_controls;
 };
 
 class GR2_D4nK8uC7u_view {
@@ -258,16 +259,16 @@ struct GR2_curve_data_DaConstant32f {
 	/// Unused. It's declared here to pad the header, forcing proper alignment.
 	int16_t padding;
 	int32_t controls_count;
-	float *controls;
+	Virtual_ptr<float> controls;
 };
 
 struct GR2_curve_data_DaK16uC16u {
 	GR2_curve_data_header curve_data_header_DaK16uC16u;
 	uint16_t one_over_knot_scale_trunc;
 	int32_t control_scale_offsets_count;
-	float* control_scale_offsets;	
+	Virtual_ptr<float> control_scale_offsets;
 	int32_t knots_controls_count;
-	uint16_t* knots_controls;
+	Virtual_ptr<uint16_t> knots_controls;
 };
 
 class GR2_DaK16uC16u_view {
@@ -291,9 +292,9 @@ struct GR2_curve_data_DaK32fC32f {
 	/// Unused. It's declared here to pad the header, forcing proper alignment.
 	int16_t padding;
 	int32_t knots_count;
-	float* knots;
+	Virtual_ptr<float> knots;
 	int32_t controls_count;
-	float* controls;
+	Virtual_ptr<float> controls;
 };
 
 class GR2_DaK32fC32f_view {
@@ -309,8 +310,8 @@ private:
 };
 
 struct GR2_curve {
-	GR2_property_key* keys;
-	GR2_curve_data* curve_data;
+	Virtual_ptr<GR2_property_key> keys;
+	Virtual_ptr<GR2_curve_data> curve_data;
 };
 
 class GR2_curve_view {
@@ -328,84 +329,84 @@ private:
 };
 
 struct GR2_vector_track {
-	char* name;
+	Virtual_ptr<char> name;
 	int32_t dimension; // Flags?
 	GR2_curve value_curve;
 };
 
 struct GR2_transform_track {
-	char* name;
+	Virtual_ptr<char> name;
 	GR2_curve position_curve;
 	GR2_curve orientation_curve;
 	GR2_curve scale_shear_curve;
 };
 
 struct GR2_track_group {
-	char* name;
+	Virtual_ptr<char> name;
 
 	/// NWN2 animations files have vector tracks, but they doesn't seem to
 	/// be used.
 	int32_t vector_tracks_count;
-	GR2_vector_track* vector_tracks;
+	Virtual_ptr<GR2_vector_track> vector_tracks;
 
 	int32_t transform_tracks_count;
-	GR2_transform_track* transform_tracks;
+	Virtual_ptr<GR2_transform_track> transform_tracks;
 
 	/// NWN2 animations files have transform LOD errors, but they doesn't
 	/// seem to be used.
 	int32_t transform_LOD_errors_count;
-	float* transform_LOD_errors;
+	Virtual_ptr<float> transform_LOD_errors;
 
 	int32_t text_tracks_count;
-	void* text_tracks;
+	Virtual_ptr<void> text_tracks;
 
 	GR2_transform initial_placement;
 	int32_t accumulation_flags;
 	float loop_translation[3];
 	/// Always seems 0
-	void* periodic_loop;
+	Virtual_ptr<void> periodic_loop;
 	/// Always seems 0
-	void* root_motion;
+	Virtual_ptr<void> root_motion;
 	/// Seems always empty
 	GR2_extended_data extended_data;
 };
 
 struct GR2_animation {
-	char* name;
+	Virtual_ptr<char> name;
 	float duration;
 	float time_step;
 	float oversampling;
 	int32_t track_groups_count;
-	GR2_track_group** track_groups;
+	Virtual_ptr<Virtual_ptr<GR2_track_group>> track_groups;
 };
 
 struct GR2_file_info {
-	GR2_art_tool_info* art_tool_info;
-	GR2_exporter_info* exporter_info;
-	char* from_file_name;
+	Virtual_ptr<GR2_art_tool_info> art_tool_info;
+	Virtual_ptr<GR2_exporter_info> exporter_info;
+	Virtual_ptr<char> from_file_name;
 	int32_t textures_count;
 	/// Not used in NWN2, always 0.
-	void** textures;
+	Virtual_ptr<Virtual_ptr<void>> textures;
 	int32_t materials_count;
 	/// Not used in NWN2, always 0.
-	void** materials;
+	Virtual_ptr<Virtual_ptr<void>> materials;
 	int32_t skeletons_count;
-	GR2_skeleton** skeletons;
+	Virtual_ptr<Virtual_ptr<GR2_skeleton>> skeletons;
 	int32_t vertex_datas_count;
 	/// Not used in NWN2, always 0.
-	void** vertex_datas;
+	Virtual_ptr<Virtual_ptr<void>> vertex_datas;
 	int32_t tri_topologies_count;
 	/// Not used in NWN2, always 0.
-	void** tri_topologies;
+	Virtual_ptr<Virtual_ptr<void>> tri_topologies;
 	int32_t meshes_count;
 	/// Not used in NWN2, always 0.
-	void** meshes;
+	Virtual_ptr<Virtual_ptr<void>> meshes;
 	int32_t models_count;
-	GR2_model** models;
+	Virtual_ptr<Virtual_ptr<GR2_model>> models;
 	int32_t track_groups_count;
-	GR2_track_group** track_groups;
+	Virtual_ptr<Virtual_ptr<GR2_track_group>> track_groups;
 	int32_t animations_count;
-	GR2_animation** animations;
+	Virtual_ptr<Virtual_ptr<GR2_animation>> animations;
 	GR2_extended_data extended_data;
 };
 
