@@ -5,6 +5,7 @@
 #include <assert.h>
 
 #include "crc32.h"
+#include "gr2_decompress.h"
 #include "gr2_file.h"
 #include "granny2dll_handle.h"
 #include "string_collection.h"
@@ -500,12 +501,12 @@ uint32_t export_curve_data(GR2_export_info& export_info, GR2_curve_data* cd)
 		export_info.streams[6].write((char*)cd, sizeof(GR2_curve_data_DaK32fC32f));
 
 		uint32_t target_offset = uint32_t(export_info.streams[6].tellp());
-		export_info.streams[6].write((char*)data->knots, data->knots_count * sizeof(float));
+		export_info.streams[6].write((char*)data->knots.get(), data->knots_count * sizeof(float));
 		export_info.relocations[0].push_back(
 		{ offset + offsetof(GR2_curve_data_DaK32fC32f, knots), 66, target_offset });
 
 		target_offset = uint32_t(export_info.streams[6].tellp());
-		export_info.streams[6].write((char*)data->controls, data->controls_count * sizeof(float));
+		export_info.streams[6].write((char*)data->controls.get(), data->controls_count * sizeof(float));
 		export_info.relocations[0].push_back(
 		{ offset + offsetof(GR2_curve_data_DaK32fC32f, controls), 66, target_offset });
 	}
@@ -518,7 +519,7 @@ uint32_t export_curve_data(GR2_export_info& export_info, GR2_curve_data* cd)
 		export_info.streams[6].write((char*)cd, sizeof(GR2_curve_data_DaConstant32f));
 
 		uint32_t target_offset = uint32_t(export_info.streams[6].tellp());
-		export_info.streams[6].write((char*)data->controls, data->controls_count * sizeof(float));
+		export_info.streams[6].write((char*)data->controls.get(), data->controls_count * sizeof(float));
 		export_info.relocations[0].push_back(
 		{ offset + offsetof(GR2_curve_data_DaConstant32f, controls), 66, target_offset });
 	}
@@ -534,7 +535,7 @@ uint32_t export_curve_data(GR2_export_info& export_info, GR2_curve_data* cd)
 			(GR2_curve_data_D4nK8uC7u*)cd;
 		export_info.streams[6].write((char*)cd, sizeof(GR2_curve_data_D4nK8uC7u));
 		uint32_t target_offset = uint32_t(export_info.streams[6].tellp());
-		export_info.streams[6].write((char*)data->knots_controls, data->knots_controls_count * sizeof(uint8_t));
+		export_info.streams[6].write((char*)data->knots_controls.get(), data->knots_controls_count * sizeof(uint8_t));
 		export_info.relocations[0].push_back(
 		{ offset + offsetof(GR2_curve_data_D4nK8uC7u, knots_controls), 66, target_offset });
 	}
@@ -778,7 +779,7 @@ void GR2_file::apply_marshalling(unsigned index, Marshalling& m)
 		assert(false);
 	}
 	else if (type_def->keys) {
-		auto p = type_def->keys;
+		GR2_property_key* p = type_def->keys;
 		while (p->type != GR2_type_none) {
 			if (p->type != GR2_type_uint8) {
 				cout << "WARNING: unhandled case\n";
@@ -805,9 +806,76 @@ void GR2_file::apply_relocations(unsigned index)
 		    relocation.target_offset;
 		unsigned char* target_address =
 		    sections_data.data() + target_offset;
-		memcpy(&sections_data[source_offset], &target_address, 4);
+		auto encoded_ptr = encode_ptr(target_address);
+		memcpy(&sections_data[source_offset], &encoded_ptr, 4);
 	}
 }
+
+bool GR2_file::decompress_section_data(unsigned section_index, unsigned char* section_data, unsigned char* decompressed_buffer)
+{
+	Section_header& section = section_headers[section_index];
+
+	switch (section.compression) {
+	case 0: // Uncompressed
+		memcpy(decompressed_buffer, section_data, section.data_size);
+		break;
+	case 1: // Oodle0
+		is_good = false;
+		error_string_ = "oodle0 compression method unsupported";
+		return false;
+	case 2: // Oodle1
+		gr2_decompress(section.data_size, section_data,
+			section.first16bit, section.first8bit, section.decompressed_size,
+			decompressed_buffer);		
+		break;
+	default:
+		is_good = false;
+		error_string_ = "unknown compression method";
+		return false;
+	}
+
+	return true;
+}
+
+#ifdef USE_GRANNY32DLL
+bool GR2_file::decompress_section_data_dll(unsigned section_index, unsigned char* section_data, unsigned char* decompressed_buffer)
+{
+	static Granny2dll_handle granny2dll(granny2dll_filename.c_str());
+
+	if (!granny2dll) {
+		is_good = false;
+		error_string_ = "cannot load library " + granny2dll_filename;
+		return false;
+	}
+
+	if (!granny2dll.GrannyDecompressData) {
+		is_good = false;
+		error_string_ = "cannot get address of GrannyDecompressData";
+		return false;
+	}
+
+	Section_header& section = section_headers[section_index];
+
+	int ret = granny2dll.GrannyDecompressData(
+		section.compression, 0, section.data_size, section_data,
+		section.first16bit, section.first8bit, section.decompressed_size,
+		decompressed_buffer);
+
+	if (!ret) {
+		is_good = false;
+		error_string_ = "cannot decompress section";
+		return false;
+	}
+
+#ifdef TEST_GR2_DECOMPRESSION
+	std::vector<unsigned char> decompressed_buffer_alt(section.decompressed_size);
+	decompress_section_data(section_index, section_data, decompressed_buffer_alt.data());	
+	assert(memcmp(decompressed_buffer, decompressed_buffer_alt.data(), section.decompressed_size) == 0);
+#endif
+
+	return true;
+}
+#endif
 
 void GR2_file::check_crc()
 {
@@ -862,7 +930,8 @@ void GR2_file::read_section(unsigned index)
 	if (section.data_size == 0)
 		return;
 
-	in.seekg(section.data_offset);
+	in.seekg(section.data_offset); // Seek to the start of section data
+	// Add 4 bytes in case decompressing must pad to multiple of 4.
 	vector<unsigned char> section_data(section.data_size + 4);
 	in.read((char*)section_data.data(), section.data_size);
 	if (in.eof()) {
@@ -876,29 +945,11 @@ void GR2_file::read_section(unsigned index)
 		return;
 	}
 
-	static Granny2dll_handle granny2dll(granny2dll_filename.c_str());
-
-	if (!granny2dll) {
-		is_good = false;
-		error_string_ = "cannot load library " + granny2dll_filename;
-		return;
-	}
-
-	if (!granny2dll.GrannyDecompressData) {
-		is_good = false;
-		error_string_ = "cannot get address of GrannyDecompressData";
-		return;
-	}
-
-	int ret = granny2dll.GrannyDecompressData(
-	    section.compression, 0, section.data_size, section_data.data(),
-	    section.first16bit, section.first8bit, section.decompressed_size,
-	    sections_data.data() + section_offsets[index]);
-	if (!ret) {
-		is_good = false;
-		error_string_ = "cannot decompress section";
-		return;
-	}
+#ifdef USE_GRANNY32DLL
+	decompress_section_data_dll(index, section_data.data(), sections_data.data() + section_offsets[index]);		
+#else
+	decompress_section_data(index, section_data.data(), sections_data.data() + section_offsets[index]);
+#endif
 }
 
 void GR2_file::read_section_headers()

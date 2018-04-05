@@ -92,6 +92,9 @@ private:
 	void apply_relocations(unsigned index);
 	void check_crc();
 	void check_magic();
+	bool decompress_section_data(unsigned section_index, unsigned char* section_data, unsigned char* decompressed_buffer);
+	// Decompress section data using granny32.dll
+	bool decompress_section_data_dll(unsigned section_index, unsigned char* section_data, unsigned char* decompressed_buffer);
 	void read_header();
 	void read_relocations();
 	void read_relocations(Section_header& section);
