@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <numeric>
 #include <vector>
+#include <cstring>
 
 #include "gr2_decompress.h"
 

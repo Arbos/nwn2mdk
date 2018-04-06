@@ -3,11 +3,16 @@
 #include <map>
 #include <set>
 #include <assert.h>
+#include <string.h>
 
 #include "crc32.h"
 #include "gr2_decompress.h"
 #include "gr2_file.h"
+
+#ifdef USE_GRANNY32DLL
 #include "granny2dll_handle.h"
+#endif
+
 #include "string_collection.h"
 
 const uint32_t magic0 = 0xcab067b8;
@@ -527,8 +532,7 @@ uint32_t export_curve_data(GR2_export_info& export_info, GR2_curve_data* cd)
 		export_info.streams[6].write((char*)cd, sizeof(GR2_curve_data_D3Constant32f));
 	}
 	else if (cd->curve_data_header.format == D4nK16uC15u) {
-		GR2_curve_data_D4nK16uC15u* data =
-			(GR2_curve_data_D4nK16uC15u*)cd;
+		cout << "ERROR: Curve format D4nK16uC15u not supported\n";
 	}
 	else if (cd->curve_data_header.format == D4nK8uC7u) {
 		GR2_curve_data_D4nK8uC7u* data =
@@ -540,11 +544,11 @@ uint32_t export_curve_data(GR2_export_info& export_info, GR2_curve_data* cd)
 		{ offset + offsetof(GR2_curve_data_D4nK8uC7u, knots_controls), 66, target_offset });
 	}
 	else if (cd->curve_data_header.format == D3K8uC8u) {
-		GR2_curve_data_D3K8uC8u* data =
-			(GR2_curve_data_D3K8uC8u*)cd;
+		cout << "ERROR: Curve format D3K8uC8u not supported\n";
 	}
 	else {
-		cout << "# WARNING: Unhandled case\n";
+		cout << "ERROR: Curve format " << cd->curve_data_header.format
+		     << "not supported\n";
 	}
 
 	return offset;
@@ -773,7 +777,6 @@ void GR2_file::apply_marshalling(unsigned index, Marshalling& m)
 	auto type_def = (GR2_property_key*)(sections_data.data() +
 	                                    section_offsets[m.target_section] +
 	                                    m.target_offset);
-	auto p = sections_data.data() + section_offsets[index] + m.offset;
 	if (type_def->type != GR2_type_inline) {
 		cout << "WARNING: unhandled case\n";
 		assert(false);

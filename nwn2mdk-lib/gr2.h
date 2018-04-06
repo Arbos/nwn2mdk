@@ -54,7 +54,7 @@ struct GR2_transform {
 
 struct GR2_property_key {
 	GR2_property_type type;
-	Virtual_ptr<char> name;
+	Virtual_ptr<const char> name;
 	Virtual_ptr<GR2_property_key> keys;
 	int32_t length;
 	/// Always seems 0.

@@ -15,8 +15,9 @@ static FbxVector4 quat_to_euler(FbxQuaternion &q)
 	return m.GetR();
 }
 
-void export_bones(FbxScene *scene, FbxNode *parent_node, GR2_skeleton *skel,
-	int32_t parent_index, std::vector<FbxNode*> &fbx_bones);
+static void export_bones(FbxScene* scene, FbxNode* parent_node,
+                         GR2_skeleton* skel, int32_t parent_index,
+                         std::vector<FbxNode*>& fbx_bones);
 
 static void export_bone_translation(FbxNode* node, GR2_bone& bone)
 {
@@ -387,7 +388,7 @@ static bool node_is_animated(FbxNode* node, GR2_transform_track &transform_track
 
 static FbxNode* create_animation_pivot(FbxNode* node, GR2_track_group *track_group)
 {
-	string pivot_name = track_group->name;
+	string pivot_name = track_group->name.get();
 	if(strcmp(node->GetName(), track_group->name) == 0)
 		pivot_name += ".PIVOT";
 

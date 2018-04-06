@@ -3,7 +3,7 @@
 #include <cstdint>
 
 void* decode_ptr(uint32_t encoded_ptr);
-uint32_t encode_ptr(void *p);
+uint32_t encode_ptr(const void *p);
 
 // A virtual pointer encodes a pointer of any length in a 32-bit number.
 // This is useful in 64-bit machines to use raw data that contains 32-bit

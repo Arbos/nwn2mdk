@@ -19,9 +19,9 @@ void* decode_ptr(uint32_t encoded_ptr)
 	return nullptr;
 }
 
-uint32_t encode_ptr(void *p)
+uint32_t encode_ptr(const void *p)
 {
-	static std::unordered_map<void*, uint32_t> encoding_map;
+	static std::unordered_map<const void*, uint32_t> encoding_map;
 
 	auto it = encoding_map.find(p);
 	if (it != encoding_map.end())
@@ -30,7 +30,7 @@ uint32_t encode_ptr(void *p)
 	auto encoded_ptr = ++counter;	
 
 	encoding_map.emplace(p, encoded_ptr);
-	decoding_map().emplace(encoded_ptr, p);
+	decoding_map().emplace(encoded_ptr, const_cast<void*>(p));
 
 	return encoded_ptr;
 }

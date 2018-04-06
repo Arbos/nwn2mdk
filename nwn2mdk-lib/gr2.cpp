@@ -1,4 +1,5 @@
 #include <cmath>
+#include <string.h>
 
 #include "gr2.h"
 

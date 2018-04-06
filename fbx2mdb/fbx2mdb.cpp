@@ -3,6 +3,7 @@
 #include <set>
 #include <list>
 #include <assert.h>
+#include <algorithm>
 
 #include "config.h"
 #include "fbxsdk.h"
@@ -1852,7 +1853,8 @@ uint32_t gather_bone_info(FbxNode* node, uint32_t bone_index, std::vector<Bone_i
 }
 
 // Returns the nearest bone index from a given position.
-uint32_t nearest_bone_index(const std::vector<Bone_info>& bone_infos, FbxVector4 &position)
+uint32_t nearest_bone_index(const std::vector<Bone_info>& bone_infos,
+                            const FbxVector4& position)
 {
 	double min_distance = 1e6;
 	uint32_t bone_index = 0;

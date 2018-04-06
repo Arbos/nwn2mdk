@@ -450,7 +450,6 @@ static bool open_mdb(vector<Input>& inputs, const char* filename)
 
 static bool open_gr2(vector<Input>& inputs, const char* filename)
 {
-#ifdef _WIN32
 	Input input;
 	input.filename = filename;
 	input.gr2.reset(new GR2_file(filename));
@@ -459,7 +458,6 @@ static bool open_gr2(vector<Input>& inputs, const char* filename)
 		return false;
 	}
 	inputs.push_back(move(input));
-#endif
 
 	return true;
 }
@@ -490,7 +488,6 @@ static bool open_files(vector<Input>& inputs, const std::vector<std::string>& fi
 	return true;
 }
 
-#ifdef _WIN32
 static void process_fbx_bones(Dependency& dep)
 {
 	FbxNode* ribcage = nullptr;
@@ -520,11 +517,9 @@ static void process_fbx_bones(Dependency& dep)
 		dep.fbx_body_bones.push_back(ribcage);
 	}
 }
-#endif
 
 static bool export_skeletons(Export_info& export_info, vector<Input>& inputs)
 {
-#ifdef _WIN32
 	for (auto &input : inputs) {
 		if (input.gr2 && input.gr2->file_info->skeletons_count > 0) {
 			auto &dep = export_info.dependencies[input.filename];
@@ -534,21 +529,18 @@ static bool export_skeletons(Export_info& export_info, vector<Input>& inputs)
 			process_fbx_bones(dep);
 		}
 	}
-#endif
 
 	return true;
 }
 
 static bool export_animations(Export_info& export_info, vector<Input>& inputs)
 {
-#ifdef _WIN32
 	for (auto &input : inputs) {
 		if (input.gr2 && input.gr2->file_info->skeletons_count == 0) {
 			vector<FbxNode*> fbx_bones;
 			export_gr2(*input.gr2, export_info.scene, fbx_bones);
 		}
 	}
-#endif
 
 	return true;
 }
@@ -601,9 +593,7 @@ int main(int argc, char* argv[])
 	if (config.nwn2_home.empty())		
 		return 1;
 
-#ifdef _WIN32
 	GR2_file::granny2dll_filename = config.nwn2_home + "\\granny2.dll";
-#endif
 
 	if (argc < 2) {
 		cout << "Usage: nw2fbx <file|substring ...>\n";
