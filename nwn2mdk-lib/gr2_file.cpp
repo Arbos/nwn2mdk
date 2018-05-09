@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <sstream>
 #include <map>
 #include <set>
@@ -715,9 +716,11 @@ GR2_file::GR2_file() : section_headers(6)
 	is_good = true;
 }
 
-GR2_file::GR2_file(const char* path) : in(path, std::ios::in | std::ios::binary)
+GR2_file::GR2_file(const char* path)
 {
 	is_good = true;
+
+	ifstream in(path, std::ios::in | std::ios::binary);
 
 	if (!in) {
 		is_good = false;
@@ -725,39 +728,22 @@ GR2_file::GR2_file(const char* path) : in(path, std::ios::in | std::ios::binary)
 		return;
 	}
 
-	read_header();
-	if (!is_good)
-		return;
-
-	check_magic();
-	if (!is_good)
-		return;
-
-	read_section_headers();
-	if (!is_good)
-		return;
-
-	check_crc();
-	if (!is_good)
-		return;
-
-	read_sections();
-	read_relocations();
-	apply_relocations();
-	apply_marshalling();
-
-	file_info = (GR2_file_info*)sections_data.data();
-	type_definition =
-	    (GR2_property_key*)(sections_data.data() + section_offsets[header.info.type_section] + header.info.type_offset);
+	read(in);
 }
 
-void GR2_file::apply_marshalling()
+GR2_file::GR2_file(std::istream& in)
+{
+	is_good = true;
+	read(in);
+}
+
+void GR2_file::apply_marshalling(std::istream& in)
 {
 	for (unsigned i = 0; i < header.info.sections_count; ++i)
-		apply_marshalling(i);
+		apply_marshalling(in, i);
 }
 
-void GR2_file::apply_marshalling(unsigned index)
+void GR2_file::apply_marshalling(std::istream& in, unsigned index)
 {
 	Section_header& section = section_headers[index];
 
@@ -880,7 +866,7 @@ bool GR2_file::decompress_section_data_dll(unsigned section_index, unsigned char
 }
 #endif
 
-void GR2_file::check_crc()
+void GR2_file::check_crc(std::istream& in)
 {
 	std::vector<unsigned char> buffer(header.info.file_size -
 	                                  sizeof(Header));
@@ -902,7 +888,35 @@ void GR2_file::check_magic()
 	}
 }
 
-void GR2_file::read_header()
+void GR2_file::read(std::istream& in)
+{
+	read_header(in);
+	if (!is_good)
+		return;
+
+	check_magic();
+	if (!is_good)
+		return;
+
+	read_section_headers(in);
+	if (!is_good)
+		return;
+
+	check_crc(in);
+	if (!is_good)
+		return;
+
+	read_sections(in);
+	read_relocations(in);
+	apply_relocations();
+	apply_marshalling(in);
+
+	file_info = (GR2_file_info*)sections_data.data();
+	type_definition =
+	    (GR2_property_key*)(sections_data.data() + section_offsets[header.info.type_section] + header.info.type_offset);
+}
+
+void GR2_file::read_header(std::istream& in)
 {
 	in.read((char*)&header, sizeof(Header));
 	if (!in) {
@@ -911,13 +925,13 @@ void GR2_file::read_header()
 	}
 }
 
-void GR2_file::read_relocations()
+void GR2_file::read_relocations(std::istream& in)
 {
 	for (auto& section : section_headers)
-		read_relocations(section);
+		read_relocations(in, section);
 }
 
-void GR2_file::read_relocations(Section_header& section)
+void GR2_file::read_relocations(std::istream& in, Section_header& section)
 {
 	in.seekg(section.relocations_offset);
 	relocations.emplace_back(section.relocations_count);
@@ -926,7 +940,7 @@ void GR2_file::read_relocations(Section_header& section)
 		        relocations.back().size() * sizeof(Relocation));
 }
 
-void GR2_file::read_section(unsigned index)
+void GR2_file::read_section(std::istream& in, unsigned index)
 {
 	Section_header& section = section_headers[index];
 
@@ -955,7 +969,7 @@ void GR2_file::read_section(unsigned index)
 #endif
 }
 
-void GR2_file::read_section_headers()
+void GR2_file::read_section_headers(std::istream& in)
 {
 	section_headers.resize(header.info.sections_count);
 	in.read((char*)section_headers.data(),
@@ -967,7 +981,7 @@ void GR2_file::read_section_headers()
 	}
 }
 
-void GR2_file::read_sections()
+void GR2_file::read_sections(std::istream& in)
 {
 	int total_size = 0;
 	for (auto& h : section_headers) {
@@ -978,7 +992,7 @@ void GR2_file::read_sections()
 	sections_data.resize(total_size);
 
 	for (unsigned i = 0; i < header.info.sections_count; ++i)
-		read_section(i);
+		read_section(in, i);
 }
 
 GR2_file::operator bool() const

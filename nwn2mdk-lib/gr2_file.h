@@ -1,7 +1,8 @@
 #pragma once
 
-#include <fstream>
+#include <iosfwd>
 #include <vector>
+#include <string>
 
 #include "gr2.h"
 
@@ -64,6 +65,7 @@ public:
 
 	GR2_file();
 	GR2_file(const char* filename);
+	GR2_file(std::istream& in);
 
 	operator bool() const;
 	std::string error_string() const;
@@ -77,7 +79,6 @@ private:
 	static_assert(sizeof(Relocation) == 4 * 3, "");
 	static_assert(sizeof(Marshalling) == 4 * 4, "");
 
-	std::ifstream in;
 	bool is_good;
 	std::string error_string_;
 	std::vector<unsigned char>
@@ -85,20 +86,21 @@ private:
 	std::vector<unsigned> section_offsets;
 	std::vector<std::vector<Relocation>> relocations;
 
-	void apply_marshalling();
-	void apply_marshalling(unsigned index);
+	void apply_marshalling(std::istream& in);
+	void apply_marshalling(std::istream& in, unsigned index);
 	void apply_marshalling(unsigned index, Marshalling& m);
 	void apply_relocations();
 	void apply_relocations(unsigned index);
-	void check_crc();
+	void check_crc(std::istream& in);
 	void check_magic();
 	bool decompress_section_data(unsigned section_index, unsigned char* section_data, unsigned char* decompressed_buffer);
 	// Decompress section data using granny32.dll
 	bool decompress_section_data_dll(unsigned section_index, unsigned char* section_data, unsigned char* decompressed_buffer);
-	void read_header();
-	void read_relocations();
-	void read_relocations(Section_header& section);
-	void read_section(unsigned index);
-	void read_section_headers();
-	void read_sections();
+	void read(std::istream& in);
+	void read_header(std::istream& in);
+	void read_relocations(std::istream& in);
+	void read_relocations(std::istream& in, Section_header& section);
+	void read_section(std::istream& in, unsigned index);
+	void read_section_headers(std::istream& in);
+	void read_sections(std::istream& in);
 };
