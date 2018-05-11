@@ -4,7 +4,6 @@
 #include <string>
 
 #include "gr2_file.h"
-#include "targetver.h"
 
 using namespace std;
 
