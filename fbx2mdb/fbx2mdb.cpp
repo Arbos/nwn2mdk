@@ -8,6 +8,7 @@
 #include "config.h"
 #include "fbxsdk.h"
 #include "gr2_file.h"
+#include "log.h"
 #include "mdb_file.h"
 #include "redirect_output_handle.h"
 #include "string_collection.h"
@@ -207,7 +208,7 @@ void set_packet_name(char* packet_name, const char* node_name)
 	packet_name[31] = '\0';
 
 	if (strlen(node_name) > 31)
-		cout << "  ERROR: Packet name greater than 31 chars, truncating: " << packet_name << endl;
+		Log::error() << "Packet name greater than 31 chars, truncating: " << packet_name << endl;
 }
 
 template <typename T>
@@ -358,11 +359,11 @@ int bone_index(const char* bone_name, Fbx_bones& fbx_bones)
 bool validate_vertex_weights(FbxCluster* cluster, int bone_count)
 {
 	if (bone_count == 4) {
-		cout << "  ERROR: Vertex has more than 4 weights.\n";
+		Log::error() << "Vertex has more than 4 weights.\n";
 		return false;
 	}
 	else if (starts_with(cluster->GetLink()->GetName(), "ap_")) {
-		cout << "  ERROR: Vertex is weighted to non-rendering bone (" << cluster->GetLink()->GetName() << ").\n";
+		Log::error() << "Vertex is weighted to non-rendering bone (" << cluster->GetLink()->GetName() << ").\n";
 		return false;
 	}
 
@@ -420,7 +421,7 @@ void set_map_name(char* map_name, const char* texture_filename)
 	map_name[31] = '\0';
 
 	if (strlen(texture_filename) > 31)
-		cout << "  ERROR: Map name greater than 31 chars, truncating: " << map_name << endl;
+		Log::error() << "Map name greater than 31 chars, truncating: " << map_name << endl;
 }
 
 void import_map(char* map_name, FbxSurfaceMaterial* fbx_material,
@@ -508,7 +509,7 @@ void import_polygon(MDB_file::Collision_mesh& col_mesh, FbxMesh* mesh,
                     int polygon_index)
 {
 	if(mesh->GetPolygonSize(polygon_index) != 3) {
-		cout << "  ERROR: Polygon is not a triangle.\n";
+		Log::error() << "Polygon is not a triangle.\n";
 		return;
 	}
 	
@@ -592,7 +593,7 @@ void import_polygon(MDB_file::Walk_mesh& walk_mesh, FbxMesh* mesh,
 	int polygon_index)
 {
 	if (mesh->GetPolygonSize(polygon_index) != 3) {
-		cout << "  ERROR: Polygon is not a triangle.\n";
+		Log::error() << "Polygon is not a triangle.\n";
 		return;
 	}
 
@@ -849,7 +850,7 @@ void import_polygon(MDB_file::Rigid_mesh& rigid_mesh, FbxMesh* mesh,
 	int polygon_index)
 {
 	if(mesh->GetPolygonSize(polygon_index) != 3) {
-		cout << "  ERROR: Polygon is not a triangle.\n";
+		Log::error() << "Polygon is not a triangle.\n";
 		return;
 	}
 	
@@ -918,19 +919,19 @@ void print_mesh(FbxMesh *mesh)
 bool validate_rigid_mesh(FbxMesh* mesh)
 {
 	if (mesh->GetElementUVCount() == 0) {
-		cout << "  ERROR: There is no UV information.\n";
+		Log::error() << "There is no UV information.\n";
 		return false;
 	}
 	else if (mesh->GetElementNormalCount() == 0) {
-		cout << "  ERROR: There is no normal vector information.\n";
+		Log::error() << "There is no normal vector information.\n";
 		return false;
 	}
 	else if (mesh->GetElementTangentCount() == 0) {
-		cout << "  ERROR: There is no tangent vector information.\n";
+		Log::error() << "There is no tangent vector information.\n";
 		return false;
 	}
 	else if (mesh->GetElementBinormalCount() == 0) {
-		cout << "  ERROR: There is no binormal vector information.\n";
+		Log::error() << "There is no binormal vector information.\n";
 		return false;
 	}
 
@@ -1019,7 +1020,7 @@ void import_polygon(MDB_file::Skin& skin, Fbx_bones& fbx_bones, FbxMesh* mesh,
 	int polygon_index)
 {
 	if (mesh->GetPolygonSize(polygon_index) != 3) {
-		cout << "  ERROR: Polygon is not a triangle.\n";
+		Log::error() << "Polygon is not a triangle.\n";
 		return;
 	}
 
@@ -1254,26 +1255,26 @@ bool validate_skeleton(FbxNode* node)
 {
 	if (is_pivot_node(node)) {
 		if (node->GetChildCount() > 1) {
-			cout << "  ERROR: PIVOT has more than one child.\n";
+			Log::error() << "PIVOT has more than one child.\n";
 			return false;
 		}
 	}
 	else {
 		if (node->GetChildCount() == 0) {
-			cout << "  ERROR: Skeleton has no root bone.\n";
+			Log::error() << "Skeleton has no root bone.\n";
 			return false;
 		}
 		else if (node->GetChildCount() > 1) {
-			cout << "  ERROR: Skeleton has more than one root bone.\n";
+			Log::error() << "Skeleton has more than one root bone.\n";
 			return false;
 		}
 		else if (strcmp(node->GetName(), node->GetChild(0)->GetName()) != 0) {
-			cout << "  ERROR: Skeleton name is not equal to root bone name: " <<
+			Log::error() << "Skeleton name is not equal to root bone name: " <<
 				node->GetName() << " != " << node->GetChild(0)->GetName() << '\n';
 			return false;
 		}
 		else if (rendering_bone_count(node) > 54) {
-			cout << "  ERROR: Skeleton has more than 54 render bones.\n";
+			Log::error() << "Skeleton has more than 54 render bones.\n";
 			return false;
 		}
 	}
@@ -1447,6 +1448,8 @@ void import_skeleton(GR2_import_info& import_info, FbxNode* node)
 
 void import_skeletons(FbxScene* scene, const char* filename)
 {
+	Log::error_count = 0; // Reset error count
+
 	GR2_import_info import_info;
 
 	init_file_info(import_info.file_info);
@@ -1470,12 +1473,16 @@ void import_skeletons(FbxScene* scene, const char* filename)
 	import_info.file_info.models_count = import_info.model_pointers.size();
 	import_info.file_info.models = import_info.model_pointers.data();
 
-	GR2_file gr2;
-	gr2.read(&import_info.file_info);
-	string output_filename = path(filename).stem().string() + ".skel.gr2";
-	gr2.write(output_filename.c_str());
-
-	cout << "\nOutput is " << output_filename << endl;
+	if (Log::error_count > 0) {
+		Log::error() << "skel.gr2 not generated due to errors found during the conversion.\n";
+	}
+	else {
+		GR2_file gr2;
+		gr2.read(&import_info.file_info);
+		string output_filename = path(filename).stem().string() + ".skel.gr2";
+		gr2.write(output_filename.c_str());
+		cout << "\nOutput is " << output_filename << endl;
+	}
 }
 
 GR2_track_group_info &track_group(GR2_import_info& import_info, const char *name)
@@ -1764,6 +1771,8 @@ void import_anim_layer(GR2_import_info& import_info, FbxAnimLayer* layer)
 
 void import_animation(FbxAnimStack *stack, const char* filename)
 {
+	Log::error_count = 0; // Reset error count
+
 	GR2_import_info import_info;
 
 	import_info.anim_stack = stack;
@@ -1811,12 +1820,16 @@ void import_animation(FbxAnimStack *stack, const char* filename)
 	import_info.file_info.extended_data.keys = nullptr;
 	import_info.file_info.extended_data.values = nullptr;
 
-	GR2_file gr2;
-	gr2.read(&import_info.file_info);
-	string output_filename = path(filename).stem().string() + ".anim.gr2";
-	gr2.write(output_filename.c_str());
-
-	cout << "\nOutput is " << output_filename << endl;
+	if (Log::error_count > 0) {
+		Log::error() << "anim.gr2 not generated due to errors found during the conversion.\n";
+	}
+	else {
+		GR2_file gr2;
+		gr2.read(&import_info.file_info);
+		string output_filename = path(filename).stem().string() + ".anim.gr2";
+		gr2.write(output_filename.c_str());
+		cout << "\nOutput is " << output_filename << endl;
+	}
 }
 
 void import_animations(FbxScene* scene, const char* filename)
@@ -1919,12 +1932,17 @@ void import_collision_spheres(MDB_file& mdb, FbxScene* scene)
 
 void import_models(FbxScene* scene, const char* filename)
 {
+	Log::error_count = 0; // Reset error count
+
 	MDB_file mdb;
 
 	import_meshes(mdb, scene);
 	import_collision_spheres(mdb, scene);
 
-	if (mdb.packet_count() > 0) {
+	if (Log::error_count > 0) {
+		Log::error() << "MDB not generated due to errors found during the conversion.\n";
+	}
+	else if (mdb.packet_count() > 0) {
 		string output_filename = path(filename).stem().string() + ".MDB";
 		mdb.save(output_filename.c_str());
 		cout << "\nOutput is " << output_filename << endl;
@@ -1942,7 +1960,7 @@ bool import_fbx(const char* filename)
 {
 	auto manager = FbxManager::Create();
 	if (!manager) {
-		cout << "ERROR: Unable to create FBX manager\n";
+		Log::error() << "Unable to create FBX manager\n";
 		return false;
 	}
 
@@ -1954,7 +1972,7 @@ bool import_fbx(const char* filename)
 	// Create an importer.
 	auto importer = FbxImporter::Create(manager, "");
 	if (!importer->Initialize(filename, -1, manager->GetIOSettings())) {
-		cout << "ERROR: " << importer->GetStatus().GetErrorString() << endl;
+		Log::error() << importer->GetStatus().GetErrorString() << endl;
 		return false;
 	}
 
