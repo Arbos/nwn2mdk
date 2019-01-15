@@ -380,6 +380,23 @@ void init_skin_vertex(MDB_file::Skin_vertex &v)
 	v.bone_count = 4;
 }
 
+// Makes the sum of bone weights to be 1.
+void normalize_bone_weights(MDB_file::Skin_vertex &v)
+{
+	float sum = 0;
+
+	for (int i = 0; i < 4; ++i)
+		sum += v.bone_weights[i];
+
+	if (sum == 0) {		
+		Log::error() << "Vertex has no weights.\n";
+		return;
+	}
+
+	for (int i = 0; i < 4; ++i)
+		v.bone_weights[i] /= sum;
+}
+
 void import_skinning(FbxMesh *mesh, int vertex_index, Fbx_bones& fbx_bones,
 	MDB_file::Skin_vertex &poly_vertex)
 {
@@ -404,8 +421,7 @@ void import_skinning(FbxMesh *mesh, int vertex_index, Fbx_bones& fbx_bones,
 		}
 	}
 
-	if (bone_count == 0)
-		Log::error() << "Vertex has no weights.\n";
+	normalize_bone_weights(poly_vertex);		
 }
 
 void import_skinning(FbxMesh *mesh, int polygon_index,
