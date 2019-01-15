@@ -403,6 +403,9 @@ void import_skinning(FbxMesh *mesh, int vertex_index, Fbx_bones& fbx_bones,
 			}
 		}
 	}
+
+	if (bone_count == 0)
+		Log::error() << "Vertex has no weights.\n";
 }
 
 void import_skinning(FbxMesh *mesh, int polygon_index,
@@ -1029,6 +1032,8 @@ void import_polygon(MDB_file::Skin& skin, Fbx_bones& fbx_bones, FbxMesh* mesh,
 	for (int i = 0; i < mesh->GetPolygonSize(polygon_index); ++i)
 		cout << ' ' << mesh->GetPolygonVertex(polygon_index, i);
 
+	cout << endl;
+
 	MDB_file::Skin_vertex poly_vertices[3];
 	import_positions(mesh, polygon_index, poly_vertices);
 	import_normals(mesh, polygon_index, poly_vertices);
@@ -1044,8 +1049,6 @@ void import_polygon(MDB_file::Skin& skin, Fbx_bones& fbx_bones, FbxMesh* mesh,
 		push_vertex(skin, poly_vertices[i]);
 
 	skin.faces.push_back(face);
-
-	cout << endl;
 }
 
 void gather_fbx_bones(FbxNode* node, Fbx_bones& fbx_bones)
