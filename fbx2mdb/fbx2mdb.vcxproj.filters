@@ -24,5 +24,13 @@
     <ClCompile Include="..\mdb2fbx\redirect_output_handle.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="log.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="log.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

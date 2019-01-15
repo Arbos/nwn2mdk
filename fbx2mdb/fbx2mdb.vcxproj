@@ -22,6 +22,7 @@
     <ClCompile Include="..\mdb2fbx\config.cpp" />
     <ClCompile Include="..\mdb2fbx\redirect_output_handle.cpp" />
     <ClCompile Include="fbx2mdb.cpp" />
+    <ClCompile Include="log.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\externals\yaml-cpp\build\yaml-cpp.vcxproj">
@@ -31,12 +32,15 @@
       <Project>{3294958f-6af4-4006-bc62-be133d6eb4d9}</Project>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="log.h" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{0FDD77C4-7E6B-498F-B04A-952E92A9CDB7}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>fbx2mdb</RootNamespace>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
     <ProjectName>fbx2nw</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -105,6 +109,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_USE_MATH_DEFINES;FBXSDK_SHARED;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\mdb2fbx;..\externals\yaml-cpp\include;..\nwn2mdk-lib;C:\Program Files\Autodesk\FBX\FBX SDK\2018.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
