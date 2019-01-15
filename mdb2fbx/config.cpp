@@ -38,8 +38,10 @@ static void find_nwn2_home(Config& config, YAML::Node& config_file)
 {
 	if (config_file["nwn2_home"]) {
 		auto nwn2_home = config_file["nwn2_home"].as<string>("");
-		if(exists(nwn2_home))
+		if (exists(nwn2_home))
 			config.nwn2_home = nwn2_home;
+		else
+			cout << "ERROR: The NWN2 installation directory specified in config.yml doesn't exist: \"" << nwn2_home << "\"\n";
 	}
 	else {
 		for (unsigned i = 0; i < sizeof(nwn2_dirs) / sizeof(char*); ++i)
