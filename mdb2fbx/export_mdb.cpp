@@ -1,6 +1,6 @@
 #include <iostream>
 #include <algorithm>
-#include <experimental/filesystem>
+#include <filesystem>
 
 #include "config.h"
 #include "export_gr2.h"
@@ -8,7 +8,7 @@
 #include "mdb_file.h"
 
 using namespace std;
-using namespace std::experimental::filesystem::v1;
+using namespace std::filesystem;
 
 static FbxSurfacePhong *create_material(FbxScene* scene, FbxNode* node,
 	const MDB_file::Material& mdb_material,

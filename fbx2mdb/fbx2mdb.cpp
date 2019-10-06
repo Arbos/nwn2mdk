@@ -1,5 +1,5 @@
 #include <iostream>
-#include <experimental/filesystem>
+#include <filesystem>
 #include <set>
 #include <list>
 #include <assert.h>
@@ -55,7 +55,7 @@ static GR2_property_key DaK32fC32f_def[] = {
 };
 
 using namespace std;
-using namespace std::experimental::filesystem::v1;
+using namespace std::filesystem;
 
 bool operator==(const MDB_file::Collision_mesh_vertex& v1,
                 const MDB_file::Collision_mesh_vertex& v2)
