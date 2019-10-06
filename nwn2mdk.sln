@@ -7,11 +7,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dumpgr2", "dumpgr2\dumpgr2.
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "nwn2mdk-lib", "nwn2mdk-lib\nwn2mdk-lib.vcxproj", "{3294958F-6AF4-4006-BC62-BE133D6EB4D9}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "nw2fbx", "mdb2fbx\mdb2fbx.vcxproj", "{96F19EAF-1236-49F5-AA9F-6E819CB8F39E}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "nw2fbx", "nw2fbx\nw2fbx.vcxproj", "{96F19EAF-1236-49F5-AA9F-6E819CB8F39E}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "yaml-cpp static md", "externals\yaml-cpp\build\yaml-cpp.vcxproj", "{93885DC7-99F4-3257-847F-A442F4908689}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "fbx2nw", "fbx2mdb\fbx2mdb.vcxproj", "{0FDD77C4-7E6B-498F-B04A-952E92A9CDB7}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "fbx2nw", "fbx2nw\fbx2nw.vcxproj", "{0FDD77C4-7E6B-498F-B04A-952E92A9CDB7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

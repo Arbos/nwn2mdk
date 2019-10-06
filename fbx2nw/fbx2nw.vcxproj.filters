@@ -15,13 +15,13 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="fbx2mdb.cpp">
+    <ClCompile Include="fbx2nw.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\mdb2fbx\config.cpp">
+    <ClCompile Include="..\nw2fbx\config.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\mdb2fbx\redirect_output_handle.cpp">
+    <ClCompile Include="..\nw2fbx\redirect_output_handle.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="log.cpp">
