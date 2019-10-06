@@ -19,17 +19,15 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\nw2fbx\config.cpp" />
-    <ClCompile Include="..\nw2fbx\redirect_output_handle.cpp" />
     <ClCompile Include="fbx2nw.cpp" />
     <ClCompile Include="log.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\externals\yaml-cpp\build\yaml-cpp.vcxproj">
-      <Project>{93885dc7-99f4-3257-847f-a442f4908689}</Project>
-    </ProjectReference>
     <ProjectReference Include="..\nwn2mdk-lib\nwn2mdk-lib.vcxproj">
       <Project>{3294958f-6af4-4006-bc62-be133d6eb4d9}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\toolcommon\toolcommon.vcxproj">
+      <Project>{6f95759a-1a62-4e5b-b620-c9ec4c4a4f88}</Project>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
@@ -107,7 +105,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_USE_MATH_DEFINES;FBXSDK_SHARED;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\nw2fbx;..\externals\yaml-cpp\include;..\nwn2mdk-lib;C:\Program Files\Autodesk\FBX\FBX SDK\2018.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\toolcommon;..\nwn2mdk-lib;C:\Program Files\Autodesk\FBX\FBX SDK\2018.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
@@ -138,7 +136,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_USE_MATH_DEFINES;FBXSDK_SHARED;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\nw2fbx;..\externals\yaml-cpp\include;..\nwn2mdk-lib;C:\Program Files\Autodesk\FBX\FBX SDK\2018.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\toolcommon;..\nwn2mdk-lib;C:\Program Files\Autodesk\FBX\FBX SDK\2018.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>

@@ -21,16 +21,10 @@
     <ClInclude Include="miniz.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="config.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="export_gr2.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="export_mdb.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="redirect_output_handle.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -41,16 +35,10 @@
     <ClCompile Include="miniz.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="config.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="export_gr2.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="export_mdb.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="redirect_output_handle.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="nw2fbx.cpp">
