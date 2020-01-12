@@ -278,18 +278,18 @@ void import_binormals(FbxMesh* mesh, int polygon_index, T* poly_vertices)
 		for(int i = 0; i < mesh->GetPolygonSize(polygon_index); ++i) {
 			int index = mesh->GetPolygonVertexIndex(polygon_index) + i;
 			FbxVector4 v = e->GetDirectArray().GetAt(index);
-			poly_vertices[i].binormal.x = float(v[0]);
-			poly_vertices[i].binormal.y = float(v[1]);
-			poly_vertices[i].binormal.z = float(v[2]);
+			poly_vertices[i].binormal.x = float(-v[0]);
+			poly_vertices[i].binormal.y = float(-v[1]);
+			poly_vertices[i].binormal.z = float(-v[2]);
 		}
 		break;
 	case FbxGeometryElement::eByControlPoint:
 		for(int i = 0; i < mesh->GetPolygonSize(polygon_index); ++i) {
 			int index = mesh->GetPolygonVertex(polygon_index, i);
 			FbxVector4 v = e->GetDirectArray().GetAt(index);
-			poly_vertices[i].binormal.x = float(v[0]);
-			poly_vertices[i].binormal.y = float(v[1]);
-			poly_vertices[i].binormal.z = float(v[2]);
+			poly_vertices[i].binormal.x = float(-v[0]);
+			poly_vertices[i].binormal.y = float(-v[1]);
+			poly_vertices[i].binormal.z = float(-v[2]);
 		}
 		break;
 	default:
@@ -1212,7 +1212,7 @@ void import_art_tool_info(GR2_import_info& import_info)
 void import_exporter_info(GR2_import_info& import_info)
 {
 	import_info.exporter_info.exporter_name =
-		import_info.strings.get("NWN2 MDK 0.7.1");
+		import_info.strings.get("NWN2 MDK 0.9");
 	import_info.exporter_info.exporter_major_revision = 2;
 	import_info.exporter_info.exporter_minor_revision = 6;
 	import_info.exporter_info.exporter_customization = 0;

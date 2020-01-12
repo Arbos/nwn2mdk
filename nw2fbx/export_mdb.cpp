@@ -166,8 +166,8 @@ static void export_binormals(FbxMesh* mesh, const std::vector<T>& verts)
 	element_binormal->SetReferenceMode(FbxGeometryElement::eDirect);
 
 	for (uint32_t i = 0; i < verts.size(); ++i) {
-		FbxVector4 n(verts[i].binormal.x, verts[i].binormal.y,
-			verts[i].binormal.z);
+		FbxVector4 n(-verts[i].binormal.x, -verts[i].binormal.y,
+			-verts[i].binormal.z);
 		element_binormal->GetDirectArray().Add(n);
 	}
 }
