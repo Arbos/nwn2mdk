@@ -531,11 +531,6 @@ void import_polygon(MDB_file::Collision_mesh& col_mesh, FbxMesh* mesh,
 		Log::error() << "Polygon is not a triangle.\n";
 		return;
 	}
-	
-	cout << "   ";
-
-	for(int i = 0; i < mesh->GetPolygonSize(polygon_index); ++i)
-		cout << ' ' << mesh->GetPolygonVertex(polygon_index, i);
 
 	MDB_file::Collision_mesh_vertex poly_vertices[3];
 	import_positions(mesh, polygon_index, poly_vertices);
@@ -549,8 +544,6 @@ void import_polygon(MDB_file::Collision_mesh& col_mesh, FbxMesh* mesh,
 		    push_vertex(col_mesh, poly_vertices[i]);
 
 	col_mesh.faces.push_back(face);
-
-	cout << endl;
 }
 
 void import_collision_mesh(MDB_file& mdb, FbxNode* node)
@@ -562,7 +555,8 @@ void import_collision_mesh(MDB_file& mdb, FbxNode* node)
 
 	cout << "Importing COL2|COL3: " << node->GetName() << endl;
 
-	cout << "  Polygons: #" << mesh->GetPolygonCount() << endl;
+	cout << "  Vertices: " << mesh->GetControlPointsCount() << endl;
+	cout << "  Polygons: " << mesh->GetPolygonCount() << endl;
 
 	auto col_mesh = make_unique<MDB_file::Collision_mesh>(
 	    ends_with(node->GetName(), "_C2") ? MDB_file::COL2
@@ -616,11 +610,6 @@ void import_polygon(MDB_file::Walk_mesh& walk_mesh, FbxMesh* mesh,
 		return;
 	}
 
-	cout << "   ";
-
-	for (int i = 0; i < mesh->GetPolygonSize(polygon_index); ++i)
-		cout << ' ' << mesh->GetPolygonVertex(polygon_index, i);
-
 	MDB_file::Walk_mesh_vertex poly_vertices[3];
 	import_positions(mesh, polygon_index, poly_vertices);
 
@@ -633,8 +622,6 @@ void import_polygon(MDB_file::Walk_mesh& walk_mesh, FbxMesh* mesh,
 	face.flags[1] = 0;
 
 	walk_mesh.faces.push_back(face);
-
-	cout << endl;
 }
 
 void import_walk_mesh(MDB_file& mdb, FbxNode* node)
@@ -872,11 +859,6 @@ void import_polygon(MDB_file::Rigid_mesh& rigid_mesh, FbxMesh* mesh,
 		Log::error() << "Polygon is not a triangle.\n";
 		return;
 	}
-	
-	cout << "   ";
-
-	for(int i = 0; i < mesh->GetPolygonSize(polygon_index); ++i)
-		cout << ' ' << mesh->GetPolygonVertex(polygon_index, i);
 
 	MDB_file::Rigid_mesh_vertex poly_vertices[3];
 	import_positions(mesh, polygon_index, poly_vertices);
@@ -892,8 +874,6 @@ void import_polygon(MDB_file::Rigid_mesh& rigid_mesh, FbxMesh* mesh,
 		    push_vertex(rigid_mesh, poly_vertices[i]);
 
 	rigid_mesh.faces.push_back(face);
-
-	cout << endl;
 }
 
 void print_mesh(FbxMesh *mesh)
@@ -932,7 +912,8 @@ void print_mesh(FbxMesh *mesh)
 	}
 	cout << endl;
 
-	cout << "  Polygons: #" << mesh->GetPolygonCount() << endl;
+	cout << "  Vertices: " << mesh->GetControlPointsCount() << endl;
+	cout << "  Polygons: " << mesh->GetPolygonCount() << endl;
 }
 
 bool validate_rigid_mesh(FbxMesh* mesh)
@@ -1043,13 +1024,6 @@ void import_polygon(MDB_file::Skin& skin, Fbx_bones& fbx_bones, FbxMesh* mesh,
 		return;
 	}
 
-	cout << "   ";
-
-	for (int i = 0; i < mesh->GetPolygonSize(polygon_index); ++i)
-		cout << ' ' << mesh->GetPolygonVertex(polygon_index, i);
-
-	cout << endl;
-
 	MDB_file::Skin_vertex poly_vertices[3];
 	import_positions(mesh, polygon_index, poly_vertices);
 	import_normals(mesh, polygon_index, poly_vertices);
@@ -1088,6 +1062,18 @@ void gather_fbx_bones(FbxNode* node, Fbx_bones& fbx_bones)
 		gather_fbx_bones(node->GetChild(i), fbx_bones);
 }
 
+void print_vertices(MDB_file::Skin& skin)
+{
+	for (auto& v : skin.verts) {
+		cout << "  Vertex weights:";
+
+		for (int i = 0; i < 4; ++i)
+			cout << ' ' << v.bone_weights[i];
+
+		cout << '\n';
+	}
+}
+
 void import_skin(MDB_file& mdb, FbxNode* node)
 {
 	auto mesh = node->GetMesh();
@@ -1119,6 +1105,8 @@ void import_skin(MDB_file& mdb, FbxNode* node)
 		import_polygon(*skin.get(), fbx_bones, mesh, i);
 
 	import_user_properties(node, skin->header.material);
+
+	print_vertices(*skin);
 
 	mdb.add_packet(move(skin));
 #endif
@@ -1802,7 +1790,7 @@ void import_animation(FbxAnimStack *stack, const char* filename)
 	import_info.file_info.from_file_name =
 		import_info.strings.get(path(filename).filename().string().c_str());
 
-	cout << "  Animation layers: #" << stack->GetMemberCount<FbxAnimLayer>() << endl;
+	cout << "  Animation layers: " << stack->GetMemberCount<FbxAnimLayer>() << endl;
 	for(int i = 0; i < stack->GetMemberCount<FbxAnimLayer>(); ++i) {
 		import_anim_layer(import_info,
 		                  stack->GetMember<FbxAnimLayer>(i));
@@ -1853,7 +1841,7 @@ void import_animation(FbxAnimStack *stack, const char* filename)
 
 void import_animations(FbxScene* scene, const char* filename)
 {
-	cout << "\nAnimation stacks: #" << scene->GetSrcObjectCount<FbxAnimStack>() << endl;
+	cout << "\nAnimation stacks: " << scene->GetSrcObjectCount<FbxAnimStack>() << endl;
 	for(int i = 0; i < scene->GetSrcObjectCount<FbxAnimStack>(); ++i)
 		import_animation(scene->GetSrcObject<FbxAnimStack>(i), filename);
 }
