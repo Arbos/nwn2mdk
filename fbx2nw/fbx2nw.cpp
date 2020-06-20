@@ -124,6 +124,12 @@ bool starts_with(const char *s1, const char *s2)
 	return strncmp(s1, s2, strlen(s2)) == 0;
 }
 
+// Case-insensitive comparison.
+static bool starts_with_i(const char* s1, const char* s2)
+{
+	return strnicmp(s1, s2, strlen(s2)) == 0;
+}
+
 bool ends_with(const char *s1, const char *s2)
 {
 	auto l1 = strlen(s1);
@@ -657,6 +663,19 @@ static void print_orientation(const float orientation[3][3])
 	}
 }
 
+static bool has_skeleton_attribute(FbxNode* node)
+{
+	auto attr = node->GetNodeAttribute();
+	return attr && attr->GetAttributeType() == FbxNodeAttribute::eSkeleton;
+}
+
+static bool is_hook_packet(FbxNode* node)
+{
+	return !has_skeleton_attribute(node) &&
+	       (starts_with_i(node->GetName(), "HP_") ||
+	        starts_with_i(node->GetName(), "AP_"));
+}
+
 void print_hook(MDB_file::Hook& hook)
 {
 	cout << "  Position: ";
@@ -1120,7 +1139,7 @@ void import_meshes(MDB_file& mdb, FbxNode* node)
 		import_collision_mesh(mdb, node);
 	else if (ends_with(node->GetName(), "_W"))
 		import_walk_mesh(mdb, node);
-	else if (starts_with(node->GetName(), "HP_DR_STD"))
+	else if (is_hook_packet(node))
 		import_hook_point(mdb, node);
 	else if (is_hair_packet(node))
 		import_hair(mdb, node);
@@ -1200,18 +1219,12 @@ void import_art_tool_info(GR2_import_info& import_info)
 void import_exporter_info(GR2_import_info& import_info)
 {
 	import_info.exporter_info.exporter_name =
-		import_info.strings.get("NWN2 MDK 0.9");
+		import_info.strings.get("NWN2 MDK 0.8.1");
 	import_info.exporter_info.exporter_major_revision = 2;
 	import_info.exporter_info.exporter_minor_revision = 6;
 	import_info.exporter_info.exporter_customization = 0;
 	import_info.exporter_info.exporter_build_number = 10;
 	import_info.file_info.exporter_info = &import_info.exporter_info;
-}
-
-bool has_skeleton_attribute(FbxNode* node)
-{
-	auto attr = node->GetNodeAttribute();
-	return attr && attr->GetAttributeType() == FbxNodeAttribute::eSkeleton;
 }
 
 bool is_pivot_node(FbxNode* node)
