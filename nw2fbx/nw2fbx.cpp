@@ -80,7 +80,7 @@ static void print_material(const MDB_file::Material& material)
 	cout << "Specular Color: ";
 	print_vector3(material.specular_color);
 	cout << "Specular Level: " << material.specular_level << endl;
-	cout << "Specular Power: " << material.specular_power << endl;
+	cout << "Glossiness:     " << material.specular_power << endl;
 	print_material_flags(material.flags);
 }
 
