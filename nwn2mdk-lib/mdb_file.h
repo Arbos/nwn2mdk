@@ -103,8 +103,10 @@ public:
 		char glow_map_name[32];
 		Vector3<float> diffuse_color;
 		Vector3<float> specular_color;
+		/// Intensity of the specular highlight.
+		float specular_level;
+		/// Area of the specular highlight.
 		float specular_power;
-		float specular_value;
 		uint32_t flags;
 	};
 

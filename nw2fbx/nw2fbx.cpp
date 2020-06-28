@@ -79,8 +79,8 @@ static void print_material(const MDB_file::Material& material)
 	print_vector3(material.diffuse_color);
 	cout << "Specular Color: ";
 	print_vector3(material.specular_color);
+	cout << "Specular Level: " << material.specular_level << endl;
 	cout << "Specular Power: " << material.specular_power << endl;
-	cout << "Specular Value: " << material.specular_value << endl;
 	print_material_flags(material.flags);
 }
 

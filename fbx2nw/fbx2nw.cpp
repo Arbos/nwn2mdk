@@ -513,7 +513,7 @@ void import_material(MDB_file::Material& material, FbxMesh* mesh)
 	material.specular_color.y = float(s[1]);
 	material.specular_color.z = float(s[2]);
 
-	material.specular_value = float(m->SpecularFactor.Get()*200.0);
+	material.specular_level = float(m->SpecularFactor.Get()*200.0);
 	material.specular_power = float(m->Shininess.Get()*2.5/100.0);
 }
 

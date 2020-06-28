@@ -244,8 +244,8 @@ MDB_file::Collision_mesh::Collision_mesh(Packet_type t)
 	memset(header.material.glow_map_name, 0, sizeof(header.material.glow_map_name));
 	header.material.diffuse_color = Vector3<float>(1, 1, 1);
 	header.material.specular_color = Vector3<float>(1, 1, 1);
+	header.material.specular_level = 1;
 	header.material.specular_power = 1;
-	header.material.specular_value = 1;
 	header.material.flags = 0;
 	header.vertex_count = 0;
 	header.face_count = 0;
@@ -302,8 +302,8 @@ MDB_file::Rigid_mesh::Rigid_mesh()
 	memset(header.material.glow_map_name, 0, sizeof(header.material.glow_map_name));
 	header.material.diffuse_color = Vector3<float>(1, 1, 1);
 	header.material.specular_color = Vector3<float>(1, 1, 1);
+	header.material.specular_level = 1;
 	header.material.specular_power = 1;
-	header.material.specular_value = 1;
 	header.material.flags = 0;
 	header.vertex_count = 0;
 	header.face_count = 0;
@@ -358,8 +358,8 @@ MDB_file::Skin::Skin()
 	memset(header.material.glow_map_name, 0, sizeof(header.material.glow_map_name));
 	header.material.diffuse_color = Vector3<float>(1, 1, 1);
 	header.material.specular_color = Vector3<float>(1, 1, 1);
+	header.material.specular_level = 1;
 	header.material.specular_power = 1;
-	header.material.specular_value = 1;
 	header.material.flags = 0;
 	header.vertex_count = 0;
 	header.face_count = 0;
