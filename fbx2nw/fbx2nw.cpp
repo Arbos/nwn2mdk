@@ -479,6 +479,28 @@ void import_map(char* map_name, FbxNode* node, const char* property_name)
 	set_map_name(map_name, s.c_str());
 }
 
+void import_specular_level(MDB_file::Material& material, FbxNode* node,
+	FbxSurfacePhong* fbx_material)
+{
+	auto prop = node->FindProperty("SPECULAR_LEVEL", false);
+
+	if (prop.IsValid() && prop.Get<float>())
+		material.specular_level = prop.Get<float>();
+	else
+		material.specular_level = float(fbx_material->SpecularFactor.Get());
+}
+
+void import_specular_power(MDB_file::Material& material, FbxNode* node,
+	FbxSurfacePhong* fbx_material)
+{
+	auto prop = node->FindProperty("GLOSSINESS", false);
+
+	if (prop.IsValid() && prop.Get<float>())
+		material.specular_power = prop.Get<float>();
+	else
+		material.specular_power = float(fbx_material->Shininess.Get());
+}
+
 void import_material(MDB_file::Material& material, FbxMesh* mesh)
 {
 	if(mesh->GetNode()->GetMaterialCount() <= 0)
@@ -513,8 +535,8 @@ void import_material(MDB_file::Material& material, FbxMesh* mesh)
 	material.specular_color.y = float(s[1]);
 	material.specular_color.z = float(s[2]);
 
-	material.specular_level = float(m->SpecularFactor.Get());
-	material.specular_power = float(m->Shininess.Get());
+	import_specular_level(material, mesh->GetNode(), m);
+	import_specular_power(material, mesh->GetNode(), m);
 }
 
 template <typename T, typename U>

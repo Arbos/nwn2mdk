@@ -10,6 +10,26 @@
 using namespace std;
 using namespace std::filesystem;
 
+static void export_specular_level(FbxSurfacePhong* material, FbxNode* node,
+	const MDB_file::Material& mdb_material)
+{
+	material->SpecularFactor.Set(mdb_material.specular_level);
+
+	auto prop = FbxProperty::Create(node, FbxFloatDT, "SPECULAR_LEVEL");
+	prop.Set(mdb_material.specular_level);
+	prop.ModifyFlag(FbxPropertyFlags::eUserDefined, true);
+}
+
+static void export_specular_power(FbxSurfacePhong* material, FbxNode* node,
+	const MDB_file::Material& mdb_material)
+{
+	material->Shininess.Set(mdb_material.specular_power);
+
+	auto prop = FbxProperty::Create(node, FbxFloatDT, "GLOSSINESS");
+	prop.Set(mdb_material.specular_power);
+	prop.ModifyFlag(FbxPropertyFlags::eUserDefined, true);
+}
+
 static FbxSurfacePhong *create_material(FbxScene* scene, FbxNode* node,
 	const MDB_file::Material& mdb_material,
 	const char* name)
@@ -22,8 +42,8 @@ static FbxSurfacePhong *create_material(FbxScene* scene, FbxNode* node,
 	material->Specular.Set(FbxDouble3(mdb_material.specular_color.x,
 		mdb_material.specular_color.y,
 		mdb_material.specular_color.z));
-	material->SpecularFactor.Set(mdb_material.specular_level);
-	material->Shininess.Set(mdb_material.specular_power);
+	export_specular_level(material, node, mdb_material);
+	export_specular_power(material, node, mdb_material);
 
 	return material;
 }
