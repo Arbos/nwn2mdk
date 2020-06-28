@@ -109,7 +109,7 @@ static void export_maps(Export_info& export_info, FbxNode* node, FbxSurfacePhong
 		string(mdb_material.normal_map_name, 32).c_str());
 	export_map(export_info, material->DisplacementColor,
 		string(mdb_material.tint_map_name, 32).c_str());
-	export_map(export_info, material->EmissiveFactor,
+	export_map(export_info, material->Emissive,
 		string(mdb_material.glow_map_name, 32).c_str());
 	
 	// Export tint map as a node property
