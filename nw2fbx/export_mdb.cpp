@@ -22,10 +22,8 @@ static FbxSurfacePhong *create_material(FbxScene* scene, FbxNode* node,
 	material->Specular.Set(FbxDouble3(mdb_material.specular_color.x,
 		mdb_material.specular_color.y,
 		mdb_material.specular_color.z));
-	// Transform from [0, 100] to [0, 0.5]
-	material->SpecularFactor.Set(mdb_material.specular_level/200.0f);
-	// Transform from [0, 2.5] to [0, 100]
-	material->Shininess.Set(mdb_material.specular_power/2.5f*100.0f);
+	material->SpecularFactor.Set(mdb_material.specular_level);
+	material->Shininess.Set(mdb_material.specular_power);
 
 	return material;
 }
