@@ -516,7 +516,7 @@ void import_specular_level(MDB_file::Material& material, FbxNode* node,
 {
 	auto prop = node->FindProperty("SPECULAR_LEVEL", false);
 
-	if (prop.IsValid() && prop.Get<float>())
+	if (prop.IsValid())
 		material.specular_level = prop.Get<float>();
 	else
 		material.specular_level = float(fbx_material->SpecularFactor.Get());
@@ -527,7 +527,7 @@ void import_specular_power(MDB_file::Material& material, FbxNode* node,
 {
 	auto prop = node->FindProperty("GLOSSINESS", false);
 
-	if (prop.IsValid() && prop.Get<float>())
+	if (prop.IsValid())
 		material.specular_power = prop.Get<float>();
 	else
 		material.specular_power = float(fbx_material->Shininess.Get());
