@@ -10,6 +10,45 @@
 using namespace std;
 using namespace std::filesystem;
 
+// Round to 3 decimals.
+static double round3(double x)
+{
+	return round(x * 1000.0) / 1000.0;
+}
+
+// Round to 3 decimals.
+static FbxDouble3 round3(const FbxDouble3& v)
+{
+	return FbxDouble3(round3(v[0]), round3(v[1]), round3(v[2]));
+}
+
+static void export_diffuse_color(FbxSurfacePhong* material, FbxNode* node,
+	const MDB_file::Material& mdb_material)
+{
+	FbxDouble3 diffuse_color(mdb_material.diffuse_color.x,
+		mdb_material.diffuse_color.y,
+		mdb_material.diffuse_color.z);
+	material->Diffuse.Set(diffuse_color);
+	material->DiffuseFactor.Set(1.0f);
+
+	auto prop = FbxProperty::Create(node, FbxDouble3DT, "DIFFUSE_COLOR");
+	prop.Set(round3(diffuse_color));
+	prop.ModifyFlag(FbxPropertyFlags::eUserDefined, true);
+}
+
+static void export_specular_color(FbxSurfacePhong* material, FbxNode* node,
+	const MDB_file::Material& mdb_material)
+{
+	FbxDouble3 specular_color(mdb_material.specular_color.x,
+		mdb_material.specular_color.y,
+		mdb_material.specular_color.z);
+	material->Specular.Set(specular_color);
+
+	auto prop = FbxProperty::Create(node, FbxDouble3DT, "SPECULAR_COLOR");
+	prop.Set(round3(specular_color));
+	prop.ModifyFlag(FbxPropertyFlags::eUserDefined, true);
+}
+
 static void export_specular_level(FbxSurfacePhong* material, FbxNode* node,
 	const MDB_file::Material& mdb_material)
 {
@@ -35,13 +74,8 @@ static FbxSurfacePhong *create_material(FbxScene* scene, FbxNode* node,
 	const char* name)
 {
 	FbxSurfacePhong* material = FbxSurfacePhong::Create(scene, name);
-	material->Diffuse.Set(FbxDouble3(mdb_material.diffuse_color.x,
-		mdb_material.diffuse_color.y,
-		mdb_material.diffuse_color.z));
-	material->DiffuseFactor.Set(1.0f);
-	material->Specular.Set(FbxDouble3(mdb_material.specular_color.x,
-		mdb_material.specular_color.y,
-		mdb_material.specular_color.z));
+	export_diffuse_color(material, node, mdb_material);
+	export_specular_color(material, node, mdb_material);
 	export_specular_level(material, node, mdb_material);
 	export_specular_power(material, node, mdb_material);
 

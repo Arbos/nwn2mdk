@@ -479,6 +479,38 @@ void import_map(char* map_name, FbxNode* node, const char* property_name)
 	set_map_name(map_name, s.c_str());
 }
 
+void import_diffuse_color(MDB_file::Material& material, FbxNode* node,
+	FbxSurfacePhong* fbx_material)
+{
+	auto prop = node->FindProperty("DIFFUSE_COLOR", false);
+	FbxDouble3 c;
+
+	if (prop.IsValid())
+		c = prop.Get<FbxDouble3>();
+	else
+		c = fbx_material->Diffuse.Get();
+
+	material.diffuse_color.x = float(c[0]);
+	material.diffuse_color.y = float(c[1]);
+	material.diffuse_color.z = float(c[2]);
+}
+
+void import_specular_color(MDB_file::Material& material, FbxNode* node,
+	FbxSurfacePhong* fbx_material)
+{
+	auto prop = node->FindProperty("SPECULAR_COLOR", false);
+	FbxDouble3 c;
+
+	if (prop.IsValid())
+		c = prop.Get<FbxDouble3>();
+	else
+		c = fbx_material->Specular.Get();
+
+	material.specular_color.x = float(c[0]);
+	material.specular_color.y = float(c[1]);
+	material.specular_color.z = float(c[2]);
+}
+
 void import_specular_level(MDB_file::Material& material, FbxNode* node,
 	FbxSurfacePhong* fbx_material)
 {
@@ -525,16 +557,8 @@ void import_material(MDB_file::Material& material, FbxMesh* mesh)
 
 	auto m = (FbxSurfacePhong *)fbx_material;
 
-	FbxDouble3 d = m->Diffuse.Get();
-	material.diffuse_color.x = float(d[0]);
-	material.diffuse_color.y = float(d[1]);
-	material.diffuse_color.z = float(d[2]);
-
-	FbxDouble3 s = m->Specular.Get();
-	material.specular_color.x = float(s[0]);
-	material.specular_color.y = float(s[1]);
-	material.specular_color.z = float(s[2]);
-
+	import_diffuse_color(material, mesh->GetNode(), m);
+	import_specular_color(material, mesh->GetNode(), m);
 	import_specular_level(material, mesh->GetNode(), m);
 	import_specular_power(material, mesh->GetNode(), m);
 }
