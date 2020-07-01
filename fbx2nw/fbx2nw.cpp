@@ -2070,7 +2070,7 @@ int main(int argc, char* argv[])
 
 	GR2_file::granny2dll_filename = config.nwn2_home + "\\granny2.dll";
 
-	if(argc < 2) {
+	if(argc != 2) {
 		cout << "Usage: fbx2nw <file>\n";
 		return 1;
 	}
