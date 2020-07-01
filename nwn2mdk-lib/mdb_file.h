@@ -105,7 +105,7 @@ public:
 		Vector3<float> specular_color;
 		/// Intensity of the specular highlight.
 		float specular_level;
-		/// Area of the specular highlight.
+		/// Size of the specular highlight.
 		float specular_power;
 		uint32_t flags;
 	};
