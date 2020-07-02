@@ -1153,7 +1153,6 @@ void import_skin(MDB_file& mdb, FbxNode* node)
 	if (!validate_rigid_mesh(mesh))
 		return;
 
-#ifdef _WIN32
 	auto skin = make_unique<MDB_file::Skin>();
 	set_packet_name(skin->header.name, node->GetName());
 	auto skel_node = skeleton_node(mesh);
@@ -1174,7 +1173,6 @@ void import_skin(MDB_file& mdb, FbxNode* node)
 	print_vertices(*skin);
 
 	mdb.add_packet(move(skin));
-#endif
 }
 
 void import_meshes(MDB_file& mdb, FbxNode* node)
