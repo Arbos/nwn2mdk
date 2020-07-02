@@ -1543,7 +1543,7 @@ void import_skeletons(FbxScene* scene, const char* filename)
 	else {
 		GR2_file gr2;
 		gr2.read(&import_info.file_info);
-		string output_filename = path(filename).stem().string() + ".skel.gr2";
+		string output_filename = path(filename).stem().string() + ".gr2";
 		gr2.write(output_filename.c_str());
 		cout << "\nOutput is " << output_filename << endl;
 	}
@@ -1890,7 +1890,7 @@ void import_animation(FbxAnimStack *stack, const char* filename)
 	else {
 		GR2_file gr2;
 		gr2.read(&import_info.file_info);
-		string output_filename = path(filename).stem().string() + ".anim.gr2";
+		string output_filename = path(filename).stem().string() + ".gr2";
 		gr2.write(output_filename.c_str());
 		cout << "\nOutput is " << output_filename << endl;
 	}
@@ -2016,8 +2016,11 @@ void import_models(FbxScene* scene, const char* filename)
 void import_scene(FbxScene* scene, const char* filename)
 {
 	import_models(scene, filename);
-	import_animations(scene, filename);
-	import_skeletons(scene, filename);
+
+	if (scene->GetSrcObjectCount<FbxAnimStack>() == 0)
+		import_skeletons(scene, filename);
+	else	
+		import_animations(scene, filename);
 }
 
 bool import_fbx(const char* filename)
