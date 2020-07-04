@@ -20,6 +20,8 @@ struct Dependency {
 
 struct Export_info {
 	const Config &config;
+	std::vector<std::string> input_strings;
+	std::string output_path;
 	Archive_container materials;	
 	const MDB_file *mdb;
 	FbxScene *scene;

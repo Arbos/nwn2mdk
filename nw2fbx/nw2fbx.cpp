@@ -387,7 +387,20 @@ static Archive_container get_material_archives(const Config& config)
 	return archives;
 }
 
-static bool extract_arg(const Config& config, char *arg,
+static void parse_args(Export_info& export_info, int argc, char* argv[])
+{
+	for (int i = 1; i < argc; ++i) {
+		if (argv[i][0] == '-') {
+			if (strcmp(argv[i], "-o") == 0 && i < argc - 1)
+				export_info.output_path = argv[++i];
+		}
+		else {
+			export_info.input_strings.push_back(argv[i]);
+		}
+	}
+}
+
+static bool extract_arg(const Config& config, const char* arg,
 	std::vector<std::string> &filenames)
 {
 	if (exists(arg)) { // File is already extracted
@@ -417,11 +430,11 @@ static bool extract_arg(const Config& config, char *arg,
 	return true;
 }
 
-static bool extract_args(Export_info& export_info, int argc, char* argv[],
+static bool extract_args(Export_info& export_info,
 	std::vector<std::string> &filenames)
 {
-	for (int i = 1; i < argc; ++i) {
-		if (!extract_arg(export_info.config, argv[i], filenames))
+	for (auto &s : export_info.input_strings) {
+		if (!extract_arg(export_info.config, s.c_str(), filenames))
 			return false;
 	}
 
@@ -561,11 +574,20 @@ static bool export_mdb_files(Export_info& export_info, vector<Input>& inputs)
 	return true;
 }
 
-static bool process_args(Export_info& export_info, int argc, char* argv[],
-	std::vector<std::string> &filenames)
+static bool process_args(Export_info& export_info, int argc, char* argv[])
 {
-	if (!extract_args(export_info, argc, argv, filenames))
+	parse_args(export_info, argc, argv);
+
+	if (export_info.input_strings.empty())
 		return false;
+
+	vector<std::string> filenames;
+
+	if (!extract_args(export_info, filenames))
+		return false;
+
+	if (export_info.output_path.empty())
+		export_info.output_path = path(filenames[0]).stem().concat(".fbx").string();
 
 	vector<Input> inputs;
 
@@ -621,18 +643,15 @@ int main(int argc, char* argv[])
 
 	scene->GetGlobalSettings().SetTimeMode(FbxTime::eFrames30);
 
-	Export_info export_info = { config,
+	Export_info export_info = { config, {}, "",
 		get_material_archives(config), nullptr, scene };
 
-	vector<std::string> filenames;
-	if (!process_args(export_info, argc, argv, filenames))
+	if (!process_args(export_info, argc, argv))
 		return 1;
 
 	// Create an exporter.
 	auto exporter = FbxExporter::Create(manager, "");
-	auto fbx_filename =
-		path(filenames[0]).stem().concat(".fbx").string();
-	if (!exporter->Initialize(fbx_filename.c_str(), -1, manager->GetIOSettings())) {
+	if (!exporter->Initialize(export_info.output_path.c_str(), -1, manager->GetIOSettings())) {
 		cout << "ERROR: " << exporter->GetStatus().GetErrorString() << endl;
 		return false;
 	}
@@ -643,5 +662,5 @@ int main(int argc, char* argv[])
 
 	manager->Destroy();
 
-	cout << "\nOutput is " << fbx_filename.c_str() << endl;
+	cout << "\nOutput is " << export_info.output_path.c_str() << endl;
 }
