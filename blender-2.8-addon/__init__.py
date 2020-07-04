@@ -78,14 +78,55 @@ class ImportMDBGR2(bpy.types.Operator, ImportHelper):
         return {'FINISHED'}
 
 
-class ExportMDBGR2(bpy.types.Operator, ExportHelper):
-    """Export MDB/GR2"""               # Tooltip for menu items and buttons.
-    bl_idname = "export_scene.nwn2mdk" # Unique identifier for buttons and menu items to reference.
-    bl_label = "Export MDB/GR2"        # Display name in the interface.
-    bl_options = {'UNDO', 'PRESET'}    # Enable undo for the operator.
+class ExportMDB(bpy.types.Operator, ExportHelper):
+    """Export MDB"""                       # Tooltip for menu items and buttons.
+    bl_idname = "export_scene.nwn2mdk_mdb" # Unique identifier for buttons and menu items to reference.
+    bl_label = "Export MDB"                # Display name in the interface.
+    bl_options = {'UNDO', 'PRESET'}        # Enable undo for the operator.
 
-    filename_ext = ".fbx"
-    filter_glob: StringProperty(default="*.fbx", options={'HIDDEN'})
+    filename_ext = ".mdb"
+    filter_glob: StringProperty(default="*.mdb", options={'HIDDEN'})
+
+    def draw(self, context):
+        pass
+
+    def execute(self, context):
+        if not self.filepath:
+            raise Exception("filepath not set")
+
+        bpy.ops.export_scene.fbx(filepath="nwn2mdk-tmp.fbx",
+                                 axis_forward='-Z',
+                                 axis_up='Y',
+                                 use_tspace=True,
+                                 use_custom_props=True,
+                                 add_leaf_bones=False,
+                                 bake_anim=False)
+
+        import os
+
+        fbx2nw_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "fbx2nw")
+        args = [fbx2nw_path, "nwn2mdk-tmp.fbx", "-o", os.path.basename(self.filepath)]
+        working_dir = os.path.dirname(self.filepath)
+
+        with open(os.path.join(working_dir, "log.txt"), "w") as log:
+            import subprocess
+            proc = subprocess.Popen(args, stdout=log, cwd=working_dir)
+            proc.wait()
+
+        if os.path.exists("nwn2mdk-tmp.fbx"):
+            os.remove("nwn2mdk-tmp.fbx")
+
+        return {'FINISHED'}
+
+
+class ExportGR2(bpy.types.Operator, ExportHelper):
+    """Export GR2"""                       # Tooltip for menu items and buttons.
+    bl_idname = "export_scene.nwn2mdk_gr2" # Unique identifier for buttons and menu items to reference.
+    bl_label = "Export GR2"                # Display name in the interface.
+    bl_options = {'UNDO', 'PRESET'}        # Enable undo for the operator.
+
+    filename_ext = ".gr2"
+    filter_glob: StringProperty(default="*.gr2", options={'HIDDEN'})
 
     bake_anim: BoolProperty(
             name="Baked Animation",
@@ -173,7 +214,7 @@ class NWN2MDK_PT_export_bake_animation(bpy.types.Panel):
         sfile = context.space_data
         operator = sfile.active_operator
 
-        return operator.bl_idname == "EXPORT_SCENE_OT_nwn2mdk"
+        return operator.bl_idname == "EXPORT_SCENE_OT_nwn2mdk_gr2"
 
     def draw_header(self, context):
         sfile = context.space_data
@@ -198,13 +239,15 @@ def menu_func_import(self, context):
 
 
 def menu_func_export(self, context):
-    self.layout.operator(ExportMDBGR2.bl_idname, text="Neverwinter Nights 2 (MDK) (.mdb/.gr2)")
+    self.layout.operator(ExportMDB.bl_idname, text="Neverwinter Nights 2 (MDK) (.mdb)")
+    self.layout.operator(ExportGR2.bl_idname, text="Neverwinter Nights 2 (MDK) (.gr2)")
 
 
 classes = (
     ImportMDBGR2,
     NWN2MDK_PT_import_armature,
-    ExportMDBGR2,
+    ExportMDB,
+    ExportGR2,
     NWN2MDK_PT_export_bake_animation,
 )
 
