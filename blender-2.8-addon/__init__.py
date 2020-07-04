@@ -23,7 +23,7 @@ from bpy_extras.io_utils import (
         )
 
 
-class Import(bpy.types.Operator, ImportHelper):
+class ImportMDBGR2(bpy.types.Operator, ImportHelper):
     """Import MDB/GR2"""               # Tooltip for menu items and buttons.
     bl_idname = "import_scene.nwn2mdk" # Unique identifier for buttons and menu items to reference.
     bl_label = "Import MDB/GR2"        # Display name in the interface.
@@ -75,7 +75,7 @@ class Import(bpy.types.Operator, ImportHelper):
         return {'FINISHED'}
 
 
-class Export(bpy.types.Operator, ExportHelper):
+class ExportMDBGR2(bpy.types.Operator, ExportHelper):
     """Export MDB/GR2"""               # Tooltip for menu items and buttons.
     bl_idname = "export_scene.nwn2mdk" # Unique identifier for buttons and menu items to reference.
     bl_label = "Export MDB/GR2"        # Display name in the interface.
@@ -132,7 +132,7 @@ class Export(bpy.types.Operator, ExportHelper):
         return {'FINISHED'}
 
 
-class FBX_PT_import_armature(bpy.types.Panel):
+class NWN2MDK_PT_import_armature(bpy.types.Panel):
     bl_space_type = 'FILE_BROWSER'
     bl_region_type = 'TOOL_PROPS'
     bl_label = "Armature"
@@ -156,7 +156,7 @@ class FBX_PT_import_armature(bpy.types.Panel):
         layout.prop(operator, "automatic_bone_orientation"),
 
 
-class FBX_PT_export_bake_animation(bpy.types.Panel):
+class NWN2MDK_PT_export_bake_animation(bpy.types.Panel):
     bl_space_type = 'FILE_BROWSER'
     bl_region_type = 'TOOL_PROPS'
     bl_label = "Bake Animation"
@@ -188,18 +188,18 @@ class FBX_PT_export_bake_animation(bpy.types.Panel):
 
 
 def menu_func_import(self, context):
-    self.layout.operator(Import.bl_idname, text="Neverwinter Nights 2 (MDK) (.mdb/.gr2)")
+    self.layout.operator(ImportMDBGR2.bl_idname, text="Neverwinter Nights 2 (MDK) (.mdb/.gr2)")
 
 
 def menu_func_export(self, context):
-    self.layout.operator(Export.bl_idname, text="Neverwinter Nights 2 (MDK) (.mdb/.gr2)")
+    self.layout.operator(ExportMDBGR2.bl_idname, text="Neverwinter Nights 2 (MDK) (.mdb/.gr2)")
 
 
 classes = (
-    Import,
-    FBX_PT_import_armature,
-    Export,
-    FBX_PT_export_bake_animation,
+    ImportMDBGR2,
+    NWN2MDK_PT_import_armature,
+    ExportMDBGR2,
+    NWN2MDK_PT_export_bake_animation,
 )
 
 
