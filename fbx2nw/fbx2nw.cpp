@@ -99,7 +99,7 @@ static bool parse_args(int argc, char* argv[], Import_info& import_info)
 	else {
 		string ext = path(import_info.output_path).extension();
 
-		if (stricmp(ext.c_str(), ".MDB") == 0)
+		if (stricmp(ext.c_str(), ".mdb") == 0)
 			import_info.output_type = Output_type::mdb;
 		else if (stricmp(ext.c_str(), ".gr2") == 0)
 			import_info.output_type = Output_type::gr2;
@@ -2065,7 +2065,7 @@ void import_models(FbxScene* scene, const char* filename)
 		Log::error() << "MDB not generated due to errors found during the conversion.\n";
 	}
 	else if (mdb.packet_count() > 0) {
-		string output_filename = string(filename) + ".MDB";
+		string output_filename = string(filename) + ".mdb";
 		mdb.save(output_filename.c_str());
 		cout << "\nOutput is " << output_filename << endl;
 	}
