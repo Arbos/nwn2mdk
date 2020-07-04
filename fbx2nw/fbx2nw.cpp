@@ -1568,7 +1568,7 @@ void import_skeleton(GR2_import_info& import_info, FbxNode* node)
 	import_model(import_info, &import_info.skeletons.back());	
 }
 
-void import_skeletons(FbxScene* scene, const char* filename)
+void import_skeletons(FbxScene* scene, const Import_info& info)
 {
 	Log::error_count = 0; // Reset error count
 
@@ -1578,7 +1578,7 @@ void import_skeletons(FbxScene* scene, const char* filename)
 	import_art_tool_info(import_info);
 	import_exporter_info(import_info);
 	import_info.file_info.from_file_name =
-		import_info.strings.get(path(filename).filename().string().c_str());
+		import_info.strings.get(path(info.input_path).filename().string().c_str());
 
 	for (int i = 0; i < scene->GetRootNode()->GetChildCount(); ++i) {
 		auto node = scene->GetRootNode()->GetChild(i);
@@ -1601,7 +1601,7 @@ void import_skeletons(FbxScene* scene, const char* filename)
 	else {
 		GR2_file gr2;
 		gr2.read(&import_info.file_info);
-		string output_filename = string(filename) + ".gr2";
+		string output_filename = string(info.output_path) + ".gr2";
 		gr2.write(output_filename.c_str());
 		cout << "\nOutput is " << output_filename << endl;
 	}
@@ -1891,7 +1891,7 @@ void import_anim_layer(GR2_import_info& import_info, FbxAnimLayer* layer)
 	import_anim_layer(import_info, layer, layer->GetScene()->GetRootNode());
 }
 
-void import_animation(FbxAnimStack *stack, const char* filename)
+void import_animation(FbxAnimStack *stack, const Import_info& info)
 {
 	Log::error_count = 0; // Reset error count
 
@@ -1903,7 +1903,7 @@ void import_animation(FbxAnimStack *stack, const char* filename)
 	import_art_tool_info(import_info);
 	import_exporter_info(import_info);
 	import_info.file_info.from_file_name =
-		import_info.strings.get(path(filename).filename().string().c_str());
+		import_info.strings.get(path(info.input_path).filename().string().c_str());
 
 	cout << "  Animation layers: " << stack->GetMemberCount<FbxAnimLayer>() << endl;
 	for(int i = 0; i < stack->GetMemberCount<FbxAnimLayer>(); ++i) {
@@ -1948,17 +1948,17 @@ void import_animation(FbxAnimStack *stack, const char* filename)
 	else {
 		GR2_file gr2;
 		gr2.read(&import_info.file_info);
-		string output_filename = string(filename) + ".gr2";
+		string output_filename = string(info.output_path) + ".gr2";
 		gr2.write(output_filename.c_str());
 		cout << "\nOutput is " << output_filename << endl;
 	}
 }
 
-void import_animations(FbxScene* scene, const char* filename)
+void import_animations(FbxScene* scene, const Import_info& import_info)
 {
 	cout << "\nAnimation stacks: " << scene->GetSrcObjectCount<FbxAnimStack>() << endl;
 	for(int i = 0; i < scene->GetSrcObjectCount<FbxAnimStack>(); ++i)
-		import_animation(scene->GetSrcObject<FbxAnimStack>(i), filename);
+		import_animation(scene->GetSrcObject<FbxAnimStack>(i), import_info);
 }
 
 struct Bone_info {
@@ -2081,9 +2081,9 @@ void import_scene(FbxScene* scene, const Import_info& import_info)
 		return;
 
 	if (scene->GetSrcObjectCount<FbxAnimStack>() == 0)
-		import_skeletons(scene, import_info.output_path.c_str());
+		import_skeletons(scene, import_info);
 	else
-		import_animations(scene, import_info.output_path.c_str());
+		import_animations(scene, import_info);
 }
 
 bool import_fbx(const Import_info& import_info)
