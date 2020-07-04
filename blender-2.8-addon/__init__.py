@@ -60,17 +60,20 @@ class ImportMDBGR2(bpy.types.Operator, ImportHelper):
             path = os.path.join(working_dir, file.name)
             args.append(path)
 
+        args.append("-o");
+        args.append("nwn2mdk-tmp.fbx");
+
         with open(os.path.join(working_dir, "log.txt"), "w") as log:
             import subprocess
             proc = subprocess.Popen(args, stdout=log, cwd=working_dir)
             proc.wait()
 
-        fbx_path = os.path.splitext(args[1])[0]
-        fbx_path +=  ".fbx"
-
-        bpy.ops.import_scene.fbx(filepath=fbx_path,
+        bpy.ops.import_scene.fbx(filepath="nwn2mdk-tmp.fbx",
                                  use_image_search=False,
                                  automatic_bone_orientation=self.automatic_bone_orientation)
+
+        if os.path.exists("nwn2mdk-tmp.fbx"):
+            os.remove("nwn2mdk-tmp.fbx")
 
         return {'FINISHED'}
 
@@ -105,7 +108,7 @@ class ExportMDBGR2(bpy.types.Operator, ExportHelper):
         if not self.filepath:
             raise Exception("filepath not set")
 
-        bpy.ops.export_scene.fbx(filepath=self.filepath,
+        bpy.ops.export_scene.fbx(filepath="nwn2mdk-tmp.fbx",
                                  axis_forward='-Z',
                                  axis_up='Y',
                                  use_tspace=True,
@@ -121,13 +124,16 @@ class ExportMDBGR2(bpy.types.Operator, ExportHelper):
         import os
 
         fbx2nw_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "fbx2nw")
-        args = [fbx2nw_path, self.filepath]
+        args = [fbx2nw_path, "nwn2mdk-tmp.fbx", "-o", os.path.basename(self.filepath)]
         working_dir = os.path.dirname(self.filepath)
 
         with open(os.path.join(working_dir, "log.txt"), "w") as log:
-            import subprocess   
+            import subprocess
             proc = subprocess.Popen(args, stdout=log, cwd=working_dir)
             proc.wait()
+
+        if os.path.exists("nwn2mdk-tmp.fbx"):
+            os.remove("nwn2mdk-tmp.fbx")
 
         return {'FINISHED'}
 
