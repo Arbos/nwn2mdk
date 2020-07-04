@@ -13,6 +13,19 @@
 #include "redirect_output_handle.h"
 #include "string_collection.h"
 
+enum class Output_type {
+	any,
+	mdb,
+	gr2
+};
+
+struct Import_info {
+	std::string input_path;
+	// Without extension.
+	std::string output_path;
+	Output_type output_type;
+};
+
 const double time_step = 1 / 30.0;
 
 static GR2_property_key CurveDataHeader_def[] = {
@@ -56,6 +69,51 @@ static GR2_property_key DaK32fC32f_def[] = {
 
 using namespace std;
 using namespace std::filesystem;
+
+static bool parse_args(int argc, char* argv[], Import_info& import_info)
+{
+	for (int i = 1; i < argc; ++i) {
+		if (argv[i][0] == '-') {
+			if (strcmp(argv[i], "-o") == 0 && i < argc - 1)
+				import_info.output_path = argv[++i];
+		}
+		else if (import_info.input_path.empty()) {
+			import_info.input_path = argv[i];
+		}
+		else {
+			Log::error() << "More than one input file provided\n";
+			return false;
+		}
+	}
+
+	if (import_info.input_path.empty()) {
+		Log::error() << "No input file provided\n";
+		return false;
+	}
+
+	if (import_info.output_path.empty()) {
+		import_info.output_path =
+		    path(import_info.input_path).stem().string();
+		import_info.output_type = Output_type::any;
+	}
+	else {
+		string ext = path(import_info.output_path).extension();
+
+		if (stricmp(ext.c_str(), ".MDB") == 0)
+			import_info.output_type = Output_type::mdb;
+		else if (stricmp(ext.c_str(), ".gr2") == 0)
+			import_info.output_type = Output_type::gr2;
+		else {
+			Log::error() << "Unrecognized output extension\n";
+			return false;
+		}
+
+		import_info.output_path =
+		    path(import_info.output_path).replace_extension();
+	}
+
+	return true;
+}
 
 bool operator==(const MDB_file::Collision_mesh_vertex& v1,
                 const MDB_file::Collision_mesh_vertex& v2)
@@ -1543,7 +1601,7 @@ void import_skeletons(FbxScene* scene, const char* filename)
 	else {
 		GR2_file gr2;
 		gr2.read(&import_info.file_info);
-		string output_filename = path(filename).stem().string() + ".gr2";
+		string output_filename = string(filename) + ".gr2";
 		gr2.write(output_filename.c_str());
 		cout << "\nOutput is " << output_filename << endl;
 	}
@@ -1890,7 +1948,7 @@ void import_animation(FbxAnimStack *stack, const char* filename)
 	else {
 		GR2_file gr2;
 		gr2.read(&import_info.file_info);
-		string output_filename = path(filename).stem().string() + ".gr2";
+		string output_filename = string(filename) + ".gr2";
 		gr2.write(output_filename.c_str());
 		cout << "\nOutput is " << output_filename << endl;
 	}
@@ -2007,23 +2065,28 @@ void import_models(FbxScene* scene, const char* filename)
 		Log::error() << "MDB not generated due to errors found during the conversion.\n";
 	}
 	else if (mdb.packet_count() > 0) {
-		string output_filename = path(filename).stem().string() + ".MDB";
+		string output_filename = string(filename) + ".MDB";
 		mdb.save(output_filename.c_str());
 		cout << "\nOutput is " << output_filename << endl;
 	}
 }
 
-void import_scene(FbxScene* scene, const char* filename)
+void import_scene(FbxScene* scene, const Import_info& import_info)
 {
-	import_models(scene, filename);
+	if (import_info.output_type == Output_type::mdb ||
+	    import_info.output_type == Output_type::any)
+		import_models(scene, import_info.output_path.c_str());
+
+	if (import_info.output_type == Output_type::mdb)
+		return;
 
 	if (scene->GetSrcObjectCount<FbxAnimStack>() == 0)
-		import_skeletons(scene, filename);
-	else	
-		import_animations(scene, filename);
+		import_skeletons(scene, import_info.output_path.c_str());
+	else
+		import_animations(scene, import_info.output_path.c_str());
 }
 
-bool import_fbx(const char* filename)
+bool import_fbx(const Import_info& import_info)
 {
 	auto manager = FbxManager::Create();
 	if (!manager) {
@@ -2038,7 +2101,8 @@ bool import_fbx(const char* filename)
 
 	// Create an importer.
 	auto importer = FbxImporter::Create(manager, "");
-	if (!importer->Initialize(filename, -1, manager->GetIOSettings())) {
+	if (!importer->Initialize(import_info.input_path.c_str(), -1,
+	                          manager->GetIOSettings())) {
 		Log::error() << importer->GetStatus().GetErrorString() << endl;
 		return false;
 	}
@@ -2052,7 +2116,7 @@ bool import_fbx(const char* filename)
 	// The file has been imported; we can get rid of the importer.
 	importer->Destroy();
 
-	import_scene(scene, filename);
+	import_scene(scene, import_info);
 
 	// Destroy the sdk manager and all other objects it was handling.
 	manager->Destroy();
@@ -2071,12 +2135,17 @@ int main(int argc, char* argv[])
 
 	GR2_file::granny2dll_filename = config.nwn2_home + "\\granny2.dll";
 
-	if(argc != 2) {
+	if(argc < 2) {
 		cout << "Usage: fbx2nw <file>\n";
 		return 1;
 	}
 
-	if (!import_fbx(argv[1]))
+	Import_info import_info;
+
+	if (!parse_args(argc, argv, import_info))
+			return 1;
+
+	if (!import_fbx(import_info))
 		return 1;	
 
 	return 0;
