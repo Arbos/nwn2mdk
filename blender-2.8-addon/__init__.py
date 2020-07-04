@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Neverwinter Nights 2 MDB/GR2 formats (NWN2MDK)",
     "author": "FreshLook",
-    "version": (0, 9, 0),
+    "version": (0, 10, 0),
     "blender": (2, 80, 0),
     "location": "File > Import-Export",
     "description": "Neverwinter Nights 2 MDB/GR2 Import/Export",
