@@ -97,7 +97,7 @@ static bool parse_args(int argc, char* argv[], Import_info& import_info)
 		import_info.output_type = Output_type::any;
 	}
 	else {
-		string ext = path(import_info.output_path).extension();
+		string ext = path(import_info.output_path).extension().string();
 
 		if (stricmp(ext.c_str(), ".mdb") == 0)
 			import_info.output_type = Output_type::mdb;
@@ -109,7 +109,7 @@ static bool parse_args(int argc, char* argv[], Import_info& import_info)
 		}
 
 		import_info.output_path =
-		    path(import_info.output_path).replace_extension();
+		    path(import_info.output_path).replace_extension().string();
 	}
 
 	return true;
