@@ -15,12 +15,51 @@ from bpy.props import (
         StringProperty,
         BoolProperty,
         FloatProperty,
+        FloatVectorProperty,
         CollectionProperty,
         )
 from bpy_extras.io_utils import (
         ImportHelper,
         ExportHelper,
         )
+
+
+def import_custom_properties(objects):
+    for obj in objects:
+        for k in obj.keys():
+            if k == "TINT_MAP":
+                obj.nwn2mdk.tint_map = obj[k]
+                del obj[k]
+            elif k == "DIFFUSE_COLOR":
+                obj.nwn2mdk.diffuse_color = obj[k]
+                del obj[k]
+            elif k == "SPECULAR_COLOR":
+                obj.nwn2mdk.specular_color = obj[k]
+                del obj[k]
+            elif k == "SPECULAR_LEVEL":
+                obj.nwn2mdk.specular_level = obj[k]
+                del obj[k]
+            elif k == "GLOSSINESS":
+                obj.nwn2mdk.glossiness = obj[k]
+                del obj[k]
+            elif k == "TRANSPARENCY_MASK":
+                obj.nwn2mdk.transparency_mask = obj[k] == 1
+                del obj[k]
+            elif k == "HEAD":
+                obj.nwn2mdk.is_head = obj[k] == 1
+                del obj[k]
+            elif k == "DONT_CAST_SHADOWS":
+                obj.nwn2mdk.no_shadows = obj[k] == 1
+                del obj[k]
+            elif k == "ENVIRONMENT_MAP":
+                obj.nwn2mdk.environment_map = obj[k] == 1
+                del obj[k]
+            elif k == "GLOW":
+                obj.nwn2mdk.glow = obj[k] == 1
+                del obj[k]
+            elif k == "PROJECTED_TEXTURES":
+                obj.nwn2mdk.force_proj_tex = obj[k] == 1
+                del obj[k]
 
 
 class ImportMDBGR2(bpy.types.Operator, ImportHelper):
@@ -73,10 +112,42 @@ class ImportMDBGR2(bpy.types.Operator, ImportHelper):
                                  use_image_search=False,
                                  automatic_bone_orientation=self.automatic_bone_orientation)
 
+        import_custom_properties(context.selected_objects)
+
         if os.path.exists(tmpfbx):
             os.remove(tmpfbx)
 
         return {'FINISHED'}
+
+
+def export_custom_properties(objects):
+    for obj in objects:
+        obj["TINT_MAP"] = obj.nwn2mdk.tint_map
+        obj["DIFFUSE_COLOR"] = obj.nwn2mdk.diffuse_color
+        obj["SPECULAR_COLOR"] = obj.nwn2mdk.specular_color
+        obj["SPECULAR_LEVEL"] = obj.nwn2mdk.specular_level
+        obj["GLOSSINESS"] = obj.nwn2mdk.glossiness
+        obj["TRANSPARENCY_MASK"] = float(obj.nwn2mdk.transparency_mask)
+        obj["HEAD"] = float(obj.nwn2mdk.is_head)
+        obj["DONT_CAST_SHADOWS"] = float(obj.nwn2mdk.no_shadows)
+        obj["ENVIRONMENT_MAP"] = float(obj.nwn2mdk.environment_map)
+        obj["GLOW"] = float(obj.nwn2mdk.glow)
+        obj["PROJECTED_TEXTURES"] = float(obj.nwn2mdk.force_proj_tex)
+
+
+def delete_custom_properties(objects):
+    for obj in objects:
+        del obj["TINT_MAP"]
+        del obj["DIFFUSE_COLOR"]
+        del obj["SPECULAR_COLOR"]
+        del obj["SPECULAR_LEVEL"]
+        del obj["GLOSSINESS"]
+        del obj["TRANSPARENCY_MASK"]
+        del obj["HEAD"]
+        del obj["DONT_CAST_SHADOWS"]
+        del obj["ENVIRONMENT_MAP"]
+        del obj["GLOW"]
+        del obj["PROJECTED_TEXTURES"]
 
 
 class ExportMDB(bpy.types.Operator, ExportHelper):
@@ -94,6 +165,8 @@ class ExportMDB(bpy.types.Operator, ExportHelper):
     def execute(self, context):
         if not self.filepath:
             raise Exception("filepath not set")
+
+        export_custom_properties(context.scene.objects)
 
         import os
         working_dir = os.path.dirname(self.filepath)
@@ -120,6 +193,8 @@ class ExportMDB(bpy.types.Operator, ExportHelper):
 
         if os.path.exists(tmpfbx):
             os.remove(tmpfbx)
+
+        delete_custom_properties(context.scene.objects)
 
         return {'FINISHED'}
 
@@ -241,6 +316,59 @@ class NWN2MDK_PT_export_bake_animation(bpy.types.Panel):
         layout.prop(operator, "bake_anim_simplify_factor")
 
 
+class NWN2ModelProperties(bpy.types.PropertyGroup):
+    tint_map: StringProperty(name="Tint Map", maxlen=32)
+    diffuse_color: FloatVectorProperty(
+            name="Diffuse Color",
+            default=(1.0, 1.0, 1.0),
+            min=0.0,
+            max=1.0,
+            subtype='COLOR_GAMMA')
+    specular_color: FloatVectorProperty(
+            name="Specular Color",
+            default=(1.0, 1.0, 1.0),
+            min=0.0,
+            max=1.0,
+            subtype='COLOR_GAMMA')
+    specular_level: FloatProperty(name='Specular Level', default=1.0)
+    glossiness: FloatProperty(name='Glossiness', default=20.0)
+    transparency_mask: BoolProperty(name="Transparency Mask")
+    is_head: BoolProperty(name="Head (custscene)")
+    no_shadows: BoolProperty(name="Don't Cast Shadows")
+    environment_map: BoolProperty(name="Environment Map")
+    glow: BoolProperty(name="Glow")
+    force_proj_tex: BoolProperty(name="Force Interface Projected Textures")
+
+
+class OBJECT_PT_nwn2mdk(bpy.types.Panel):
+    """Neverwinter Night 2 Model Properties"""
+    bl_label = "NWN2"
+    bl_idname = "OBJECT_PT_nwn2mdk"
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = "object"
+    bl_options = {'DEFAULT_CLOSED'}
+
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = True
+        layout.use_property_decorate = False
+
+        obj = context.object
+
+        layout.prop(obj.nwn2mdk, "tint_map")
+        layout.prop(obj.nwn2mdk, "diffuse_color")
+        layout.prop(obj.nwn2mdk, "specular_color")
+        layout.prop(obj.nwn2mdk, "specular_level")
+        layout.prop(obj.nwn2mdk, "glossiness")
+        layout.prop(obj.nwn2mdk, "transparency_mask")
+        layout.prop(obj.nwn2mdk, "is_head")
+        layout.prop(obj.nwn2mdk, "no_shadows")
+        layout.prop(obj.nwn2mdk, "environment_map")
+        layout.prop(obj.nwn2mdk, "glow")
+        layout.prop(obj.nwn2mdk, "force_proj_tex")
+
+
 def menu_func_import(self, context):
     self.layout.operator(ImportMDBGR2.bl_idname, text="Neverwinter Nights 2 (MDK) (.mdb/.gr2)")
 
@@ -256,6 +384,8 @@ classes = (
     ExportMDB,
     ExportGR2,
     NWN2MDK_PT_export_bake_animation,
+    NWN2ModelProperties,
+    OBJECT_PT_nwn2mdk,
 )
 
 
@@ -265,6 +395,8 @@ def register():
 
     bpy.types.TOPBAR_MT_file_import.append(menu_func_import)
     bpy.types.TOPBAR_MT_file_export.append(menu_func_export)
+
+    bpy.types.Object.nwn2mdk = bpy.props.PointerProperty(type=NWN2ModelProperties)
 
 
 def unregister():
