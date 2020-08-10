@@ -43,22 +43,22 @@ def import_custom_properties(objects):
                 obj.nwn2mdk.glossiness = obj[k]
                 del obj[k]
             elif k == "TRANSPARENCY_MASK":
-                obj.nwn2mdk.transparency_mask = obj[k] == 1
+                obj.nwn2mdk.use_transparency_mask = obj[k] == 1
                 del obj[k]
             elif k == "HEAD":
                 obj.nwn2mdk.is_head = obj[k] == 1
                 del obj[k]
             elif k == "DONT_CAST_SHADOWS":
-                obj.nwn2mdk.no_shadows = obj[k] == 1
+                obj.nwn2mdk.cast_no_shadows = obj[k] == 1
                 del obj[k]
             elif k == "ENVIRONMENT_MAP":
-                obj.nwn2mdk.environment_map = obj[k] == 1
+                obj.nwn2mdk.use_environment_map = obj[k] == 1
                 del obj[k]
             elif k == "GLOW":
                 obj.nwn2mdk.glow = obj[k] == 1
                 del obj[k]
             elif k == "PROJECTED_TEXTURES":
-                obj.nwn2mdk.force_proj_tex = obj[k] == 1
+                obj.nwn2mdk.accept_projected_textures = obj[k] == 1
                 del obj[k]
 
 
@@ -122,32 +122,32 @@ class ImportMDBGR2(bpy.types.Operator, ImportHelper):
 
 def export_custom_properties(objects):
     for obj in objects:
-        obj["TINT_MAP"] = obj.nwn2mdk.tint_map
-        obj["DIFFUSE_COLOR"] = obj.nwn2mdk.diffuse_color
-        obj["SPECULAR_COLOR"] = obj.nwn2mdk.specular_color
-        obj["SPECULAR_LEVEL"] = obj.nwn2mdk.specular_level
-        obj["GLOSSINESS"] = obj.nwn2mdk.glossiness
-        obj["TRANSPARENCY_MASK"] = float(obj.nwn2mdk.transparency_mask)
-        obj["HEAD"] = float(obj.nwn2mdk.is_head)
-        obj["DONT_CAST_SHADOWS"] = float(obj.nwn2mdk.no_shadows)
-        obj["ENVIRONMENT_MAP"] = float(obj.nwn2mdk.environment_map)
-        obj["GLOW"] = float(obj.nwn2mdk.glow)
-        obj["PROJECTED_TEXTURES"] = float(obj.nwn2mdk.force_proj_tex)
+        obj["NWN2MDK_TINT_MAP"] = obj.nwn2mdk.tint_map
+        obj["NWN2MDK_DIFFUSE_COLOR"] = obj.nwn2mdk.diffuse_color
+        obj["NWN2MDK_SPECULAR_COLOR"] = obj.nwn2mdk.specular_color
+        obj["NWN2MDK_SPECULAR_LEVEL"] = obj.nwn2mdk.specular_level
+        obj["NWN2MDK_GLOSSINESS"] = obj.nwn2mdk.glossiness
+        obj["NWN2MDK_TRANSPARENCY_MASK"] = float(obj.nwn2mdk.use_transparency_mask)
+        obj["NWN2MDK_HEAD"] = float(obj.nwn2mdk.is_head)
+        obj["NWN2MDK_DONT_CAST_SHADOWS"] = float(obj.nwn2mdk.cast_no_shadows)
+        obj["NWN2MDK_ENVIRONMENT_MAP"] = float(obj.nwn2mdk.use_environment_map)
+        obj["NWN2MDK_GLOW"] = float(obj.nwn2mdk.glow)
+        obj["NWN2MDK_PROJECTED_TEXTURES"] = float(obj.nwn2mdk.accept_projected_textures)
 
 
 def delete_custom_properties(objects):
     for obj in objects:
-        del obj["TINT_MAP"]
-        del obj["DIFFUSE_COLOR"]
-        del obj["SPECULAR_COLOR"]
-        del obj["SPECULAR_LEVEL"]
-        del obj["GLOSSINESS"]
-        del obj["TRANSPARENCY_MASK"]
-        del obj["HEAD"]
-        del obj["DONT_CAST_SHADOWS"]
-        del obj["ENVIRONMENT_MAP"]
-        del obj["GLOW"]
-        del obj["PROJECTED_TEXTURES"]
+        del obj["NWN2MDK_TINT_MAP"]
+        del obj["NWN2MDK_DIFFUSE_COLOR"]
+        del obj["NWN2MDK_SPECULAR_COLOR"]
+        del obj["NWN2MDK_SPECULAR_LEVEL"]
+        del obj["NWN2MDK_GLOSSINESS"]
+        del obj["NWN2MDK_TRANSPARENCY_MASK"]
+        del obj["NWN2MDK_HEAD"]
+        del obj["NWN2MDK_DONT_CAST_SHADOWS"]
+        del obj["NWN2MDK_ENVIRONMENT_MAP"]
+        del obj["NWN2MDK_GLOW"]
+        del obj["NWN2MDK_PROJECTED_TEXTURES"]
 
 
 class ExportMDB(bpy.types.Operator, ExportHelper):
@@ -317,7 +317,10 @@ class NWN2MDK_PT_export_bake_animation(bpy.types.Panel):
 
 
 class NWN2ModelProperties(bpy.types.PropertyGroup):
-    tint_map: StringProperty(name="Tint Map", maxlen=32)
+    tint_map: StringProperty(
+            name="Tint Map",
+            description="Filename of the tint map without extension",
+            maxlen=32)
     diffuse_color: FloatVectorProperty(
             name="Diffuse Color",
             default=(1.0, 1.0, 1.0),
@@ -332,12 +335,22 @@ class NWN2ModelProperties(bpy.types.PropertyGroup):
             subtype='COLOR_GAMMA')
     specular_level: FloatProperty(name='Specular Level', default=1.0)
     glossiness: FloatProperty(name='Glossiness', default=20.0)
-    transparency_mask: BoolProperty(name="Transparency Mask")
-    is_head: BoolProperty(name="Head (custscene)")
-    no_shadows: BoolProperty(name="Don't Cast Shadows")
-    environment_map: BoolProperty(name="Environment Map")
-    glow: BoolProperty(name="Glow")
-    force_proj_tex: BoolProperty(name="Force Interface Projected Textures")
+    use_transparency_mask: BoolProperty(
+            name="Transparency Mask",
+            description="Indicates whether to use alpha-masked transparency")
+    is_head: BoolProperty(
+            name="Head (cutscene)",
+            description="Indicates whether the model is a head weighted to facial bones")
+    cast_no_shadows: BoolProperty(
+            name="Don't Cast Shadows",
+            description="Indicates whether the model casts shadows")
+    use_environment_map: BoolProperty(name="Environment Map")
+    glow: BoolProperty(
+            name="Glow",
+            description="Indicates whether the model uses a glow map")
+    accept_projected_textures: BoolProperty(
+            name="Force Interface Projected Textures",
+            description="Indicates whether the model accepts projected textures")
 
 
 class OBJECT_PT_nwn2mdk(bpy.types.Panel):
@@ -361,12 +374,12 @@ class OBJECT_PT_nwn2mdk(bpy.types.Panel):
         layout.prop(obj.nwn2mdk, "specular_color")
         layout.prop(obj.nwn2mdk, "specular_level")
         layout.prop(obj.nwn2mdk, "glossiness")
-        layout.prop(obj.nwn2mdk, "transparency_mask")
+        layout.prop(obj.nwn2mdk, "use_transparency_mask")
         layout.prop(obj.nwn2mdk, "is_head")
-        layout.prop(obj.nwn2mdk, "no_shadows")
-        layout.prop(obj.nwn2mdk, "environment_map")
+        layout.prop(obj.nwn2mdk, "cast_no_shadows")
+        layout.prop(obj.nwn2mdk, "use_environment_map")
         layout.prop(obj.nwn2mdk, "glow")
-        layout.prop(obj.nwn2mdk, "force_proj_tex")
+        layout.prop(obj.nwn2mdk, "accept_projected_textures")
 
 
 def menu_func_import(self, context):

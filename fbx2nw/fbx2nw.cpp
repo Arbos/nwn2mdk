@@ -540,7 +540,11 @@ void import_map(char* map_name, FbxNode* node, const char* property_name)
 void import_diffuse_color(MDB_file::Material& material, FbxNode* node,
 	FbxSurfacePhong* fbx_material)
 {
-	auto prop = node->FindProperty("DIFFUSE_COLOR", false);
+	auto prop = node->FindProperty("NWN2MDK_DIFFUSE_COLOR", false);
+
+	if (!prop.IsValid())
+		prop = node->FindProperty("DIFFUSE_COLOR", false);
+
 	FbxDouble3 c;
 
 	if (prop.IsValid())
@@ -556,7 +560,11 @@ void import_diffuse_color(MDB_file::Material& material, FbxNode* node,
 void import_specular_color(MDB_file::Material& material, FbxNode* node,
 	FbxSurfacePhong* fbx_material)
 {
-	auto prop = node->FindProperty("SPECULAR_COLOR", false);
+	auto prop = node->FindProperty("NWN2MDK_SPECULAR_COLOR", false);
+
+	if (!prop.IsValid())
+		prop = node->FindProperty("SPECULAR_COLOR", false);
+
 	FbxDouble3 c;
 
 	if (prop.IsValid())
@@ -572,7 +580,10 @@ void import_specular_color(MDB_file::Material& material, FbxNode* node,
 void import_specular_level(MDB_file::Material& material, FbxNode* node,
 	FbxSurfacePhong* fbx_material)
 {
-	auto prop = node->FindProperty("SPECULAR_LEVEL", false);
+	auto prop = node->FindProperty("NWN2MDK_SPECULAR_LEVEL", false);
+
+	if (!prop.IsValid())
+		prop = node->FindProperty("SPECULAR_LEVEL", false);
 
 	if (prop.IsValid())
 		material.specular_level = prop.Get<float>();
@@ -583,7 +594,10 @@ void import_specular_level(MDB_file::Material& material, FbxNode* node,
 void import_specular_power(MDB_file::Material& material, FbxNode* node,
 	FbxSurfacePhong* fbx_material)
 {
-	auto prop = node->FindProperty("GLOSSINESS", false);
+	auto prop = node->FindProperty("NWN2MDK_GLOSSINESS", false);
+
+	if (!prop.IsValid())
+		prop = node->FindProperty("GLOSSINESS", false);
 
 	if (prop.IsValid())
 		material.specular_power = prop.Get<float>();
@@ -605,6 +619,8 @@ void import_material(MDB_file::Material& material, FbxMesh* mesh)
 	           FbxSurfaceMaterial::sNormalMap);
 	import_map(material.tint_map_name, mesh->GetNode(),
 	           "TINT_MAP");
+	import_map(material.tint_map_name, mesh->GetNode(),
+	           "NWN2MDK_TINT_MAP");
 	import_map(material.glow_map_name, fbx_material,
 	           FbxSurfaceMaterial::sEmissiveFactor);
 	import_map(material.glow_map_name, fbx_material,
@@ -1061,31 +1077,34 @@ bool validate_rigid_mesh(FbxMesh* mesh)
 	return true;
 }
 
-void import_user_property(FbxProperty& p, MDB_file::Material& material)
+static void import_user_property(FbxNode* node, MDB_file::Material& material,
+                                 const char* name1, const char* name2,
+                                 MDB_file::Material_flags flag)
 {
-	if (p.GetName().CompareNoCase("TRANSPARENCY_MASK") == 0)
-		material.flags |= p.Get<float>() == 0 ? 0 : MDB_file::ALPHA_TEST;
-	else if (p.GetName().CompareNoCase("ENVIRONMENT_MAP") == 0)
-		material.flags |= p.Get<float>() == 0 ? 0 : MDB_file::ENVIRONMENT_MAPPING;
-	else if (p.GetName().CompareNoCase("HEAD") == 0)
-		material.flags |= p.Get<float>() == 0 ? 0 : MDB_file::CUTSCENE_MESH;
-	else if (p.GetName().CompareNoCase("GLOW") == 0)
-		material.flags |= p.Get<float>() == 0 ? 0 : MDB_file::GLOW;
-	else if (p.GetName().CompareNoCase("DONT_CAST_SHADOWS") == 0)
-		material.flags |= p.Get<float>() == 0 ? 0 : MDB_file::CAST_NO_SHADOWS;
-	else if (p.GetName().CompareNoCase("PROJECTED_TEXTURES") == 0)
-		material.flags |= p.Get<float>() == 0 ? 0 : MDB_file::PROJECTED_TEXTURES;
+	auto prop = node->FindProperty(name1, false);
+
+	if (!prop.IsValid())
+		prop = node->FindProperty(name2, false);
+
+	if (prop.IsValid())
+		material.flags |= prop.Get<float>() == 0 ? 0 : flag;
 }
 
 void import_user_properties(FbxNode* node, MDB_file::Material& material)
 {
-	auto p = node->GetFirstProperty();
-	while (p.IsValid()) {
-		if (p.GetFlag(FbxPropertyFlags::eUserDefined))
-			import_user_property(p, material);
-
-		p = node->GetNextProperty(p);
-	}
+	import_user_property(node, material, "NWN2MDK_TRANSPARENCY_MASK",
+	                     "TRANSPARENCY_MASK", MDB_file::ALPHA_TEST);
+	import_user_property(node, material, "NWN2MDK_ENVIRONMENT_MAP",
+	                     "ENVIRONMENT_MAP", MDB_file::ENVIRONMENT_MAPPING);
+	import_user_property(node, material, "NWN2MDK_HEAD", "HEAD",
+	                     MDB_file::CUTSCENE_MESH);
+	import_user_property(node, material, "NWN2MDK_GLOW", "GLOW",
+	                     MDB_file::GLOW);
+	import_user_property(node, material, "NWN2MDK_DONT_CAST_SHADOWS",
+	                     "DONT_CAST_SHADOWS", MDB_file::CAST_NO_SHADOWS);
+	import_user_property(node, material, "NWN2MDK_PROJECTED_TEXTURES",
+	                     "PROJECTED_TEXTURES",
+	                     MDB_file::PROJECTED_TEXTURES);
 }
 
 void import_rigid_mesh(MDB_file& mdb, FbxNode* node)
