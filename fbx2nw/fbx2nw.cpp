@@ -851,7 +851,8 @@ static bool is_hair_packet(FbxNode* node)
 {
 	return node->FindProperty("HSB_LOW", false).IsValid() ||
 		node->FindProperty("HSB_SHORT", false).IsValid() ||
-		node->FindProperty("HSB_PONYTAIL", false).IsValid();	
+		node->FindProperty("HSB_PONYTAIL", false).IsValid() ||
+		node->FindProperty("NWN2MDK_HSB", false).IsValid();
 }
 
 static void print_hair(const MDB_file::Hair& hair)
@@ -878,7 +879,21 @@ static void print_hair(const MDB_file::Hair& hair)
 
 MDB_file::Hair_shortening_behavior hair_shortening_behavior(FbxNode* node)
 {
-	auto prop = node->FindProperty("HSB_LOW", false);
+	auto prop = node->FindProperty("NWN2MDK_HSB", false);
+	if (prop.IsValid()) {
+		FbxString hsb = prop.Get<FbxString>();
+
+		if (hsb == "LOW")
+			return MDB_file::HSB_LOW;
+		else if (hsb == "SHORT")
+			return MDB_file::HSB_SHORT;
+		else if (hsb == "PONYTAIL")
+			return MDB_file::HSB_PONYTAIL;
+		else
+			return MDB_file::HSB_LOW;
+	}
+
+	prop = node->FindProperty("HSB_LOW", false);
 	if (prop.IsValid() && prop.Get<float>() != 0)
 		return MDB_file::HSB_LOW;
 
@@ -920,12 +935,29 @@ static bool is_helm_packet(FbxNode* node)
 	return node->FindProperty("HHHB_NONE_HIDDEN", false).IsValid() ||
 		node->FindProperty("HHHB_HAIR_HIDDEN", false).IsValid() ||
 		node->FindProperty("HHHB_PARTIAL_HAIR", false).IsValid() ||
-		node->FindProperty("HHHB_HEAD_HIDDEN", false).IsValid();
+		node->FindProperty("HHHB_HEAD_HIDDEN", false).IsValid() ||
+		node->FindProperty("NWN2MDK_HHHB", false).IsValid();
 }
 
 MDB_file::Helm_hair_hiding_behavior helm_hair_hiding_behavior(FbxNode* node)
 {
-	auto prop = node->FindProperty("HHHB_NONE_HIDDEN", false);
+	auto prop = node->FindProperty("NWN2MDK_HHHB", false);
+	if (prop.IsValid()) {
+		FbxString hsb = prop.Get<FbxString>();
+
+		if (hsb == "NONE_HIDDEN")
+			return MDB_file::HHHB_NONE_HIDDEN;
+		else if (hsb == "HAIR_HIDDEN")
+			return MDB_file::HHHB_HAIR_HIDDEN;
+		else if (hsb == "PARTIAL_HAIR")
+			return MDB_file::HHHB_PARTIAL_HAIR;
+		else if (hsb == "HEAD_HIDDEN")
+			return MDB_file::HHHB_HEAD_HIDDEN;
+		else
+			return MDB_file::HHHB_NONE_HIDDEN;
+	}
+
+	prop = node->FindProperty("HHHB_NONE_HIDDEN", false);
 	if (prop.IsValid() && prop.Get<float>() != 0)
 		return MDB_file::HHHB_NONE_HIDDEN;
 

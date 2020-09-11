@@ -16,6 +16,7 @@ from bpy.props import (
         BoolProperty,
         FloatProperty,
         FloatVectorProperty,
+        EnumProperty,
         CollectionProperty,
         )
 from bpy_extras.io_utils import (
@@ -28,6 +29,7 @@ def import_custom_properties(objects):
     for obj in objects:
         for k in obj.keys():
             if k == "TINT_MAP":
+                obj.nwn2mdk.object_type = 'MESH'
                 obj.nwn2mdk.tint_map = obj[k]
                 del obj[k]
             elif k == "DIFFUSE_COLOR":
@@ -59,6 +61,36 @@ def import_custom_properties(objects):
                 del obj[k]
             elif k == "PROJECTED_TEXTURES":
                 obj.nwn2mdk.accept_projected_textures = obj[k] == 1
+                del obj[k]
+            elif k == "HSB_LOW":
+                obj.nwn2mdk.object_type = 'HAIR_INFO'
+                if obj[k] == 1:
+                    obj.nwn2mdk.hair_shortening_behavior = 'LOW'
+                del obj[k]
+            elif k == "HSB_SHORT":
+                if obj[k] == 1:
+                    obj.nwn2mdk.hair_shortening_behavior = 'SHORT'
+                del obj[k]
+            elif k == "HSB_PONYTAIL":
+                if obj[k] == 1:
+                    obj.nwn2mdk.hair_shortening_behavior = 'PONYTAIL'
+                del obj[k]
+            elif k == "HHHB_NONE_HIDDEN":
+                obj.nwn2mdk.object_type = 'HELM_INFO'
+                if obj[k] == 1:
+                    obj.nwn2mdk.helm_hair_hiding_behavior = 'NONE_HIDDEN'
+                del obj[k]
+            elif k == "HHHB_HAIR_HIDDEN":
+                if obj[k] == 1:
+                    obj.nwn2mdk.helm_hair_hiding_behavior = 'HAIR_HIDDEN'
+                del obj[k]
+            elif k == "HHHB_PARTIAL_HAIR":
+                if obj[k] == 1:
+                    obj.nwn2mdk.helm_hair_hiding_behavior = 'PARTIAL_HAIR'
+                del obj[k]
+            elif k == "HHHB_HEAD_HIDDEN":
+                if obj[k] == 1:
+                    obj.nwn2mdk.helm_hair_hiding_behavior = 'HEAD_HIDDEN'
                 del obj[k]
 
 
@@ -120,34 +152,45 @@ class ImportMDBGR2(bpy.types.Operator, ImportHelper):
         return {'FINISHED'}
 
 
+def export_mesh_properties(obj):
+    obj["NWN2MDK_TINT_MAP"] = obj.nwn2mdk.tint_map
+    obj["NWN2MDK_DIFFUSE_COLOR"] = obj.nwn2mdk.diffuse_color
+    obj["NWN2MDK_SPECULAR_COLOR"] = obj.nwn2mdk.specular_color
+    obj["NWN2MDK_SPECULAR_LEVEL"] = obj.nwn2mdk.specular_level
+    obj["NWN2MDK_GLOSSINESS"] = obj.nwn2mdk.glossiness
+    obj["NWN2MDK_TRANSPARENCY_MASK"] = float(obj.nwn2mdk.use_transparency_mask)
+    obj["NWN2MDK_HEAD"] = float(obj.nwn2mdk.is_head)
+    obj["NWN2MDK_DONT_CAST_SHADOWS"] = float(obj.nwn2mdk.cast_no_shadows)
+    obj["NWN2MDK_ENVIRONMENT_MAP"] = float(obj.nwn2mdk.use_environment_map)
+    obj["NWN2MDK_GLOW"] = float(obj.nwn2mdk.glow)
+    obj["NWN2MDK_PROJECTED_TEXTURES"] = float(obj.nwn2mdk.accept_projected_textures)
+
+
 def export_custom_properties(objects):
     for obj in objects:
-        obj["NWN2MDK_TINT_MAP"] = obj.nwn2mdk.tint_map
-        obj["NWN2MDK_DIFFUSE_COLOR"] = obj.nwn2mdk.diffuse_color
-        obj["NWN2MDK_SPECULAR_COLOR"] = obj.nwn2mdk.specular_color
-        obj["NWN2MDK_SPECULAR_LEVEL"] = obj.nwn2mdk.specular_level
-        obj["NWN2MDK_GLOSSINESS"] = obj.nwn2mdk.glossiness
-        obj["NWN2MDK_TRANSPARENCY_MASK"] = float(obj.nwn2mdk.use_transparency_mask)
-        obj["NWN2MDK_HEAD"] = float(obj.nwn2mdk.is_head)
-        obj["NWN2MDK_DONT_CAST_SHADOWS"] = float(obj.nwn2mdk.cast_no_shadows)
-        obj["NWN2MDK_ENVIRONMENT_MAP"] = float(obj.nwn2mdk.use_environment_map)
-        obj["NWN2MDK_GLOW"] = float(obj.nwn2mdk.glow)
-        obj["NWN2MDK_PROJECTED_TEXTURES"] = float(obj.nwn2mdk.accept_projected_textures)
+        if obj.nwn2mdk.object_type == 'MESH':
+            export_mesh_properties(obj)
+        elif obj.nwn2mdk.object_type == 'HAIR_INFO':
+            obj["NWN2MDK_HSB"] = obj.nwn2mdk.hair_shortening_behavior
+        elif obj.nwn2mdk.object_type == 'HELM_INFO':
+            obj["NWN2MDK_HHHB"] = obj.nwn2mdk.helm_hair_hiding_behavior
 
 
 def delete_custom_properties(objects):
     for obj in objects:
-        del obj["NWN2MDK_TINT_MAP"]
-        del obj["NWN2MDK_DIFFUSE_COLOR"]
-        del obj["NWN2MDK_SPECULAR_COLOR"]
-        del obj["NWN2MDK_SPECULAR_LEVEL"]
-        del obj["NWN2MDK_GLOSSINESS"]
-        del obj["NWN2MDK_TRANSPARENCY_MASK"]
-        del obj["NWN2MDK_HEAD"]
-        del obj["NWN2MDK_DONT_CAST_SHADOWS"]
-        del obj["NWN2MDK_ENVIRONMENT_MAP"]
-        del obj["NWN2MDK_GLOW"]
-        del obj["NWN2MDK_PROJECTED_TEXTURES"]
+        obj.pop("NWN2MDK_TINT_MAP", None)
+        obj.pop("NWN2MDK_DIFFUSE_COLOR", None)
+        obj.pop("NWN2MDK_SPECULAR_COLOR", None)
+        obj.pop("NWN2MDK_SPECULAR_LEVEL", None)
+        obj.pop("NWN2MDK_GLOSSINESS", None)
+        obj.pop("NWN2MDK_TRANSPARENCY_MASK", None)
+        obj.pop("NWN2MDK_HEAD", None)
+        obj.pop("NWN2MDK_DONT_CAST_SHADOWS", None)
+        obj.pop("NWN2MDK_ENVIRONMENT_MAP", None)
+        obj.pop("NWN2MDK_GLOW", None)
+        obj.pop("NWN2MDK_PROJECTED_TEXTURES", None)
+        obj.pop("NWN2MDK_HSB", None)
+        obj.pop("NWN2MDK_HHHB", None)
 
 
 class ExportMDB(bpy.types.Operator, ExportHelper):
@@ -317,6 +360,13 @@ class NWN2MDK_PT_export_bake_animation(bpy.types.Panel):
 
 
 class NWN2ModelProperties(bpy.types.PropertyGroup):
+    object_type: EnumProperty(
+            items=(('UNSPECIFIED', "Unspecified", "The exporter will try to auto-detect it"),
+                   ('MESH', "Mesh", "Rigid mesh or skin"),
+                   ('HAIR_INFO', "Hair Info", "Hair info"),
+                   ('HELM_INFO', "Helm Info", "Helm info")),
+            name="Type",
+            description="Type of NWN2 object")
     tint_map: StringProperty(
             name="Tint Map",
             description="Filename of the tint map without extension",
@@ -351,6 +401,19 @@ class NWN2ModelProperties(bpy.types.PropertyGroup):
     accept_projected_textures: BoolProperty(
             name="Force Interface Projected Textures",
             description="Indicates whether the model accepts projected textures")
+    hair_shortening_behavior: EnumProperty(
+            items=(('LOW', "Low", ""),
+                   ('SHORT', "Short", ""),
+                   ('PONYTAIL', "Ponytail", "")),
+            name="Hair Shortening",
+            description="Hair shortening behavior")
+    helm_hair_hiding_behavior: EnumProperty(
+            items=(('NONE_HIDDEN', "None Hidden", "Nothing is hidden"),
+                   ('HAIR_HIDDEN', "Hair Hidden", "Hair is hidden, but not beard"),
+                   ('PARTIAL_HAIR', "Partial Hair", "Hair is partially hidden"),
+                   ('HEAD_HIDDEN', "Head Hidden", "Head is hidden")),
+            name="Helm-Hair Hiding",
+            description="Helm-Hair hiding behavior")
 
 
 class OBJECT_PT_nwn2mdk(bpy.types.Panel):
@@ -369,17 +432,24 @@ class OBJECT_PT_nwn2mdk(bpy.types.Panel):
 
         obj = context.object
 
-        layout.prop(obj.nwn2mdk, "tint_map")
-        layout.prop(obj.nwn2mdk, "diffuse_color")
-        layout.prop(obj.nwn2mdk, "specular_color")
-        layout.prop(obj.nwn2mdk, "specular_level")
-        layout.prop(obj.nwn2mdk, "glossiness")
-        layout.prop(obj.nwn2mdk, "use_transparency_mask")
-        layout.prop(obj.nwn2mdk, "is_head")
-        layout.prop(obj.nwn2mdk, "cast_no_shadows")
-        layout.prop(obj.nwn2mdk, "use_environment_map")
-        layout.prop(obj.nwn2mdk, "glow")
-        layout.prop(obj.nwn2mdk, "accept_projected_textures")
+        layout.prop(obj.nwn2mdk, "object_type")
+
+        if obj.nwn2mdk.object_type == 'MESH':
+            layout.prop(obj.nwn2mdk, "tint_map")
+            layout.prop(obj.nwn2mdk, "diffuse_color")
+            layout.prop(obj.nwn2mdk, "specular_color")
+            layout.prop(obj.nwn2mdk, "specular_level")
+            layout.prop(obj.nwn2mdk, "glossiness")
+            layout.prop(obj.nwn2mdk, "use_transparency_mask")
+            layout.prop(obj.nwn2mdk, "is_head")
+            layout.prop(obj.nwn2mdk, "cast_no_shadows")
+            layout.prop(obj.nwn2mdk, "use_environment_map")
+            layout.prop(obj.nwn2mdk, "glow")
+            layout.prop(obj.nwn2mdk, "accept_projected_textures")
+        elif obj.nwn2mdk.object_type == 'HAIR_INFO':
+            layout.prop(obj.nwn2mdk, "hair_shortening_behavior")
+        elif obj.nwn2mdk.object_type == 'HELM_INFO':
+            layout.prop(obj.nwn2mdk, "helm_hair_hiding_behavior")
 
 
 def menu_func_import(self, context):
