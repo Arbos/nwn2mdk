@@ -2068,8 +2068,15 @@ float sphere_radius(FbxNode *node)
 	return float(mesh->GetControlPointAt(0).Length());
 }
 
-void import_collision_sphere(MDB_file::Collision_spheres& cs, FbxNode* node, const std::vector<Bone_info>& bone_infos)
+static void import_collision_sphere(MDB_file::Collision_spheres& cs,
+                                    FbxNode* node,
+                                    const std::vector<Bone_info>& bone_infos)
 {
+	auto mesh = node->GetMesh();
+
+	if (!mesh)
+		return;
+
 	cout << "Importing COLS: " << node->GetName() << endl;	
 
 	MDB_file::Collision_sphere s;
@@ -2078,19 +2085,27 @@ void import_collision_sphere(MDB_file::Collision_spheres& cs, FbxNode* node, con
 	cs.spheres.push_back(s);
 }
 
-void import_collision_spheres(MDB_file& mdb, FbxScene* scene)
+static void import_collision_spheres(MDB_file::Collision_spheres& cs,
+                                     FbxNode* node,
+                                     const vector<Bone_info>& bone_infos)
+{
+	for (int i = 0; i < node->GetChildCount(); ++i) {
+		auto child = node->GetChild(i);
+
+		if (starts_with(child->GetName(), "COLS"))
+			import_collision_sphere(cs, child, bone_infos);
+
+		import_collision_spheres(cs, child, bone_infos);
+	}
+}
+
+static void import_collision_spheres(MDB_file& mdb, FbxScene* scene)
 {
 	vector<Bone_info> bone_infos;
 	gather_bone_info(scene->GetRootNode(), 0, bone_infos);
 
 	auto cs = make_unique<MDB_file::Collision_spheres>();
-
-	for (int i = 0; i < scene->GetRootNode()->GetChildCount(); ++i) {
-		auto node = scene->GetRootNode()->GetChild(i);
-
-		if (starts_with(node->GetName(), "COLS"))
-			import_collision_sphere(*cs, node, bone_infos);
-	}
+	import_collision_spheres(*cs, scene->GetRootNode(), bone_infos);
 
 	sort(cs->spheres.begin(), cs->spheres.end(),
 		[](MDB_file::Collision_sphere &s0, MDB_file::Collision_sphere &s1) {
