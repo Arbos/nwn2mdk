@@ -307,9 +307,9 @@ static void export_collision_mesh_3(Export_info& export_info,
 	node->AddMaterial(material);
 }
 
-FbxMesh* create_sphere(Export_info& export_info, const char* name, double radius)
+FbxMesh* create_sphere(FbxScene* scene, const char* name, double radius)
 {
-	auto mesh = FbxMesh::Create(export_info.scene, name);
+	auto mesh = FbxMesh::Create(scene, name);
 
 	int rings = 16;
 	int segments = 32;
@@ -388,7 +388,7 @@ static FbxSurfacePhong *collision_sphere_material(FbxScene* scene)
 	return material;
 }
 
-static void export_collision_sphere(Export_info& export_info,
+static void export_collision_sphere(FbxNode *parent_node,
 	const MDB_file::Collision_spheres& cs, uint32_t sphere_index,
 	Dependency& dep)
 {
@@ -402,21 +402,25 @@ static void export_collision_sphere(Export_info& export_info,
 	else
 		node_name += to_string(cs.spheres[sphere_index].bone_index);
 
-	auto node = FbxNode::Create(export_info.scene, node_name.c_str());
-	node->LclRotation.Set(FbxDouble3(-90, 0, 0));
-	node->LclScaling.Set(FbxDouble3(100, 100, 100));
+	auto node = FbxNode::Create(parent_node->GetScene(), node_name.c_str());
+	node->LclRotation.Set(FbxDouble3(0, 0, 0));
+	node->LclScaling.Set(FbxDouble3(1, 1, 1));
 
 	if (fbx_bone) {
 		auto m = fbx_bone->EvaluateGlobalTransform();
-		node->LclTranslation.Set(m.GetT());
+		auto t = m.GetT()/100.0;
+		swap(t[1], t[2]);
+		t[1] = -t[1];
+		node->LclTranslation.Set(t);
 	}
 
-	export_info.scene->GetRootNode()->AddChild(node);
+	parent_node->AddChild(node);
 
-	auto mesh = create_sphere(export_info, node_name.c_str(), cs.spheres[sphere_index].radius);
+	auto mesh = create_sphere(node->GetScene(), node_name.c_str(),
+	                          cs.spheres[sphere_index].radius);
 	node->SetNodeAttribute(mesh);
 	
-	node->AddMaterial(collision_sphere_material(export_info.scene));
+	node->AddMaterial(collision_sphere_material(node->GetScene()));
 }
 
 static void export_collision_spheres(Export_info& export_info,
@@ -433,8 +437,13 @@ static void export_collision_spheres(Export_info& export_info,
 	if (!dep)
 		return;
 
+	auto cols_node = FbxNode::Create(export_info.scene, "COLS");
+	cols_node->LclRotation.Set(FbxDouble3(-90, 0, 0));
+	cols_node->LclScaling.Set(FbxDouble3(100, 100, 100));
+	export_info.scene->GetRootNode()->AddChild(cols_node);
+
 	for (uint32_t i = 0; i < cs.header.sphere_count; ++i)
-		export_collision_sphere(export_info, cs, i, *dep);
+		export_collision_sphere(cols_node, cs, i, *dep);
 }
 
 static FbxDouble3 orientation_to_euler(const float orientation[3][3])
