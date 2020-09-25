@@ -1621,7 +1621,7 @@ void import_skeleton(GR2_import_info& import_info, FbxNode* node)
 
 void import_skeletons(FbxScene* scene, const Import_info& info)
 {
-	Log::error_count = 0; // Reset error count
+	auto old_error_count = Log::error_count;
 
 	GR2_import_info import_info;
 
@@ -1646,7 +1646,7 @@ void import_skeletons(FbxScene* scene, const Import_info& info)
 	import_info.file_info.models_count = import_info.model_pointers.size();
 	import_info.file_info.models = import_info.model_pointers.data();
 
-	if (Log::error_count > 0) {
+	if (Log::error_count > old_error_count) {
 		Log::error() << "skel.gr2 not generated due to errors found during the conversion.\n";
 	}
 	else {
@@ -1944,7 +1944,7 @@ void import_anim_layer(GR2_import_info& import_info, FbxAnimLayer* layer)
 
 void import_animation(FbxAnimStack *stack, const Import_info& info)
 {
-	Log::error_count = 0; // Reset error count
+	auto old_error_count = Log::error_count;
 
 	GR2_import_info import_info;
 
@@ -1993,7 +1993,7 @@ void import_animation(FbxAnimStack *stack, const Import_info& info)
 	import_info.file_info.extended_data.keys = nullptr;
 	import_info.file_info.extended_data.values = nullptr;
 
-	if (Log::error_count > 0) {
+	if (Log::error_count > old_error_count) {
 		Log::error() << "anim.gr2 not generated due to errors found during the conversion.\n";
 	}
 	else {
@@ -2120,14 +2120,14 @@ static void import_collision_spheres(MDB_file& mdb, FbxScene* scene)
 
 void import_models(FbxScene* scene, const char* filename)
 {
-	Log::error_count = 0; // Reset error count
+	auto old_error_count = Log::error_count;
 
 	MDB_file mdb;
 
 	import_meshes(mdb, scene);
 	import_collision_spheres(mdb, scene);
 
-	if (Log::error_count > 0) {
+	if (Log::error_count > old_error_count) {
 		Log::error() << "MDB not generated due to errors found during the conversion.\n";
 	}
 	else if (mdb.packet_count() > 0) {
@@ -2214,5 +2214,5 @@ int main(int argc, char* argv[])
 	if (!import_fbx(import_info))
 		return 1;	
 
-	return 0;
+	return Log::error_count == 0 ? 0 : 1;
 }
