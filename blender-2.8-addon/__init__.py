@@ -233,6 +233,8 @@ class ExportMDB(bpy.types.Operator, ExportHelper):
             import subprocess
             proc = subprocess.Popen(args, stdout=log, cwd=working_dir)
             proc.wait()
+            if proc.returncode > 0:
+                self.report({'ERROR'}, "Error during export. See log.txt for errors.")
 
         if os.path.exists(tmpfbx):
             os.remove(tmpfbx)
