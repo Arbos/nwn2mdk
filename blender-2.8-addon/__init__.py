@@ -60,7 +60,7 @@ def import_custom_properties(objects):
                 obj.nwn2mdk.glow = obj[k] == 1
                 del obj[k]
             elif k == "PROJECTED_TEXTURES":
-                obj.nwn2mdk.accept_projected_textures = obj[k] == 1
+                obj.nwn2mdk.receive_projected_textures = obj[k] == 1
                 del obj[k]
             elif k == "HSB_LOW":
                 obj.nwn2mdk.object_type = 'HAIR_INFO'
@@ -163,7 +163,7 @@ def export_mesh_properties(obj):
     obj["NWN2MDK_DONT_CAST_SHADOWS"] = float(obj.nwn2mdk.cast_no_shadows)
     obj["NWN2MDK_ENVIRONMENT_MAP"] = float(obj.nwn2mdk.use_environment_map)
     obj["NWN2MDK_GLOW"] = float(obj.nwn2mdk.glow)
-    obj["NWN2MDK_PROJECTED_TEXTURES"] = float(obj.nwn2mdk.accept_projected_textures)
+    obj["NWN2MDK_PROJECTED_TEXTURES"] = float(obj.nwn2mdk.receive_projected_textures)
 
 
 def export_custom_properties(objects):
@@ -400,9 +400,9 @@ class NWN2ModelProperties(bpy.types.PropertyGroup):
     glow: BoolProperty(
             name="Glow",
             description="Indicates whether the model uses a glow map")
-    accept_projected_textures: BoolProperty(
-            name="Force Interface Projected Textures",
-            description="Indicates whether the model accepts projected textures")
+    receive_projected_textures: BoolProperty(
+            name="Projected Textures",
+            description="Indicates whether the model receives interface projected textures")
     hair_shortening_behavior: EnumProperty(
             items=(('LOW', "Low", ""),
                    ('SHORT', "Short", ""),
@@ -447,7 +447,7 @@ class OBJECT_PT_nwn2mdk(bpy.types.Panel):
             layout.prop(obj.nwn2mdk, "cast_no_shadows")
             layout.prop(obj.nwn2mdk, "use_environment_map")
             layout.prop(obj.nwn2mdk, "glow")
-            layout.prop(obj.nwn2mdk, "accept_projected_textures")
+            layout.prop(obj.nwn2mdk, "receive_projected_textures")
         elif obj.nwn2mdk.object_type == 'HAIR_INFO':
             layout.prop(obj.nwn2mdk, "hair_shortening_behavior")
         elif obj.nwn2mdk.object_type == 'HELM_INFO':
