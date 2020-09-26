@@ -363,7 +363,7 @@ class NWN2MDK_PT_export_bake_animation(bpy.types.Panel):
 
 class NWN2ModelProperties(bpy.types.PropertyGroup):
     object_type: EnumProperty(
-            items=(('UNSPECIFIED', "Unspecified", "The exporter will try to auto-detect it"),
+            items=(('AUTO', "Auto", "The exporter will try to auto-detect the type"),
                    ('MESH', "Mesh", "Rigid mesh or skin"),
                    ('HAIR_INFO', "Hair Info", "Hair info"),
                    ('HELM_INFO', "Helm Info", "Helm info")),
