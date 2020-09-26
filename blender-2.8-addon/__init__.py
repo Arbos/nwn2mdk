@@ -361,7 +361,7 @@ class NWN2MDK_PT_export_bake_animation(bpy.types.Panel):
         layout.prop(operator, "bake_anim_simplify_factor")
 
 
-class NWN2ModelProperties(bpy.types.PropertyGroup):
+class NWN2ObjectProperties(bpy.types.PropertyGroup):
     object_type: EnumProperty(
             items=(('AUTO', "Auto", "The exporter will try to auto-detect the type"),
                    ('MESH', "Mesh", "Rigid mesh or skin"),
@@ -419,7 +419,7 @@ class NWN2ModelProperties(bpy.types.PropertyGroup):
 
 
 class OBJECT_PT_nwn2mdk(bpy.types.Panel):
-    """Neverwinter Night 2 Model Properties"""
+    """Neverwinter Night 2 Object Properties"""
     bl_label = "NWN2"
     bl_idname = "OBJECT_PT_nwn2mdk"
     bl_space_type = 'PROPERTIES'
@@ -469,7 +469,7 @@ classes = (
     ExportMDB,
     ExportGR2,
     NWN2MDK_PT_export_bake_animation,
-    NWN2ModelProperties,
+    NWN2ObjectProperties,
     OBJECT_PT_nwn2mdk,
 )
 
@@ -481,7 +481,7 @@ def register():
     bpy.types.TOPBAR_MT_file_import.append(menu_func_import)
     bpy.types.TOPBAR_MT_file_export.append(menu_func_export)
 
-    bpy.types.Object.nwn2mdk = bpy.props.PointerProperty(type=NWN2ModelProperties)
+    bpy.types.Object.nwn2mdk = bpy.props.PointerProperty(type=NWN2ObjectProperties)
 
 
 def unregister():
