@@ -741,8 +741,13 @@ void import_polygon(MDB_file::Walk_mesh& walk_mesh, FbxMesh* mesh,
 
 	MDB_file::Walk_mesh_face face;
 
-	for (int i = 0; i < 3; ++i)
+	for (int i = 0; i < 3; ++i) {
+		// When z is below a threshold, interpret it as the special big number.
+		if (poly_vertices[i].position.z < -19.9f)
+			poly_vertices[i].position.z = -1000000.0f;
+
 		face.vertex_indices[i] = push_vertex(walk_mesh, poly_vertices[i]);
+	}
 
 	face.flags[0] = walk_mesh_face_flags(mesh, polygon_index);
 	face.flags[1] = 0;
