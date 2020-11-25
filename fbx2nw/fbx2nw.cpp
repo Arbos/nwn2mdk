@@ -715,6 +715,11 @@ FbxSurfaceMaterial *polygon_material(FbxMesh* mesh, int polygon_index)
 	}	
 }
 
+bool is_walk_mesh(FbxNode* node)
+{
+	return ends_with(node->GetName(), "_W") || ends_with(node->GetName(), "_w");
+}
+
 uint16_t walk_mesh_face_flags(FbxMesh* mesh, int polygon_index)
 {
 	auto mat = polygon_material(mesh, polygon_index);
@@ -1295,7 +1300,7 @@ void import_meshes(MDB_file& mdb, FbxNode* node)
 		import_collision_mesh(mdb, node);
 	else if (ends_with(node->GetName(), "_C3"))
 		import_collision_mesh(mdb, node);
-	else if (ends_with(node->GetName(), "_W"))
+	else if (is_walk_mesh(node))
 		import_walk_mesh(mdb, node);
 	else if (is_hook_packet(node))
 		import_hook_point(mdb, node);
