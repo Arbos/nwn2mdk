@@ -27,6 +27,12 @@
     <ClInclude Include="export_mdb.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="export_info.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="memstream.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="archive_container.cpp">
@@ -42,6 +48,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="nw2fbx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="export_info.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="memstream.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

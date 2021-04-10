@@ -152,13 +152,17 @@
   <ItemGroup>
     <ClInclude Include="archive_container.h" />
     <ClInclude Include="export_gr2.h" />
+    <ClInclude Include="export_info.h" />
     <ClInclude Include="export_mdb.h" />
+    <ClInclude Include="memstream.h" />
     <ClInclude Include="miniz.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="archive_container.cpp" />
     <ClCompile Include="export_gr2.cpp" />
+    <ClCompile Include="export_info.cpp" />
     <ClCompile Include="export_mdb.cpp" />
+    <ClCompile Include="memstream.cpp" />
     <ClCompile Include="nw2fbx.cpp" />
     <ClCompile Include="miniz.c" />
   </ItemGroup>

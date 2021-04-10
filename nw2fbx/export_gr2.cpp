@@ -2,7 +2,9 @@
 #include <string>
 
 #include "export_gr2.h"
+#include "export_info.h"
 #include "gr2_file.h"
+#include "memstream.h"
 
 using namespace std;
 
@@ -493,4 +495,32 @@ void export_gr2(GR2_file& gr2, FbxScene *scene,
 
 	export_skeletons(scene, gr2.file_info, fbx_bones);
 	export_animations(scene, gr2.file_info);
+}
+
+Dependency& export_gr2(Export_info& export_info, const char* filename)
+{
+	auto it = export_info.dependencies.find(filename);
+
+	if (it != export_info.dependencies.end()) {
+		// Already exported
+		return it->second;
+	}
+
+	auto& dep = export_info.dependencies[filename];
+
+	auto buffer = load_resource(export_info.config, filename);
+
+	if (buffer.empty())
+		return dep;
+
+	Memstream stream(buffer.data(), buffer.size());
+	GR2_file gr2(stream);
+
+	if (!gr2)
+		return dep;
+
+	export_gr2(gr2, export_info.scene, dep.fbx_bones);
+	process_fbx_bones(dep);
+
+	return dep;
 }

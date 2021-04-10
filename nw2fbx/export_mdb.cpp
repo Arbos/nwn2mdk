@@ -4,6 +4,7 @@
 
 #include "config.h"
 #include "export_gr2.h"
+#include "export_info.h"
 #include "export_mdb.h"
 #include "mdb_file.h"
 
@@ -640,6 +641,15 @@ static void export_skinning(Export_info& export_info,
 			export_skinning(export_info, skin, mesh, dep.second);
 			return;
 		}
+	}
+
+	string filename = string(skin.header.skeleton_name) + ".gr2";
+	auto& dep = export_gr2(export_info, filename.c_str());
+
+	if (dep.fbx_bones.size() > 0 &&
+	    strcmpi(skin.header.skeleton_name, dep.fbx_bones[0]->GetName()) ==
+	        0) {
+		export_skinning(export_info, skin, mesh, dep);
 	}
 }
 
