@@ -202,6 +202,12 @@ class ExportMDB(bpy.types.Operator, ExportHelper):
     filename_ext = ".mdb"
     filter_glob: StringProperty(default="*.mdb", options={'HIDDEN'})
 
+    use_selection: BoolProperty(
+            name="Selected Objects",
+            description="Export selected and visible objects only",
+            default=False,
+            )
+
     def draw(self, context):
         pass
 
@@ -216,6 +222,7 @@ class ExportMDB(bpy.types.Operator, ExportHelper):
         tmpfbx = os.path.join(working_dir, "nwn2mdk-tmp.fbx")
 
         bpy.ops.export_scene.fbx(filepath=tmpfbx,
+                                 use_selection=self.use_selection,
                                  axis_forward='-Z',
                                  axis_up='Y',
                                  use_tspace=True,
@@ -253,6 +260,12 @@ class ExportGR2(bpy.types.Operator, ExportHelper):
     filename_ext = ".gr2"
     filter_glob: StringProperty(default="*.gr2", options={'HIDDEN'})
 
+    use_selection: BoolProperty(
+            name="Selected Objects",
+            description="Export selected and visible objects only",
+            default=False,
+            )
+
     bake_anim: BoolProperty(
             name="Baked Animation",
             description="Export baked keyframe animation",
@@ -279,6 +292,7 @@ class ExportGR2(bpy.types.Operator, ExportHelper):
         tmpfbx = os.path.join(working_dir, "nwn2mdk-tmp.fbx")
 
         bpy.ops.export_scene.fbx(filepath=tmpfbx,
+                                 use_selection=self.use_selection,
                                  axis_forward='-Z',
                                  axis_up='Y',
                                  use_tspace=True,
@@ -328,6 +342,31 @@ class NWN2MDK_PT_import_armature(bpy.types.Panel):
         operator = sfile.active_operator
 
         layout.prop(operator, "automatic_bone_orientation"),
+
+
+class NWN2MDK_PT_export_include(bpy.types.Panel):
+    bl_space_type = 'FILE_BROWSER'
+    bl_region_type = 'TOOL_PROPS'
+    bl_label = "Include"
+    bl_parent_id = "FILE_PT_operator"
+
+    @classmethod
+    def poll(cls, context):
+        sfile = context.space_data
+        operator = sfile.active_operator
+
+        return (operator.bl_idname == "EXPORT_SCENE_OT_nwn2mdk_gr2" or
+                operator.bl_idname == "EXPORT_SCENE_OT_nwn2mdk_mdb")
+
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = True
+        layout.use_property_decorate = False  # No animation.
+
+        sfile = context.space_data
+        operator = sfile.active_operator
+
+        layout.prop(operator, "use_selection")
 
 
 class NWN2MDK_PT_export_bake_animation(bpy.types.Panel):
@@ -468,6 +507,7 @@ classes = (
     NWN2MDK_PT_import_armature,
     ExportMDB,
     ExportGR2,
+    NWN2MDK_PT_export_include,
     NWN2MDK_PT_export_bake_animation,
     NWN2ObjectProperties,
     OBJECT_PT_nwn2mdk,
