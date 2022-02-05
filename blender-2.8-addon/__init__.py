@@ -27,7 +27,7 @@ from bpy_extras.io_utils import (
 
 def import_custom_properties(objects):
     for obj in objects:
-        for k in obj.keys():
+        for k in list(obj.keys()):
             if k == "TINT_MAP":
                 obj.nwn2mdk.object_type = 'MESH'
                 obj.nwn2mdk.tint_map = obj[k]
