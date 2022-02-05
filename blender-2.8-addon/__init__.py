@@ -94,6 +94,13 @@ def import_custom_properties(objects):
                 del obj[k]
 
 
+def setup_objects(objects):
+    for obj in objects:
+        if obj.type == 'MESH':
+            for ms in obj.material_slots:
+                ms.material.blend_method = 'OPAQUE'
+
+
 class ImportMDBGR2(bpy.types.Operator, ImportHelper):
     """Import MDB/GR2"""               # Tooltip for menu items and buttons.
     bl_idname = "import_scene.nwn2mdk" # Unique identifier for buttons and menu items to reference.
@@ -145,6 +152,7 @@ class ImportMDBGR2(bpy.types.Operator, ImportHelper):
                                  automatic_bone_orientation=self.automatic_bone_orientation)
 
         import_custom_properties(context.selected_objects)
+        setup_objects(context.selected_objects)
 
         if os.path.exists(tmpfbx):
             os.remove(tmpfbx)
