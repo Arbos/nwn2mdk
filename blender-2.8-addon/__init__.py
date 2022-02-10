@@ -94,11 +94,27 @@ def import_custom_properties(objects):
                 del obj[k]
 
 
+def setup_armature(objects, ob):
+    for b in ob.pose.bones:
+        n1 = "COLS_" + b.name
+        n2 = n1 + "."
+        l = [ob for ob in objects if ob.name == n1 or ob.name.startswith(n2)]
+
+        for col in l:
+            col.location = (0, 0, 0)
+            cl = col.constraints.new(type='CHILD_OF')
+            cl.target = ob
+            cl.subtarget = b.name
+            cl.set_inverse_pending = False
+
+
 def setup_objects(objects):
     for obj in objects:
         if obj.type == 'MESH':
             for ms in obj.material_slots:
                 ms.material.blend_method = 'OPAQUE'
+        elif obj.type == 'ARMATURE':
+            setup_armature(objects, obj)
 
 
 class ImportMDBGR2(bpy.types.Operator, ImportHelper):
