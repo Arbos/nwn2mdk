@@ -24,6 +24,8 @@ from bpy_extras.io_utils import (
         ExportHelper,
         )
 
+import math
+
 
 def import_custom_properties(objects):
     for obj in objects:
@@ -94,6 +96,16 @@ def import_custom_properties(objects):
                 del obj[k]
 
 
+def setup_frame_range(ob):
+    anim = ob.animation_data
+
+    if (anim is not None and anim.action is not None
+            and anim.action.fcurves
+            and anim.action.fcurves[0].keyframe_points):
+        bpy.context.scene.frame_start = 1
+        bpy.context.scene.frame_end = math.ceil(anim.action.fcurves[0].keyframe_points[-1].co[0]) - 1
+
+
 def setup_armature(objects, ob):
     for b in ob.pose.bones:
         n1 = "COLS_" + b.name
@@ -107,12 +119,16 @@ def setup_armature(objects, ob):
             cl.subtarget = b.name
             cl.set_inverse_pending = False
 
+    setup_frame_range(ob)
+
 
 def setup_objects(objects):
     for obj in objects:
         if obj.type == 'MESH':
             for ms in obj.material_slots:
                 ms.material.blend_method = 'OPAQUE'
+
+            setup_frame_range(obj)
         elif obj.type == 'ARMATURE':
             setup_armature(objects, obj)
 
