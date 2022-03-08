@@ -327,6 +327,11 @@ class ExportGR2(bpy.types.Operator, ExportHelper):
         if not self.filepath:
             raise Exception("filepath not set")
 
+        if bpy.context.scene.frame_start == bpy.context.scene.frame_end:
+            simplify_factor = 0.0
+        else:
+            simplify_factor = self.bake_anim_simplify_factor
+
         import os
         working_dir = os.path.dirname(self.filepath)
         tmpfbx = os.path.join(working_dir, "nwn2mdk-tmp.fbx")
@@ -343,7 +348,7 @@ class ExportGR2(bpy.types.Operator, ExportHelper):
                                  bake_anim_use_nla_strips=False,
                                  bake_anim_use_all_actions=False,
                                  bake_anim_force_startend_keying=False,
-                                 bake_anim_simplify_factor=self.bake_anim_simplify_factor)
+                                 bake_anim_simplify_factor=simplify_factor)
 
 
         fbx2nw_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "fbx2nw")
