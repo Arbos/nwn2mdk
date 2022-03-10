@@ -112,12 +112,14 @@ static void export_skeleton(FbxScene *scene, GR2_skeleton *skel,
 	export_bones(scene, node, skel, -1, fbx_bones);	
 }
 
-static void export_skeletons(FbxScene *scene, GR2_file_info *info,
-	std::vector<FbxNode*> &fbx_bones)
+void export_skeletons(GR2_file& gr2, FbxScene* scene,
+	std::vector<FbxNode*>& fbx_bones)
 {
-	for (int i = 0; i < info->models_count; ++i) {
-		if(info->models[i]->skeleton)
-			export_skeleton(scene, info->models[i]->skeleton, fbx_bones);
+	for (int i = 0; i < gr2.file_info->models_count; ++i) {
+		if(gr2.file_info->models[i]->skeleton)
+			export_skeleton(scene,
+			                gr2.file_info->models[i]->skeleton,
+			                fbx_bones);
 	}
 }
 
@@ -462,10 +464,10 @@ static void export_animation(FbxScene *scene, GR2_animation *anim)
 		export_animation(scene, anim, anim->track_groups[i], anim_layer);
 }
 
-static void export_animations(FbxScene *scene, GR2_file_info *info)
+void export_animations(GR2_file& gr2, FbxScene* scene)
 {
-	for (int i = 0; i < info->animations_count; ++i) {
-		export_animation(scene, info->animations[i]);
+	for (int i = 0; i < gr2.file_info->animations_count; ++i) {
+		export_animation(scene, gr2.file_info->animations[i]);
 	}
 }
 
@@ -484,17 +486,8 @@ void export_gr2(const char *filename, FbxScene *scene,
 void export_gr2(GR2_file& gr2, FbxScene *scene,
 	std::vector<FbxNode*> &fbx_bones)
 {
-	cout << endl;
-	cout << "===\n";
-	cout << "GR2\n";
-	cout << "===\n";
-	cout << "Skeletons: " << gr2.file_info->skeletons_count << endl;
-	cout << "Models: " << gr2.file_info->models_count << endl;
-	cout << "Animations: " << gr2.file_info->animations_count << endl;
-	cout << endl;
-
-	export_skeletons(scene, gr2.file_info, fbx_bones);
-	export_animations(scene, gr2.file_info);
+	export_skeletons(gr2, scene, fbx_bones);
+	export_animations(gr2, scene);
 }
 
 Dependency& export_gr2(Export_info& export_info, const char* filename)
@@ -523,4 +516,16 @@ Dependency& export_gr2(Export_info& export_info, const char* filename)
 	process_fbx_bones(dep);
 
 	return dep;
+}
+
+void print_gr2_info(GR2_file& gr2)
+{
+	cout << endl;
+	cout << "===\n";
+	cout << "GR2\n";
+	cout << "===\n";
+	cout << "Skeletons: " << gr2.file_info->skeletons_count << endl;
+	cout << "Models: " << gr2.file_info->models_count << endl;
+	cout << "Animations: " << gr2.file_info->animations_count << endl;
+	cout << endl;
 }
