@@ -103,7 +103,7 @@ def setup_frame_range(ob):
             and anim.action.fcurves
             and anim.action.fcurves[0].keyframe_points):
         bpy.context.scene.frame_start = 1
-        bpy.context.scene.frame_end = math.ceil(anim.action.fcurves[0].keyframe_points[-1].co[0]) - 1
+        bpy.context.scene.frame_end = max(math.ceil(anim.action.fcurves[0].keyframe_points[-1].co[0]) - 1, 1)
 
 
 def setup_armature(objects, ob):
