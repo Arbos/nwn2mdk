@@ -26,6 +26,7 @@ struct Export_info {
 	std::string output_path;
 	Archive_container materials;
 	const MDB_file *mdb;
+	std::string mdb_skeleton_name;
 	FbxScene *scene;
 	std::map<std::string, Dependency> dependencies;
 };

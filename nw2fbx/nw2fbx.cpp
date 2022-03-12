@@ -591,7 +591,7 @@ int main(int argc, char* argv[])
 	scene->GetGlobalSettings().SetTimeMode(FbxTime::eFrames30);
 
 	Export_info export_info = { config, {}, "",
-		get_material_archives(config), nullptr, scene };
+		get_material_archives(config), nullptr, "", scene };
 
 	if (!process_args(export_info, argc, argv))
 		return 1;

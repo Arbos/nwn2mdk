@@ -429,7 +429,7 @@ static void export_collision_spheres(Export_info& export_info,
 {
 	Dependency* dep = nullptr;
 	for (auto &d : export_info.dependencies) {
-		if (d.second.fbx_bones.size() > 0) {
+		if (d.second.fbx_bones.size() > 0 && strcmpi(export_info.mdb_skeleton_name.c_str(), d.second.fbx_bones[0]->GetName()) == 0) {
 			dep = &d.second;
 			break;
 		}
@@ -906,12 +906,25 @@ void create_walk_mesh_materials(FbxScene* scene)
 	}
 }
 
+static std::string find_skeleton_name(const MDB_file& mdb)
+{
+	for (uint32_t i = 0; i < mdb.packet_count(); ++i) {
+		auto packet = mdb.packet(i);
+
+		if (packet && packet->type == MDB_file::SKIN)
+			return static_cast<const MDB_file::Skin*>(packet)->header.skeleton_name;
+	}
+
+	return "";
+}
+
 bool export_mdb(Export_info& export_info, const MDB_file& mdb)
 {
 	export_info.mdb = &mdb;
 
 	extract_dependencies(export_info);
 	create_walk_mesh_materials(export_info.scene);
+	export_info.mdb_skeleton_name = find_skeleton_name(mdb);
 
 	for (uint32_t i = 0; i < mdb.packet_count(); ++i)
 		export_packet(export_info, mdb.packet(i));
