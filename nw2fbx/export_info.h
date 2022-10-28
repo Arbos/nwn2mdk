@@ -22,6 +22,7 @@ struct Dependency {
 
 struct Export_info {
 	const Config &config;
+	/// Command line arguments that are not options.
 	std::vector<std::string> input_strings;
 	std::string output_path;
 	Archive_container materials;
