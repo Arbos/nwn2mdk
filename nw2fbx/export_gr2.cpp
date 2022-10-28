@@ -500,6 +500,7 @@ Dependency& export_gr2(Export_info& export_info, const char* filename)
 	}
 
 	auto& dep = export_info.dependencies[filename];
+	dep.exported = false;
 
 	auto buffer = load_resource(export_info.config, filename);
 
@@ -514,6 +515,7 @@ Dependency& export_gr2(Export_info& export_info, const char* filename)
 
 	export_gr2(gr2, export_info.scene, dep.fbx_bones);
 	process_fbx_bones(dep);
+	dep.exported = true;
 
 	return dep;
 }

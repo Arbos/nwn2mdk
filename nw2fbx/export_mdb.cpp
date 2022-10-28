@@ -633,24 +633,192 @@ static void export_skinning(Export_info& export_info,
 	mesh->AddDeformer(fbx_skin);
 }
 
-static void export_skinning(Export_info& export_info,
-	const MDB_file::Skin& skin, FbxMesh* mesh)
+static Dependency* find_skeleton_dependency(Export_info& export_info,
+                                            const char* skeleton_name)
 {
 	for (auto &dep : export_info.dependencies) {
-		if (dep.second.fbx_bones.size() > 0 && strcmpi(skin.header.skeleton_name, dep.second.fbx_bones[0]->GetName()) == 0) {
-			export_skinning(export_info, skin, mesh, dep.second);
-			return;
+		if (dep.second.exported && dep.second.fbx_bones.size() > 0 &&
+		    strcmpi(skeleton_name,
+		            dep.second.fbx_bones[0]->GetName()) == 0) {
+			return &dep.second;
 		}
 	}
 
-	string filename = string(skin.header.skeleton_name) + ".gr2";
-	auto& dep = export_gr2(export_info, filename.c_str());
+	return nullptr;
+}
 
-	if (dep.fbx_bones.size() > 0 &&
-	    strcmpi(skin.header.skeleton_name, dep.fbx_bones[0]->GetName()) ==
-	        0) {
-		export_skinning(export_info, skin, mesh, dep);
+static const char* guess_cloak_skeleton_name(const char* packet_name)
+{
+	struct Skeletons {
+		const char* prefix;
+		const char* name;
+	} skels[] = {"P_DDM_", "P_DDMcapewing_skel", //
+	             "P_DDF_", "P_DDFcapewing_skel", //
+	             "P_EEM_", "P_HHMcapewing_skel", //
+	             "P_EEF_", "P_HHFcapewing_skel", //
+	             "P_GGM_", "P_GGMcapewing_skel", //
+	             "P_GGF_", "P_GGFcapewing_skel", //
+	             "P_HHM_", "P_HHMcapewing_skel", //
+	             "P_HHF_", "P_HHFcapewing_skel", //
+	             "P_OOM_", "P_OOMcapewing_skel", //
+	             "P_OOF_", "P_OOFcapewing_skel"};
+
+	for (size_t i = 0; i < size(skels); ++i) {
+		if (strncmpi(packet_name, skels[i].prefix, 6) == 0)
+			return skels[i].name;
 	}
+
+	return nullptr;
+}
+
+static const char* guess_tail_skeleton_name(const char* packet_name)
+{
+	struct Skeletons {
+		const char* prefix;
+		const char* name;
+	} skels[] = {"P_DDM_", "P_DDMtail_skel", //
+	             "P_DDF_", "P_DDFtail_skel", //
+	             "P_EEM_", "P_HHMtail_skel", //
+	             "P_EEF_", "P_HHFtail_skel", //
+	             "P_GGM_", "P_GGMtail_skel", //
+	             "P_GGF_", "P_GGFtail_skel", //
+	             "P_HHM_", "P_HHMtail_skel", //
+	             "P_HHF_", "P_HHFtail_skel", //
+	             "P_HTM_", "P_HHMtail_skel", //
+	             "P_HTF_", "P_HHFtail_skel", //
+	             "P_OOM_", "P_OOMtail_skel", //
+	             "P_OOF_", "P_OOFtail_skel"};
+
+	for (size_t i = 0; i < size(skels); ++i) {
+		if (strncmpi(packet_name, skels[i].prefix, 6) == 0)
+			return skels[i].name;
+	}
+
+	return nullptr;
+}
+
+static const char* guess_body_skeleton_name(const char* packet_name)
+{
+	struct Skeletons {
+		const char* prefix;
+		const char* name;
+	} skels[] = {"P_AAM_", "P_HHM_skel", // Halfling
+	             "P_AAF_", "P_HHF_skel", //
+	             "P_ASM_", "P_HHM_skel", // Halfling, Strongheart
+	             "P_ASF_", "P_HHF_skel", //
+	             "P_DDM_", "P_DDM_skel", // Dwarf
+	             "P_DDF_", "P_DDF_skel", //
+	             "P_DGM_", "P_DDM_skel", // Dwarf, Gold
+	             "P_DGF_", "P_DDF_skel", //
+	             "P_DUM_", "P_DDM_skel", // Dwarf, Duergar
+	             "P_DUF_", "P_DDF_skel", //
+	             "P_EDM_", "P_HHM_skel", // Elf, Drow
+	             "P_EDF_", "P_HHF_skel", //
+	             "P_EEM_", "P_HHM_skel", // Elf
+	             "P_EEF_", "P_HHF_skel", //
+	             "P_EHM_", "P_HHM_skel", // Half-elf
+	             "P_EHF_", "P_HHF_skel", //
+	             "P_ELM_", "P_HHM_skel", // Elf, Wild
+	             "P_ELF_", "P_HHF_skel", //
+	             "P_ERM_", "P_HHM_skel", // Half-drow
+	             "P_ERF_", "P_HHF_skel", //
+	             "P_ESM_", "P_HHM_skel", // Elf, Sun
+	             "P_ESF_", "P_HHF_skel", //
+	             "P_EWM_", "P_HHM_skel", // Elf, Woord
+	             "P_EWF_", "P_HHF_skel", //
+	             "P_GGM_", "P_GGM_skel", // Gnome
+	             "P_GGF_", "P_GGF_skel", //
+	             "P_GSM_", "P_GGM_skel", // Gnome, Svirfneblin
+	             "P_GSF_", "P_GGF_skel", //
+	             "P_HAM_", "P_HHM_skel", // Assimar
+	             "P_HAF_", "P_HHF_skel", //
+	             "P_HEM_", "P_HHM_skel", // Earth Genasi
+	             "P_HEF_", "P_HHF_skel", //
+	             "P_HFM_", "P_HHM_skel", // Fire Genasi
+	             "P_HFF_", "P_HHF_skel", //
+	             "P_HHM_", "P_HHM_skel", // Human
+	             "P_HHF_", "P_HHF_skel", //
+	             "P_HIM_", "P_HHM_skel", // Air Genasi
+	             "P_HIF_", "P_HHF_skel", //
+	             "P_HPM_", "P_HHM_skel", // Yuanti Pureblood
+	             "P_HPF_", "P_HHF_skel", //
+	             "P_HTM_", "P_HHM_skel", // Tiefling
+	             "P_HTF_", "P_HHF_skel", //
+	             "P_HWM_", "P_HHM_skel", // Water Genasi
+	             "P_HWF_", "P_HHF_skel", //
+	             "P_OGM_", "P_OOM_skel", // Gray Orc
+	             "P_OGF_", "P_OOF_skel", //
+	             "P_OOM_", "P_OOM_skel", // Half-orc
+	             "P_OOF_", "P_OOF_skel"};
+
+	for (size_t i = 0; i < size(skels); ++i) {
+		if (strncmpi(packet_name, skels[i].prefix, 6) == 0)
+			return skels[i].name;
+	}
+
+	return nullptr;
+}
+
+static const char* guess_skeleton_name(const char* packet_name)
+{
+	string n = packet_name;
+	transform(n.begin(), n.end(), n.begin(), ::toupper);
+
+	if (strstr(n.c_str(), "_CLOAK") || strstr(n.c_str(), "_WINGS"))
+		return guess_cloak_skeleton_name(n.c_str());
+	else if (strstr(n.c_str(), "_TAIL"))
+		return guess_tail_skeleton_name(n.c_str());
+	else // Body, head, helm, gloves, belt, boots
+		return guess_body_skeleton_name(n.c_str());
+}
+
+static void export_skinning(Export_info& export_info,
+	const MDB_file::Skin& skin, FbxMesh* mesh)
+{
+	// First try to find the skeleton within the exported ones.
+	Dependency* dep =
+	    find_skeleton_dependency(export_info, skin.header.skeleton_name);
+
+	if (!dep) {
+		// Try to export the skeleton.
+
+		cout << "  Skeleton \"" << skin.header.skeleton_name
+		     << "\" for this skin not found in the input files. Trying "
+		        "to find it on drive.\n";
+
+		string filename = string(skin.header.skeleton_name) + ".gr2";
+		export_gr2(export_info, filename.c_str());
+		dep = find_skeleton_dependency(export_info,
+		                               skin.header.skeleton_name);
+	}
+
+	if (!dep) {
+		// Maybe skeleton name is wrong. Try with a guessed name.
+
+		const char* sn = guess_skeleton_name(skin.header.name);
+
+		if (sn) {
+			cout << "  WARNING: Skeleton \""
+			     << skin.header.skeleton_name
+			     << "\" for this skin not found. Maybe skeleton "
+			        "name is wrong. Trying with heuristic name \""
+			     << sn << "\".\n";
+
+			dep = find_skeleton_dependency(export_info, sn);
+
+			if (!dep) {
+				// Try to export the skeleton.
+				string filename = string(sn) + ".gr2";
+				export_gr2(export_info, filename.c_str());
+				dep = find_skeleton_dependency(export_info, sn);
+			}
+		}
+	}
+
+	if (dep)
+		export_skinning(export_info, skin, mesh, *dep);
+	else
+		cout << "  WARNING: Could not find skeleton for this skin.\n";
 }
 
 static void export_skin(Export_info& export_info, const MDB_file::Skin& skin)
