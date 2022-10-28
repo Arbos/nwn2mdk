@@ -528,6 +528,7 @@ static bool process_args(Export_info& export_info, int argc, char* argv[])
 	if (export_info.input_strings.empty())
 		return false;
 
+	// Extracted filenames without including the path.
 	vector<std::string> filenames;
 
 	if (!extract_args(export_info, filenames))
