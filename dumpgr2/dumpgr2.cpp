@@ -202,6 +202,22 @@ void print_bone(GR2_bone& bone)
 	cout << "- Name: " << bone.name << endl;
 	cout << "  ParentIndex: " << bone.parent_index << endl;
 	print_transform(bone.transform);
+	cout << "  InverseWorldTransform: [";
+
+	for (int i = 0; i < 16; ++i) {
+		cout << bone.inverse_world_transform[i];
+
+		if ((i + 1)%4 == 0) {
+			if (i == 15)
+				cout << "]\n";
+			else
+				cout << "\n                          ";
+		}
+		else {
+			cout << ", ";
+		}
+	}
+
 	print_extended_data(bone.extended_data);
 }
 
