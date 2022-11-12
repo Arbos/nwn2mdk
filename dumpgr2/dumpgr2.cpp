@@ -133,23 +133,39 @@ void print_file_info(GR2_file_info* info)
 	cout << endl;
 }
 
-void print_transform(GR2_transform& Transform)
+void print_indent(int num_spaces)
 {
-	cout << "  Transform:\n";
-	cout << "    Flags: " << Transform.flags << endl;
-	cout << "    Translation: ";
+	while (num_spaces > 0) {
+		cout << ' ';
+		--num_spaces;
+	}
+}
+
+void print_transform(GR2_transform& Transform, const char* label,
+                     int indent = 0)
+{
+	print_indent(indent);
+	cout << label << ":\n";
+	print_indent(indent);
+	cout << "  Flags: " << Transform.flags << endl;
+	print_indent(indent);
+	cout << "  Translation: ";
 	print_vector(Transform.translation);
 	cout << endl;
-	cout << "    Rotation: ";
+	print_indent(indent);
+	cout << "  Rotation: ";
 	print_vector(Transform.rotation);
 	cout << endl;
-	cout << "    ScaleShear: [" << Transform.scale_shear[0] << ", "
+	print_indent(indent);
+	cout << "  ScaleShear: [" << Transform.scale_shear[0] << ", "
 	     << Transform.scale_shear[3] << ", " << Transform.scale_shear[6]
 	     << endl;
-	cout << "                 " << Transform.scale_shear[1] << ", "
+	print_indent(indent);
+	cout << "               " << Transform.scale_shear[1] << ", "
 	     << Transform.scale_shear[4] << ", " << Transform.scale_shear[7]
 	     << endl;
-	cout << "                 " << Transform.scale_shear[2] << ", "
+	print_indent(indent);
+	cout << "               " << Transform.scale_shear[2] << ", "
 	     << Transform.scale_shear[5] << ", " << Transform.scale_shear[8]
 	     << ']' << endl;
 }
@@ -201,7 +217,7 @@ void print_bone(GR2_bone& bone)
 {
 	cout << "- Name: " << bone.name << endl;
 	cout << "  ParentIndex: " << bone.parent_index << endl;
-	print_transform(bone.transform);
+	print_transform(bone.transform, "Transform", 2);
 	cout << "  InverseWorldTransform: [";
 
 	for (int i = 0; i < 16; ++i) {
@@ -243,6 +259,29 @@ void print_skeletons(GR2_file_info* info)
 {
 	for (int i = 0; i < info->skeletons_count; ++i)
 		print_skeleton(info->skeletons[i]);
+}
+
+void print_model(GR2_model* model)
+{
+	cout << "Model\n";
+	cout << "=====\n";
+	cout << "Name:     " << model->name << endl;
+	cout << "Skeleton: ";
+
+	if (model->skeleton)
+		cout << model->skeleton->name << endl;
+	else
+		cout << "NULL\n";
+
+	print_transform(model->initial_placement, "Initial Placement");
+	cout << "Mesh Bindings Count: " << model->mesh_bindings_count << endl;
+	cout << endl;
+}
+
+void print_models(GR2_file_info* info)
+{
+	for (int i = 0; i < info->models_count; ++i)
+		print_model(info->models[i]);
 }
 
 void print_offsets(float offsets[4])
@@ -656,6 +695,7 @@ void print_gr2(GR2_file& gr2)
 	print_art_tool_info(gr2.file_info->art_tool_info);
 	print_exporter_info(gr2.file_info->exporter_info);
 	print_skeletons(gr2.file_info);
+	print_models(gr2.file_info);
 	print_animations(gr2.file_info);
 }
 
