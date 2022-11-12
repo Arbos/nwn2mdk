@@ -166,6 +166,8 @@ void print_extended_data_value(GR2_extended_data& extended_data, int k, int v)
 	case GR2_type_text:
 		cout << extended_data.values[v].text;
 		break;
+	default:
+		cout << "# WARNING: Unhandled case\n";
 	}
 }
 
