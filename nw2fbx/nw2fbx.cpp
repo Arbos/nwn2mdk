@@ -68,13 +68,13 @@ static void print_material_flags(uint32_t flags)
 
 static void print_material(const MDB_file::Material& material)
 {
-	cout << "Diffuse Map:    " << string(material.diffuse_map_name, 32)
+	cout << "Diffuse Map:    " << string(material.diffuse_map_name, 32).c_str()
 	     << endl;
-	cout << "Normal Map:     " << string(material.normal_map_name, 32)
+	cout << "Normal Map:     " << string(material.normal_map_name, 32).c_str()
 	     << endl;
-	cout << "Tint Map:       " << string(material.tint_map_name, 32)
+	cout << "Tint Map:       " << string(material.tint_map_name, 32).c_str()
 	     << endl;
-	cout << "Glow Map:       " << string(material.glow_map_name, 32)
+	cout << "Glow Map:       " << string(material.glow_map_name, 32).c_str()
 	     << endl;
 	cout << "Diffuse Color:  ";
 	print_vector3(material.diffuse_color);
