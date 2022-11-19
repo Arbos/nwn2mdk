@@ -512,7 +512,7 @@ static bool export_mdb_files(Export_info& export_info, vector<Input>& inputs)
 			print_mdb(*input.mdb);
 
 			if (!export_mdb(export_info, *input.mdb)) {
-				cout << "Cannot export MDB\n";
+				cout << "Cannot import MDB\n";
 				return false;
 			}
 		}

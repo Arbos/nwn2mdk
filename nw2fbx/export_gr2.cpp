@@ -68,7 +68,7 @@ static void export_bone(FbxScene *scene, FbxNode *parent_node, GR2_skeleton *ske
 	int32_t bone_index, std::vector<FbxNode*> &fbx_bones)
 {
 	GR2_bone &bone = skel->bones[bone_index];
-	cout << "  Exporting bone: " << bone.name << endl;
+	cout << "  Importing bone: " << bone.name << endl;
 	auto node = FbxNode::Create(scene, bone.name);
 	export_bone_transform(node, bone);
 
@@ -98,7 +98,7 @@ static void export_bones(FbxScene *scene, FbxNode *parent_node, GR2_skeleton *sk
 static void export_skeleton(FbxScene *scene, GR2_skeleton *skel,
 	std::vector<FbxNode*> &fbx_bones)
 {
-	cout << "Exporting skeleton: " << skel->name << endl;
+	cout << "Importing skeleton: " << skel->name << endl;
 
 	auto node = FbxNode::Create(scene, skel->name);
 	node->LclRotation.Set(FbxDouble3(-90, 0, 0));
@@ -443,10 +443,10 @@ static bool export_animation(FbxNode* node, FbxAnimLayer *anim_layer,
 static void export_animation(FbxScene *scene, GR2_animation *anim, GR2_track_group *track_group,
 	FbxAnimLayer *anim_layer)
 {
-	cout << "  Exporting track group: " << track_group->name << endl;
+	cout << "  Importing track group: " << track_group->name << endl;
 	
 	for (int i = 0; i < track_group->transform_tracks_count; ++i) {
-		cout << "    Exporting transform track: " << track_group->transform_tracks[i].name << endl;
+		cout << "    Importing transform track: " << track_group->transform_tracks[i].name << endl;
 
 		export_animation(scene->GetRootNode(), anim_layer, anim, track_group, track_group->transform_tracks[i]);
 	}
@@ -454,7 +454,7 @@ static void export_animation(FbxScene *scene, GR2_animation *anim, GR2_track_gro
 
 static void export_animation(FbxScene *scene, GR2_animation *anim)
 {
-	cout << "Exporting animation: " << anim->name << endl;
+	cout << "Importing animation: " << anim->name << endl;
 
 	auto anim_stack = FbxAnimStack::Create(scene, anim->name);
 	auto anim_layer = FbxAnimLayer::Create(scene, "Layer");
