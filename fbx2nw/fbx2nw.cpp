@@ -679,7 +679,7 @@ void import_collision_mesh(MDB_file& mdb, FbxNode* node)
 	if (!mesh)
 		return;
 
-	cout << "Importing COL2|COL3: " << node->GetName() << endl;
+	cout << "Exporting COL2|COL3: " << node->GetName() << endl;
 
 	cout << "  Vertices: " << mesh->GetControlPointsCount() << endl;
 	cout << "  Polygons: " << mesh->GetPolygonCount() << endl;
@@ -767,7 +767,7 @@ void import_walk_mesh(MDB_file& mdb, FbxNode* node)
 	if (!mesh)
 		return;
 
-	cout << "Importing WALK: " << node->GetName() << endl;
+	cout << "Exporting WALK: " << node->GetName() << endl;
 
 	auto walk_mesh = make_unique<MDB_file::Walk_mesh>();
 	set_packet_name(walk_mesh->header.name, node->GetName());
@@ -838,7 +838,7 @@ void transform_to_orientation(const FbxAMatrix& m, float orientation[3][3])
 
 void import_hook_point(MDB_file& mdb, FbxNode* node)
 {
-	cout << "Importing HOOK: " << node->GetName() << endl;
+	cout << "Exporting HOOK: " << node->GetName() << endl;
 
 	auto hook = make_unique<MDB_file::Hook>();
 	set_packet_name(hook->header.name, node->GetName());
@@ -920,7 +920,7 @@ MDB_file::Hair_shortening_behavior hair_shortening_behavior(FbxNode* node)
 
 void import_hair(MDB_file& mdb, FbxNode* node)
 {
-	cout << "Importing HAIR: " << node->GetName() << endl;
+	cout << "Exporting HAIR: " << node->GetName() << endl;
 
 	auto hair = make_unique<MDB_file::Hair>();
 	set_packet_name(hair->header.name, node->GetName());
@@ -1013,7 +1013,7 @@ static void print_helm(const MDB_file::Helm& helm)
 
 void import_helm(MDB_file& mdb, FbxNode* node)
 {
-	cout << "Importing HELM: " << node->GetName() << endl;
+	cout << "Exporting HELM: " << node->GetName() << endl;
 
 	auto helm = make_unique<MDB_file::Helm>();
 	set_packet_name(helm->header.name, node->GetName());
@@ -1156,7 +1156,7 @@ void import_rigid_mesh(MDB_file& mdb, FbxNode* node)
 	if (!mesh)
 		return;
 
-	cout << "Importing RIGD: " << node->GetName() << endl;
+	cout << "Exporting RIGD: " << node->GetName() << endl;
 
 	print_mesh(mesh);
 
@@ -1265,7 +1265,7 @@ void import_skin(MDB_file& mdb, FbxNode* node)
 	if (!mesh)
 		return;
 
-	cout << "Importing SKIN: " << node->GetName() << endl;
+	cout << "Exporting SKIN: " << node->GetName() << endl;
 
 	print_mesh(mesh);
 
@@ -1548,7 +1548,7 @@ void import_bone_inv_world_transform(FbxNode* node, GR2_bone& bone)
 
 void import_bone(GR2_import_info& import_info, FbxNode* node, int32_t parent_index, std::vector<GR2_bone>& bones)
 {
-	cout << "  Importing bone: " << node->GetName() << endl;	
+	cout << "  Exporting bone: " << node->GetName() << endl;
 
 	auto translation = node->LclTranslation.Get();
 	translation[0] *= import_info.bone_scaling.x;
@@ -1603,7 +1603,7 @@ void import_model(GR2_import_info& import_info, GR2_skeleton* skel)
 
 void import_skeleton(GR2_import_info& import_info, FbxNode* node)
 {
-	cout << "Importing skeleton: " << node->GetName() << endl;
+	cout << "Exporting skeleton: " << node->GetName() << endl;
 
 	if (!validate_skeleton(node))
 		return;
@@ -1921,7 +1921,7 @@ void import_scaleshear(GR2_import_info& import_info, FbxNode* node,
 void import_anim_layer(GR2_import_info& import_info, FbxAnimLayer* layer,
                        FbxNode* node)
 {
-	cout << "Importing animation: " << node->GetName() << endl;
+	cout << "Exporting animation: " << node->GetName() << endl;
 	
 	auto skel_node = skeleton_node(node);
 
@@ -2087,7 +2087,7 @@ static void import_collision_sphere(MDB_file::Collision_spheres& cs,
 	if (!mesh)
 		return;
 
-	cout << "Importing COLS: " << node->GetName() << endl;	
+	cout << "Exporting COLS: " << node->GetName() << endl;
 
 	MDB_file::Collision_sphere s;
 	s.bone_index = nearest_bone_index(bone_infos, node->EvaluateGlobalTransform().GetT());
