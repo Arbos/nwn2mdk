@@ -2175,6 +2175,11 @@ bool import_fbx(const Import_info& import_info)
 	auto ios = FbxIOSettings::Create(manager, IOSROOT);
 	manager->SetIOSettings(ios);
 
+	if (!exists(import_info.input_path)) {
+		Log::error() << import_info.input_path << " not found\n";
+		return false;
+	}
+
 	// Create an importer.
 	auto importer = FbxImporter::Create(manager, "");
 	if (!importer->Initialize(import_info.input_path.c_str(), -1,
