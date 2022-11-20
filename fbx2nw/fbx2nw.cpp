@@ -2210,6 +2210,8 @@ int main(int argc, char* argv[])
 {
 	Redirect_output_handle redirect_output_handle;
 
+	cout << app_string << "\n\n";
+
 	Config config((path(argv[0]).parent_path() / "config.yml").string().c_str());
 
 	if (config.nwn2_home.empty())

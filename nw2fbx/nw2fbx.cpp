@@ -16,6 +16,7 @@
 #include <filesystem>
 #include <iostream>
 
+#include "app_info.h"
 #include "archive_container.h"
 #include "config.h"
 #include "export_gr2.h"
@@ -557,6 +558,8 @@ static bool process_args(Export_info& export_info, int argc, char* argv[])
 int main(int argc, char* argv[])
 {
 	Redirect_output_handle redirect_output_handle;
+
+	cout << app_string << "\n\n";
 
 	Config config((path(argv[0]).parent_path() / "config.yml").string().c_str());
 
