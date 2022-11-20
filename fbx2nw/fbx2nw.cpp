@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <algorithm>
 
+#include "app_info.h"
 #include "config.h"
 #include "fbxsdk.h"
 #include "gr2_file.h"
@@ -1382,7 +1383,7 @@ void import_art_tool_info(GR2_import_info& import_info)
 void import_exporter_info(GR2_import_info& import_info)
 {
 	import_info.exporter_info.exporter_name =
-		import_info.strings.get("NWN2 MDK 0.14");
+		import_info.strings.get(app_string);
 	import_info.exporter_info.exporter_major_revision = 2;
 	import_info.exporter_info.exporter_minor_revision = 6;
 	import_info.exporter_info.exporter_customization = 0;
