@@ -174,6 +174,11 @@ class ImportMDBGR2(bpy.types.Operator, ImportHelper):
         args.append("nwn2mdk-tmp.fbx");
 
         with open(os.path.join(working_dir, "log.txt"), "w") as log:
+            log.write("Importing with Blender ")
+            log.write(bpy.app.version_string)
+            log.write("/")
+            log.flush()
+
             import subprocess
             proc = subprocess.Popen(args, stdout=log, cwd=working_dir)
             proc.wait()
@@ -277,6 +282,11 @@ class ExportMDB(bpy.types.Operator, ExportHelper):
         working_dir = os.path.dirname(self.filepath)
 
         with open(os.path.join(working_dir, "log.txt"), "w") as log:
+            log.write("Exporting with Blender ")
+            log.write(bpy.app.version_string)
+            log.write("/")
+            log.flush()
+
             import subprocess
             proc = subprocess.Popen(args, stdout=log, cwd=working_dir)
             proc.wait()
@@ -355,6 +365,11 @@ class ExportGR2(bpy.types.Operator, ExportHelper):
         args = [fbx2nw_path, tmpfbx, "-o", os.path.basename(self.filepath)]
 
         with open(os.path.join(working_dir, "log.txt"), "w") as log:
+            log.write("Exporting with Blender ")
+            log.write(bpy.app.version_string)
+            log.write("/")
+            log.flush()
+
             import subprocess
             proc = subprocess.Popen(args, stdout=log, cwd=working_dir)
             proc.wait()
