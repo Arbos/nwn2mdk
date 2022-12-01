@@ -30,7 +30,10 @@ import math
 def import_custom_properties(objects):
     for obj in objects:
         for k in list(obj.keys()):
-            if k == "TINT_MAP":
+            if k == "BASE_PART":
+                obj.nwn2mdk.is_base_part = obj[k] == 1
+                del obj[k]
+            elif k == "TINT_MAP":
                 obj.nwn2mdk.object_type = 'MESH'
                 obj.nwn2mdk.tint_map = obj[k]
                 del obj[k]
@@ -198,6 +201,7 @@ class ImportMDBGR2(bpy.types.Operator, ImportHelper):
 
 
 def export_mesh_properties(obj):
+    obj["NWN2MDK_BASE_PART"] = float(obj.nwn2mdk.is_base_part)
     obj["NWN2MDK_TINT_MAP"] = obj.nwn2mdk.tint_map
     obj["NWN2MDK_DIFFUSE_COLOR"] = obj.nwn2mdk.diffuse_color
     obj["NWN2MDK_SPECULAR_COLOR"] = obj.nwn2mdk.specular_color
@@ -223,6 +227,7 @@ def export_custom_properties(objects):
 
 def delete_custom_properties(objects):
     for obj in objects:
+        obj.pop("NWN2MDK_BASE_PART", None)
         obj.pop("NWN2MDK_TINT_MAP", None)
         obj.pop("NWN2MDK_DIFFUSE_COLOR", None)
         obj.pop("NWN2MDK_SPECULAR_COLOR", None)
@@ -337,6 +342,8 @@ class ExportGR2(bpy.types.Operator, ExportHelper):
         if not self.filepath:
             raise Exception("filepath not set")
 
+        export_custom_properties(context.scene.objects)
+
         if bpy.context.scene.frame_start == bpy.context.scene.frame_end:
             simplify_factor = 0.0
         else:
@@ -376,6 +383,8 @@ class ExportGR2(bpy.types.Operator, ExportHelper):
 
         if os.path.exists(tmpfbx):
             os.remove(tmpfbx)
+
+        delete_custom_properties(context.scene.objects)
 
         return {'FINISHED'}
 
@@ -468,6 +477,9 @@ class NWN2ObjectProperties(bpy.types.PropertyGroup):
                    ('HELM_INFO', "Helm Info", "Helm info")),
             name="Type",
             description="Type of NWN2 object")
+    is_base_part: BoolProperty(
+            name="Base Part",
+            description="Indicates whether the model is a base part of an animated placeable/door")
     tint_map: StringProperty(
             name="Tint Map",
             description="Filename of the tint map without extension",
@@ -536,6 +548,7 @@ class OBJECT_PT_nwn2mdk(bpy.types.Panel):
         layout.prop(obj.nwn2mdk, "object_type")
 
         if obj.nwn2mdk.object_type == 'MESH':
+            layout.prop(obj.nwn2mdk, "is_base_part")
             layout.prop(obj.nwn2mdk, "tint_map")
             layout.prop(obj.nwn2mdk, "diffuse_color")
             layout.prop(obj.nwn2mdk, "specular_color")

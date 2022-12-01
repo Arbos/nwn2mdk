@@ -216,25 +216,36 @@ FbxQuaternion de_boor_rotation(unsigned degree, float t, GR2_curve_view &v)
 	return de_boor_rotation(degree, padded_knots(v.knots(), degree), v.controls(), t);
 }
 
-void add_position_keyframe(FbxAnimCurve* curvex, FbxAnimCurve* curvey,
-	FbxAnimCurve* curvez, GR2_curve_view &view, float t)
+void add_position_keyframe(FbxNode& node, FbxAnimCurve* curvex,
+                           FbxAnimCurve* curvey, FbxAnimCurve* curvez,
+                           GR2_curve_view& view, float t)
 {
 	auto p = de_boor_position(view.degree(), t, view);
+
+	if (node.GetParent() == node.GetScene()->GetRootNode()) {
+		std::swap(p.y, p.z);
+		p.z = -p.z;
+	}
+	else {
+		p.x /= 100.0;
+		p.y /= 100.0;
+		p.z /= 100.0;
+	}
 
 	FbxTime time;
 	time.SetSecondDouble(t);
 
 	auto k = curvex->KeyAdd(time);
 	curvex->KeySetInterpolation(k, FbxAnimCurveDef::eInterpolationLinear);
-	curvex->KeySetValue(k, p.x/100);
+	curvex->KeySetValue(k, p.x);
 
 	k = curvey->KeyAdd(time);
 	curvey->KeySetInterpolation(k, FbxAnimCurveDef::eInterpolationLinear);
-	curvey->KeySetValue(k, p.y/100);
+	curvey->KeySetValue(k, p.y);
 
 	k = curvez->KeyAdd(time);
 	curvez->KeySetInterpolation(k, FbxAnimCurveDef::eInterpolationLinear);
-	curvez->KeySetValue(k, p.z/100);
+	curvez->KeySetValue(k, p.z);
 }
 
 void create_anim_position(FbxNode *node, FbxAnimLayer *anim_layer, GR2_animation *anim,
@@ -254,18 +265,28 @@ void create_anim_position(FbxNode *node, FbxAnimLayer *anim_layer, GR2_animation
 	curvez->KeyModifyBegin();	
 
 	for (double i = 0, t = 0; t < anim->duration + time_step / 2; ++i, t = i*time_step)
-		add_position_keyframe(curvex, curvey, curvez, view, float(t));
+		add_position_keyframe(*node, curvex, curvey, curvez, view, float(t));
 
 	curvex->KeyModifyEnd();
 	curvey->KeyModifyEnd();
 	curvez->KeyModifyEnd();
 }
 
-void add_rotation_keyframe(FbxAnimCurve* curvex, FbxAnimCurve* curvey,
-	FbxAnimCurve* curvez, GR2_curve_view &view, float t)
+void add_rotation_keyframe(FbxNode& node, FbxAnimCurve* curvex,
+                           FbxAnimCurve* curvey, FbxAnimCurve* curvez,
+                           GR2_curve_view& view, float t)
 {
 	auto r = de_boor_rotation(view.degree(), t, view);
 	auto e = quat_to_euler(r);
+
+	if (node.GetParent() == node.GetScene()->GetRootNode()) {
+		FbxAMatrix m;
+		m.SetR(e);
+
+		FbxAMatrix r90x;
+		r90x.SetR(FbxVector4(-90, 0, 0));
+		e = (r90x*m).GetR();
+	}
 
 	FbxTime time;
 	time.SetSecondDouble(t);
@@ -299,7 +320,7 @@ void create_anim_rotation(FbxNode *node, FbxAnimLayer *anim_layer, GR2_animation
 	curvez->KeyModifyBegin();	
 
 	for (double i = 0, t = 0; t < anim->duration + time_step / 2; ++i, t = i*time_step)
-		add_rotation_keyframe(curvex, curvey, curvez, view, float(t));
+		add_rotation_keyframe(*node, curvex, curvey, curvez, view, float(t));
 
 	curvex->KeyModifyEnd();
 	curvey->KeyModifyEnd();
@@ -333,24 +354,35 @@ std::pair<std::vector<float>, std::vector<float>> scaleshear_curve_view(GR2_tran
 	return { knots, controls };
 }
 
-void add_scaling_keyframe(FbxAnimCurve* curvex, FbxAnimCurve* curvey,
-	FbxAnimCurve* curvez, std::vector<float>& knots, std::vector<float>& controls,
-	unsigned i)
+void add_scaling_keyframe(FbxNode& node, FbxAnimCurve* curvex,
+                          FbxAnimCurve* curvey, FbxAnimCurve* curvez,
+                          std::vector<float>& knots,
+                          std::vector<float>& controls, unsigned i)
 {
 	FbxTime time;
 	time.SetSecondDouble(knots[i]);
 
+	float sx = controls[i * 9 + 0];
+	float sy = controls[i * 9 + 4];
+	float sz = controls[i * 9 + 8];
+
+	if (node.GetParent() == node.GetScene()->GetRootNode()) {
+		sx *= 100.0;
+		sy *= 100.0;
+		sz *= 100.0;
+	}
+
 	auto k = curvex->KeyAdd(time);
 	curvex->KeySetInterpolation(k, FbxAnimCurveDef::eInterpolationLinear);
-	curvex->KeySetValue(k, controls[i * 9 + 0]);
+	curvex->KeySetValue(k, sx);
 
 	k = curvey->KeyAdd(time);
 	curvey->KeySetInterpolation(k, FbxAnimCurveDef::eInterpolationLinear);
-	curvey->KeySetValue(k, controls[i * 9 + 4]);
+	curvey->KeySetValue(k, sy);
 
 	k = curvez->KeyAdd(time);
 	curvez->KeySetInterpolation(k, FbxAnimCurveDef::eInterpolationLinear);
-	curvez->KeySetValue(k, controls[i * 9 + 8]);
+	curvez->KeySetValue(k, sz);
 }
 
 void create_anim_scaling(FbxNode *node, FbxAnimLayer *anim_layer, GR2_animation *anim, GR2_transform_track &transform_track)
@@ -369,7 +401,7 @@ void create_anim_scaling(FbxNode *node, FbxAnimLayer *anim_layer, GR2_animation 
 	curvez->KeyModifyBegin();
 
 	for (unsigned i = 0; i < knots.size(); ++i)
-		add_scaling_keyframe(curvex, curvey, curvez, knots, controls, i);
+		add_scaling_keyframe(*node, curvex, curvey, curvez, knots, controls, i);
 
 	curvex->KeyModifyEnd();
 	curvey->KeyModifyEnd();
@@ -390,46 +422,42 @@ static bool node_is_animated(FbxNode* node, GR2_transform_track &transform_track
 		(node->GetChildCount() == 0 || strcmp(node->GetName(), node->GetChild(0)->GetName()) != 0);
 }
 
-static FbxNode* create_animation_pivot(FbxNode* node, GR2_track_group *track_group)
+static FbxNode* find_base_part(FbxNode* node, GR2_track_group *track_group)
 {
-	string pivot_name = track_group->name.get();
-	if(strcmp(node->GetName(), track_group->name) == 0)
-		pivot_name += ".PIVOT";
-
-	auto pivot = node->GetScene()->FindNodeByName(pivot_name.c_str());
-
-	if (!pivot) {
-		pivot = FbxNode::Create(node->GetScene(), pivot_name.c_str());
-		pivot->LclRotation.Set(FbxDouble3(-90, 0, 0));
-		pivot->LclScaling.Set(FbxDouble3(100, 100, 100));
-		node->GetScene()->GetRootNode()->AddChild(pivot);
-	}
-
-	return pivot;
+	return node->GetScene()->FindNodeByName(track_group->name.get());
 }
 
-static void parent_to_animation_pivot(FbxNode* node, GR2_track_group *track_group)
+static void parent_to_base_part(FbxNode* node, GR2_track_group *track_group)
 {
 	if (!node->GetMesh())
-		return; // Animation pivot is only for meshes
+		return; // Base part is only for meshes
 
-	auto pivot = create_animation_pivot(node, track_group);
+	if (strcmp(node->GetName(), track_group->name) == 0) {
+		auto prop = FbxProperty::Create(node, FbxFloatDT, "BASE_PART");
+		prop.Set(1.0);
+		prop.ModifyFlag(FbxPropertyFlags::eUserDefined, true);
+	}
+	else {
+		FbxNode* base_part = find_base_part(node, track_group);
 
-	// Make node child of pivot
-	node->GetParent()->RemoveChild(node);
-	pivot->AddChild(node);
+		if (base_part) {
+			// Make node child of base part
+			node->GetParent()->RemoveChild(node);
+			base_part->AddChild(node);
 
-	// Reset rotation and scaling since the node is not root anymore
-	node->LclRotation.Set(FbxDouble3(0, 0, 0));
-	node->LclScaling.Set(FbxDouble3(1, 1, 1));
+			// Reset rotation and scaling since the node is not root anymore
+			node->LclRotation.Set(FbxDouble3(0, 0, 0));
+			node->LclScaling.Set(FbxDouble3(1, 1, 1));
+		}
+	}
 }
 
 static bool export_animation(FbxNode* node, FbxAnimLayer *anim_layer,
 	GR2_animation *anim, GR2_track_group *track_group, GR2_transform_track &transform_track)
 {
 	if (node_is_animated(node, transform_track)) {		
+		parent_to_base_part(node, track_group);
 		create_animation(node, anim_layer, anim, transform_track);
-		parent_to_animation_pivot(node, track_group);
 		return true;
 	}
 
