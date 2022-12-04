@@ -128,8 +128,12 @@ def setup_armature(objects, ob):
 def setup_objects(objects):
     for obj in objects:
         if obj.type == 'MESH':
-            for ms in obj.material_slots:
-                ms.material.blend_method = 'OPAQUE'
+            if obj.name.startswith("COLS_"):
+                for ms in obj.material_slots:
+                    ms.material.blend_method = 'BLEND'
+            else:
+                for ms in obj.material_slots:
+                    ms.material.blend_method = 'OPAQUE'
 
             setup_frame_range(obj)
         elif obj.type == 'ARMATURE':
