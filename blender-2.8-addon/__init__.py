@@ -568,12 +568,12 @@ class OBJECT_PT_nwn2mdk(bpy.types.Panel):
 
 
 def menu_func_import(self, context):
-    self.layout.operator(ImportMDBGR2.bl_idname, text="Neverwinter Nights 2 (MDK) (.mdb/.gr2)")
+    self.layout.operator(ImportMDBGR2.bl_idname, text="Neverwinter Nights 2 (.mdb/.gr2)")
 
 
 def menu_func_export(self, context):
-    self.layout.operator(ExportMDB.bl_idname, text="Neverwinter Nights 2 (MDK) (.mdb)")
-    self.layout.operator(ExportGR2.bl_idname, text="Neverwinter Nights 2 (MDK) (.gr2)")
+    self.layout.operator(ExportMDB.bl_idname, text="Neverwinter Nights 2 (.mdb)")
+    self.layout.operator(ExportGR2.bl_idname, text="Neverwinter Nights 2 (.gr2)")
 
 
 classes = (
