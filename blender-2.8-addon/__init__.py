@@ -128,7 +128,7 @@ def setup_armature(objects, ob):
 def setup_objects(objects):
     for obj in objects:
         if obj.type == 'MESH':
-            if obj.name.startswith("COLS_"):
+            if obj.name.startswith("COLS_") or obj.name.endswith("_C2") or obj.name.endswith("_C3"):
                 for ms in obj.material_slots:
                     ms.material.blend_method = 'BLEND'
             else:
