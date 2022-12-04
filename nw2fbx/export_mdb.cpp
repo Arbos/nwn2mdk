@@ -380,7 +380,7 @@ static FbxSurfacePhong *collision_sphere_material(FbxScene* scene)
 		material->Diffuse.Set(FbxDouble3(0.5, 0.5, 0.5));
 		material->DiffuseFactor.Set(1.0);
 		material->TransparentColor.Set(FbxDouble3(1.0, 1.0, 1.0));
-		material->TransparencyFactor.Set(1.0);
+		material->TransparencyFactor.Set(0.5);
 		material->Specular.Set(FbxDouble3(0, 0, 0));
 		material->SpecularFactor.Set(0);
 		material->Shininess.Set(2);
