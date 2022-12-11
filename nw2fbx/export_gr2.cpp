@@ -251,7 +251,7 @@ void add_position_keyframe(FbxNode& node, FbxAnimCurve* curvex,
 void create_anim_position(FbxNode *node, FbxAnimLayer *anim_layer, GR2_animation *anim,
 	GR2_transform_track &transform_track)
 {
-	GR2_curve_view view(transform_track.position_curve);
+	GR2_curve_view view(anim->duration, transform_track.position_curve);
 
 	if (view.knots().empty())
 		return;
@@ -306,7 +306,7 @@ void add_rotation_keyframe(FbxNode& node, FbxAnimCurve* curvex,
 
 void create_anim_rotation(FbxNode *node, FbxAnimLayer *anim_layer, GR2_animation *anim, GR2_transform_track &transform_track)
 {
-	GR2_curve_view view(transform_track.orientation_curve);
+	GR2_curve_view view(anim->duration, transform_track.orientation_curve);
 
 	if (view.knots().empty())
 		return;
@@ -327,12 +327,23 @@ void create_anim_rotation(FbxNode *node, FbxAnimLayer *anim_layer, GR2_animation
 	curvez->KeyModifyEnd();
 }
 
-std::pair<std::vector<float>, std::vector<float>> scaleshear_curve_view(GR2_transform_track &transform_track)
+std::pair<std::vector<float>, std::vector<float>> scaleshear_curve_view(float duration, GR2_transform_track &transform_track)
 {
 	std::vector<float> knots;
 	std::vector<float> controls;
 
-	if (transform_track.scale_shear_curve.curve_data->curve_data_header.format == DaConstant32f) {
+	if (transform_track.scale_shear_curve.curve_data->curve_data_header.format == DaKeyframes32f) {
+		auto data = (GR2_curve_data_DaKeyframes32f*)transform_track.scale_shear_curve.curve_data.get();
+		int knots_count = data->controls_count/9;
+		float time_step = knots_count > 1 ? duration/float(knots_count - 1) : 0;
+
+		for (int i = 0; i < knots_count; ++i)
+			knots.push_back(float(i)*time_step);
+
+		for (int i = 0; i < data->controls_count; ++i)
+			controls.push_back(data->controls[i]);
+	}
+	else if (transform_track.scale_shear_curve.curve_data->curve_data_header.format == DaConstant32f) {
 		knots.push_back(0);
 		auto data = (GR2_curve_data_DaConstant32f*)transform_track.scale_shear_curve.curve_data.get();
 		for (int i = 0; i < 9; ++i)
@@ -387,7 +398,7 @@ void add_scaling_keyframe(FbxNode& node, FbxAnimCurve* curvex,
 
 void create_anim_scaling(FbxNode *node, FbxAnimLayer *anim_layer, GR2_animation *anim, GR2_transform_track &transform_track)
 {	
-	auto [knots, controls] = scaleshear_curve_view(transform_track);
+	auto [knots, controls] = scaleshear_curve_view(anim->duration, transform_track);
 
 	if (knots.empty())
 		return;

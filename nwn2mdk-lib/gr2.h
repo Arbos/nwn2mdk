@@ -22,7 +22,7 @@ enum GR2_property_type {
 };
 
 enum GR2_curve_format {
-	DaKeyframes32f = 0, // Not found in NWN2 files yet
+	DaKeyframes32f = 0,
 	DaK32fC32f = 1,
 	DaIdentity = 2,
 	DaConstant32f = 3,
@@ -309,6 +309,30 @@ private:
 	std::vector<Vector4<float>> controls_;
 };
 
+struct GR2_curve_data_DaKeyframes32f {
+	GR2_curve_data_header curve_data_header_DaKeyframes32f;
+	int16_t dimension;
+	int32_t controls_count;
+	Virtual_ptr<float> controls;
+};
+
+static_assert(sizeof(GR2_curve_data_DaKeyframes32f) == 12);
+
+class GR2_DaKeyframes32f_view {
+public:
+	int16_t dimension;
+
+	GR2_DaKeyframes32f_view(float duration,
+	                        GR2_curve_data_DaKeyframes32f& data);
+
+	const std::vector<float>& knots() const;
+	const std::vector<Vector4<float>>& controls() const;
+
+private:
+	std::vector<float> knots_;
+	std::vector<Vector4<float>> controls_;
+};
+
 struct GR2_curve {
 	Virtual_ptr<GR2_property_key> keys;
 	Virtual_ptr<GR2_curve_data> curve_data;
@@ -316,7 +340,7 @@ struct GR2_curve {
 
 class GR2_curve_view {
 public:
-	GR2_curve_view(GR2_curve& curve);
+	GR2_curve_view(float duration, GR2_curve& curve);
 
 	uint8_t degree() const;
 	const std::vector<float>& knots() const;

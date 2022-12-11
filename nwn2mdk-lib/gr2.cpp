@@ -452,11 +452,58 @@ const std::vector<Vector4<float>>& GR2_DaK32fC32f_view::controls() const
 	return controls_;
 }
 
-GR2_curve_view::GR2_curve_view(GR2_curve& curve)
+GR2_DaKeyframes32f_view::GR2_DaKeyframes32f_view(
+    float duration, GR2_curve_data_DaKeyframes32f& data)
+{
+	if (data.dimension == 3) { // Positions
+		int knots_count = data.controls_count/3;
+		float time_step = knots_count > 1 ? duration/float(knots_count - 1) : 0;
+
+		for (int i = 0; i < knots_count; ++i) {
+			knots_.push_back(float(i)*time_step);
+			float x = data.controls[i * 3 + 0];
+			float y = data.controls[i * 3 + 1];
+			float z = data.controls[i * 3 + 2];
+			controls_.emplace_back(x, y, z, 1.0f);
+		}
+	}
+	else if (data.dimension == 4) { // Quaternions
+		int knots_count = data.controls_count/4;
+		float time_step = knots_count > 1 ? duration/float(knots_count - 1) : 0;
+
+		for (int i = 0; i < knots_count; ++i) {
+			knots_.push_back(float(i)*time_step);
+			float x = data.controls[i * 4 + 0];
+			float y = data.controls[i * 4 + 1];
+			float z = data.controls[i * 4 + 2];
+			float w = data.controls[i * 4 + 3];
+			controls_.emplace_back(x, y, z, w);
+		}
+	}
+}
+
+const std::vector<float>& GR2_DaKeyframes32f_view::knots() const
+{
+	return knots_;
+}
+
+const std::vector<Vector4<float>>& GR2_DaKeyframes32f_view::controls() const
+{
+	return controls_;
+}
+
+GR2_curve_view::GR2_curve_view(float duration, GR2_curve& curve)
 {
 	degree_ = curve.curve_data->curve_data_header.degree;
 
-	if (curve.curve_data->curve_data_header.format == DaK32fC32f) {
+	if (curve.curve_data->curve_data_header.format == DaKeyframes32f) {
+		GR2_curve_data_DaKeyframes32f* data =
+			(GR2_curve_data_DaKeyframes32f*)curve.curve_data.get();
+		GR2_DaKeyframes32f_view view(duration, *data);
+		knots_ = view.knots();
+		controls_ = view.controls();
+	}
+	else if (curve.curve_data->curve_data_header.format == DaK32fC32f) {
 		GR2_curve_data_DaK32fC32f* data =
 			(GR2_curve_data_DaK32fC32f*)curve.curve_data.get();
 		GR2_DaK32fC32f_view view(*data);
