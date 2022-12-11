@@ -7,6 +7,7 @@ software to work with NWN2.
 Tools
 -----
 
+- Blender add-on to Create 3D models and animations for NWN2.
 - nwn2mdk-lib: C++ library to create third-party software to work with NWN2.
 - nw2fbx: Command-line based utility to convert MDB/GR2 to FBX.
 - fbx2nw: Command-line based utility to convert FBX to MDB/GR2.
