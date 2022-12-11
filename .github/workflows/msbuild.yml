@@ -1,0 +1,46 @@
+name: MSBuild
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+env:
+  # Path to the solution file relative to the root of the project.
+  SOLUTION_FILE_PATH: .
+
+  # Configuration type to build.
+  BUILD_CONFIGURATION: Release
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Install FBX SDK
+      run: |
+        Start-BitsTransfer -Source 'http://download.autodesk.com/us/fbx/2018/2018.0/fbx20180_fbxsdk_vs2015_win.exe' -Destination 'fbxsdk.exe'
+        Start-Process -FilePath 'fbxsdk.exe' /S -Wait
+
+    - uses: actions/checkout@v3
+      with:
+        submodules: true
+
+    - name: Configure CMake for yaml-cpp
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      run: cmake -A Win32 -T v142 -S external/yaml-cpp -B external/yaml-cpp/build -DCMAKE_BUILD_TYPE=Release -DYAML_CPP_BUILD_CONTRIB=OFF -DYAML_CPP_BUILD_TOOLS=OFF -DYAML_BUILD_SHARED_LIBS=OFF -DYAML_CPP_BUILD_TESTS=OFF -DYAML_CPP_INSTALL=OFF -DYAML_MSVC_SHARED_RT=OFF
+
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v1.0.2
+
+    - name: Restore NuGet packages
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      run: nuget restore ${{env.SOLUTION_FILE_PATH}}
+
+    - name: Build
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=x86 ${{env.SOLUTION_FILE_PATH}}
