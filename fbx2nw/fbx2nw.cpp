@@ -1728,7 +1728,7 @@ void import_skeletons(FbxScene* scene, const Import_info& info)
 	import_info.file_info.models = import_info.model_pointers.data();
 
 	if (Log::error_count > old_error_count) {
-		Log::error() << "skel.gr2 not generated due to errors found during the conversion.\n";
+		Log::error() << "GR2 not generated due to errors found during the conversion.\n";
 	}
 	else {
 		GR2_file gr2;
@@ -2124,7 +2124,7 @@ void import_animation(FbxAnimStack *stack, const Import_info& info)
 	import_info.file_info.extended_data.values = nullptr;
 
 	if (Log::error_count > old_error_count) {
-		Log::error() << "anim.gr2 not generated due to errors found during the conversion.\n";
+		Log::error() << "GR2 not generated due to errors found during the conversion.\n";
 	}
 	else {
 		GR2_file gr2;
