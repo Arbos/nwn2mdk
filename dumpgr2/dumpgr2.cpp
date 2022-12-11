@@ -486,6 +486,46 @@ void print_curve_data(GR2_curve_data_D3K8uC8u* data)
 	print_controls(view);
 }
 
+void print_curve_data(GR2_curve_data_DaKeyframes32f* data)
+{
+	cout << "    Dimension: " << data->dimension << endl;
+	cout << "    Controls: # " << data->controls_count << endl;
+
+	if (data->dimension == 3) {
+		for (int i = 0; i < data->controls_count/3; ++i) {
+			float x = data->controls[i * 3 + 0];
+			float y = data->controls[i * 3 + 1];
+			float z = data->controls[i * 3 + 2];
+			cout << "      - [" << x << ", " << y << ", " << z
+				<< "]\n";
+		}
+	}
+	else if (data->dimension == 4) {
+		for (int i = 0; i < data->controls_count/4; ++i) {
+			float x = data->controls[i * 4 + 0];
+			float y = data->controls[i * 4 + 1];
+			float z = data->controls[i * 4 + 2];
+			float w = data->controls[i * 4 + 3];
+			cout << "      - [" << x << ", " << y << ", " << z
+				<< ", " << w << "]\n";
+		}
+	}
+	else if (data->dimension == 9) {
+		for (int i = 0; i < data->controls_count/9; ++i) {
+			cout << "      - [";
+			for (int j = 0; j < 9; ++j) {
+				cout << data->controls[i * 9 + j];
+				if (j != 8)
+					cout << ", ";
+			}
+			cout << "]\n";
+		}
+	}
+	else {
+		cout << "# WARNING: Unhandled case\n";
+	}
+}
+
 void print_curve(GR2_curve& curve)
 {
 	cout << "    Format: " << +curve.curve_data->curve_data_header.format;
@@ -540,6 +580,11 @@ void print_curve(GR2_curve& curve)
 	else if (curve.curve_data->curve_data_header.format == D3K8uC8u) {
 		GR2_curve_data_D3K8uC8u* data =
 		    (GR2_curve_data_D3K8uC8u*)curve.curve_data.get();
+		print_curve_data(data);
+	}
+	else if (curve.curve_data->curve_data_header.format == DaKeyframes32f) {
+		GR2_curve_data_DaKeyframes32f* data =
+		    (GR2_curve_data_DaKeyframes32f*)curve.curve_data.get();
 		print_curve_data(data);
 	}
 	else {
