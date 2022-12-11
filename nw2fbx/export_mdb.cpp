@@ -664,7 +664,7 @@ static const char* guess_cloak_skeleton_name(const char* packet_name)
 	             "P_OOF_", "P_OOFcapewing_skel"};
 
 	for (size_t i = 0; i < size(skels); ++i) {
-		if (strncmpi(packet_name, skels[i].prefix, 6) == 0)
+		if (strnicmp(packet_name, skels[i].prefix, 6) == 0)
 			return skels[i].name;
 	}
 
@@ -690,7 +690,7 @@ static const char* guess_tail_skeleton_name(const char* packet_name)
 	             "P_OOF_", "P_OOFtail_skel"};
 
 	for (size_t i = 0; i < size(skels); ++i) {
-		if (strncmpi(packet_name, skels[i].prefix, 6) == 0)
+		if (strnicmp(packet_name, skels[i].prefix, 6) == 0)
 			return skels[i].name;
 	}
 
@@ -752,7 +752,7 @@ static const char* guess_body_skeleton_name(const char* packet_name)
 	             "P_OOF_", "P_OOF_skel"};
 
 	for (size_t i = 0; i < size(skels); ++i) {
-		if (strncmpi(packet_name, skels[i].prefix, 6) == 0)
+		if (strnicmp(packet_name, skels[i].prefix, 6) == 0)
 			return skels[i].name;
 	}
 
