@@ -131,6 +131,7 @@ def setup_objects(objects):
             if obj.name.startswith("COLS_") or obj.name.endswith("_C2") or obj.name.endswith("_C3"):
                 for ms in obj.material_slots:
                     ms.material.blend_method = 'BLEND'
+                    ms.material.diffuse_color[3] = 0.5
             else:
                 for ms in obj.material_slots:
                     ms.material.blend_method = 'OPAQUE'
