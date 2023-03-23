@@ -30,6 +30,8 @@ struct Export_info {
 	std::string mdb_skeleton_name;
 	FbxScene *scene;
 	std::map<std::string, Dependency> dependencies;
+
+	Dependency* find_skeleton_dependency(const char* skeleton_name);
 };
 
 void process_fbx_bones(Dependency& dep);

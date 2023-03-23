@@ -95,31 +95,68 @@ static void export_bones(FbxScene *scene, FbxNode *parent_node, GR2_skeleton *sk
 	}
 }
 
-static void export_skeleton(FbxScene *scene, GR2_skeleton *skel,
-	std::vector<FbxNode*> &fbx_bones)
+static void export_skeleton(Export_info& export_info, GR2_skeleton* skel)
 {
 	cout << "Importing skeleton: " << skel->name << endl;
 
-	auto node = FbxNode::Create(scene, skel->name);
+	auto node = FbxNode::Create(export_info.scene, skel->name);
 	node->LclRotation.Set(FbxDouble3(-90, 0, 0));
 	node->LclScaling.Set(FbxDouble3(100, 100, 100));
 
-	auto null_attr = FbxNull::Create(scene, skel->name);
+	auto null_attr = FbxNull::Create(export_info.scene, skel->name);
 	node->SetNodeAttribute(null_attr);
 
-	scene->GetRootNode()->AddChild(node);
+	export_info.scene->GetRootNode()->AddChild(node);
 
-	export_bones(scene, node, skel, -1, fbx_bones);	
+	auto &dep = export_info.dependencies[skel->name.get()];
+	export_bones(export_info.scene, node, skel, -1, dep.fbx_bones);
+	process_fbx_bones(dep);
+	dep.exported = true;
 }
 
-void export_skeletons(GR2_file& gr2, FbxScene* scene,
-	std::vector<FbxNode*>& fbx_bones)
+void export_skeletons(GR2_file& gr2, Export_info& export_info)
 {
 	for (int i = 0; i < gr2.file_info->models_count; ++i) {
-		if(gr2.file_info->models[i]->skeleton)
-			export_skeleton(scene,
-			                gr2.file_info->models[i]->skeleton,
-			                fbx_bones);
+		if(gr2.file_info->models[i]->skeleton) {
+			export_skeleton(export_info,
+			                gr2.file_info->models[i]->skeleton);
+		}
+	}
+}
+
+static void export_track_group_dependencies(Export_info& export_info,
+                                            GR2_track_group* track_group)
+{
+	if (strlen(track_group->name) == 0)
+		return;
+
+	// If exists a node with the same name, assume it's the base part of an
+	// animated placeable/door.
+	if (export_info.scene->FindNodeByName(track_group->name.get()))
+		return;
+
+	// Try to find the skeleton within the exported ones.
+	Dependency* dep =
+	    export_info.find_skeleton_dependency(track_group->name);
+
+	if (!dep) {
+		// Try to export the skeleton.
+
+		cout << "\"" << track_group->name
+		     << "\", referenced by animation, not found in the input "
+		        "files. Trying to find it on drive.\n";
+
+		string filename = string(track_group->name) + ".gr2";
+		export_gr2(export_info, filename.c_str());
+	}
+}
+
+static void export_animation_dependencies(Export_info& export_info,
+                                          GR2_animation* anim)
+{
+	for (int i = 0; i < anim->track_groups_count; ++i) {
+		export_track_group_dependencies(export_info,
+		                                anim->track_groups[i]);
 	}
 }
 
@@ -491,51 +528,41 @@ static void export_animation(FbxScene *scene, GR2_animation *anim, GR2_track_gro
 	}
 }
 
-static void export_animation(FbxScene *scene, GR2_animation *anim)
+static void export_animation(Export_info& export_info, GR2_animation* anim)
 {
+	export_animation_dependencies(export_info, anim);
+
 	cout << "Importing animation: " << anim->name << endl;
 
-	auto anim_stack = FbxAnimStack::Create(scene, anim->name);
-	auto anim_layer = FbxAnimLayer::Create(scene, "Layer");
+	auto anim_stack = FbxAnimStack::Create(export_info.scene, anim->name);
+	auto anim_layer = FbxAnimLayer::Create(export_info.scene, "Layer");
 	anim_stack->AddMember(anim_layer);
 
 	for (int i = 0; i < anim->track_groups_count; ++i)
-		export_animation(scene, anim, anim->track_groups[i], anim_layer);
+		export_animation(export_info.scene, anim, anim->track_groups[i],
+		                 anim_layer);
 }
 
-void export_animations(GR2_file& gr2, FbxScene* scene)
+void export_animations(GR2_file& gr2, Export_info& export_info)
 {
 	for (int i = 0; i < gr2.file_info->animations_count; ++i) {
-		export_animation(scene, gr2.file_info->animations[i]);
+		export_animation(export_info, gr2.file_info->animations[i]);
 	}
 }
 
-void export_gr2(const char *filename, FbxScene *scene,
-	std::vector<FbxNode*> &fbx_bones)
+static void export_gr2(GR2_file& gr2, Export_info& export_info)
 {
-	GR2_file gr2(filename);
-	if (!gr2) {
-		cout << gr2.error_string() << endl;
-		return;
-	}
-
-	export_gr2(gr2, scene, fbx_bones);	
+	export_skeletons(gr2, export_info);
+	export_animations(gr2, export_info);
 }
 
-void export_gr2(GR2_file& gr2, FbxScene *scene,
-	std::vector<FbxNode*> &fbx_bones)
-{
-	export_skeletons(gr2, scene, fbx_bones);
-	export_animations(gr2, scene);
-}
-
-Dependency& export_gr2(Export_info& export_info, const char* filename)
+void export_gr2(Export_info& export_info, const char* filename)
 {
 	auto it = export_info.dependencies.find(filename);
 
 	if (it != export_info.dependencies.end()) {
 		// Already exported
-		return it->second;
+		return;
 	}
 
 	auto& dep = export_info.dependencies[filename];
@@ -544,19 +571,15 @@ Dependency& export_gr2(Export_info& export_info, const char* filename)
 	auto buffer = load_resource(export_info.config, filename);
 
 	if (buffer.empty())
-		return dep;
+		return;
 
 	Memstream stream(buffer.data(), buffer.size());
 	GR2_file gr2(stream);
 
 	if (!gr2)
-		return dep;
+		return;
 
-	export_gr2(gr2, export_info.scene, dep.fbx_bones);
-	process_fbx_bones(dep);
-	dep.exported = true;
-
-	return dep;
+	export_gr2(gr2, export_info);
 }
 
 void print_gr2_info(GR2_file& gr2)

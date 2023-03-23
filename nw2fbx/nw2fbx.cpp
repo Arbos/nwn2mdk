@@ -483,10 +483,9 @@ static bool export_skeletons(Export_info& export_info, vector<Input>& inputs)
 			print_gr2_info(*input.gr2);
 
 			auto &dep = export_info.dependencies[input.filename];
-			export_skeletons(*input.gr2, export_info.scene, dep.fbx_bones);
+			export_skeletons(*input.gr2, export_info);
 			dep.exported = true;
 			dep.extracted = true;
-			process_fbx_bones(dep);
 		}
 	}
 
@@ -499,7 +498,7 @@ static bool export_animations(Export_info& export_info, vector<Input>& inputs)
 		if (input.gr2 && input.gr2->file_info->animations_count > 0) {
 			print_gr2_info(*input.gr2);
 
-			export_animations(*input.gr2, export_info.scene);
+			export_animations(*input.gr2, export_info);
 		}
 	}
 

@@ -8,6 +8,19 @@
 using namespace std;
 namespace fs = std::filesystem;
 
+Dependency* Export_info::find_skeleton_dependency(const char* skeleton_name)
+{
+	for (auto& dep : dependencies) {
+		if (dep.second.exported && dep.second.fbx_bones.size() > 0 &&
+		    strcmpi(skeleton_name,
+		            dep.second.fbx_bones[0]->GetName()) == 0) {
+			return &dep.second;
+		}
+	}
+
+	return nullptr;
+}
+
 void process_fbx_bones(Dependency& dep)
 {
 	FbxNode* ribcage = nullptr;

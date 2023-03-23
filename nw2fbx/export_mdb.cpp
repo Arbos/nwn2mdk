@@ -633,20 +633,6 @@ static void export_skinning(Export_info& export_info,
 	mesh->AddDeformer(fbx_skin);
 }
 
-static Dependency* find_skeleton_dependency(Export_info& export_info,
-                                            const char* skeleton_name)
-{
-	for (auto &dep : export_info.dependencies) {
-		if (dep.second.exported && dep.second.fbx_bones.size() > 0 &&
-		    strcmpi(skeleton_name,
-		            dep.second.fbx_bones[0]->GetName()) == 0) {
-			return &dep.second;
-		}
-	}
-
-	return nullptr;
-}
-
 static const char* guess_cloak_skeleton_name(const char* packet_name)
 {
 	struct Skeletons {
@@ -777,7 +763,7 @@ static void export_skinning(Export_info& export_info,
 {
 	// First try to find the skeleton within the exported ones.
 	Dependency* dep =
-	    find_skeleton_dependency(export_info, skin.header.skeleton_name);
+	    export_info.find_skeleton_dependency(skin.header.skeleton_name);
 
 	if (!dep) {
 		// Try to export the skeleton.
@@ -788,8 +774,7 @@ static void export_skinning(Export_info& export_info,
 
 		string filename = string(skin.header.skeleton_name) + ".gr2";
 		export_gr2(export_info, filename.c_str());
-		dep = find_skeleton_dependency(export_info,
-		                               skin.header.skeleton_name);
+		dep = export_info.find_skeleton_dependency(skin.header.skeleton_name);
 	}
 
 	if (!dep) {
@@ -804,13 +789,13 @@ static void export_skinning(Export_info& export_info,
 			        "name is wrong. Trying with heuristic name \""
 			     << sn << "\".\n";
 
-			dep = find_skeleton_dependency(export_info, sn);
+			dep = export_info.find_skeleton_dependency(sn);
 
 			if (!dep) {
 				// Try to export the skeleton.
 				string filename = string(sn) + ".gr2";
 				export_gr2(export_info, filename.c_str());
-				dep = find_skeleton_dependency(export_info, sn);
+				dep = export_info.find_skeleton_dependency(sn);
 			}
 		}
 	}
