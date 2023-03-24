@@ -284,7 +284,7 @@ class ExportMDB(bpy.types.Operator, ExportHelper):
         import os
 
         fbx2nw_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "fbx2nw")
-        args = [fbx2nw_path, tmpfbx, "-o", os.path.basename(self.filepath)]
+        args = [fbx2nw_path, "nwn2mdk-tmp.fbx", "-o", os.path.basename(self.filepath)]
         working_dir = os.path.dirname(self.filepath)
 
         with open(os.path.join(working_dir, "log.txt"), "w") as log:
@@ -372,7 +372,7 @@ class ExportGR2(bpy.types.Operator, ExportHelper):
 
 
         fbx2nw_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "fbx2nw")
-        args = [fbx2nw_path, tmpfbx, "-o", os.path.basename(self.filepath)]
+        args = [fbx2nw_path, "nwn2mdk-tmp.fbx", "-o", os.path.basename(self.filepath)]
 
         with open(os.path.join(working_dir, "log.txt"), "w") as log:
             log.write("Exporting with Blender ")
