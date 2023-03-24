@@ -154,12 +154,6 @@ class ImportMDBGR2(bpy.types.Operator, ImportHelper):
             type=bpy.types.OperatorFileListElement,
             )
 
-    automatic_bone_orientation: BoolProperty(
-            name="Automatic Bone Orientation",
-            description="Try to align the major bone axis with the bone children",
-            default=True,
-            )
-
     def draw(self, context):
         pass
 
@@ -194,7 +188,8 @@ class ImportMDBGR2(bpy.types.Operator, ImportHelper):
         tmpfbx = os.path.join(working_dir, "nwn2mdk-tmp.fbx")
         bpy.ops.import_scene.fbx(filepath=tmpfbx,
                                  use_image_search=False,
-                                 automatic_bone_orientation=self.automatic_bone_orientation)
+                                 automatic_bone_orientation=False,
+                                 primary_bone_axis='Z')
 
         import_custom_properties(context.selected_objects)
         setup_objects(context.selected_objects)
@@ -283,6 +278,7 @@ class ExportMDB(bpy.types.Operator, ExportHelper):
                                  use_tspace=True,
                                  use_custom_props=True,
                                  add_leaf_bones=False,
+                                 primary_bone_axis='Z',
                                  bake_anim=False)
 
         import os
@@ -366,6 +362,7 @@ class ExportGR2(bpy.types.Operator, ExportHelper):
                                  use_tspace=True,
                                  use_custom_props=True,
                                  add_leaf_bones=False,
+                                 primary_bone_axis='Z',
                                  bake_anim=(self.data_type == 'ANIM'),
                                  bake_anim_use_all_bones=False,
                                  bake_anim_use_nla_strips=False,
@@ -393,30 +390,6 @@ class ExportGR2(bpy.types.Operator, ExportHelper):
         delete_custom_properties(context.scene.objects)
 
         return {'FINISHED'}
-
-
-class NWN2MDK_PT_import_armature(bpy.types.Panel):
-    bl_space_type = 'FILE_BROWSER'
-    bl_region_type = 'TOOL_PROPS'
-    bl_label = "Armature"
-    bl_parent_id = "FILE_PT_operator"
-
-    @classmethod
-    def poll(cls, context):
-        sfile = context.space_data
-        operator = sfile.active_operator
-
-        return operator.bl_idname == "IMPORT_SCENE_OT_nwn2mdk"
-
-    def draw(self, context):
-        layout = self.layout
-        layout.use_property_split = True
-        layout.use_property_decorate = False  # No animation.
-
-        sfile = context.space_data
-        operator = sfile.active_operator
-
-        layout.prop(operator, "automatic_bone_orientation"),
 
 
 class NWN2MDK_PT_export_mdb_include(bpy.types.Panel):
@@ -579,7 +552,6 @@ def menu_func_export(self, context):
 
 classes = (
     ImportMDBGR2,
-    NWN2MDK_PT_import_armature,
     ExportMDB,
     ExportGR2,
     NWN2MDK_PT_export_mdb_include,
