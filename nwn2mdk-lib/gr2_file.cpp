@@ -737,10 +737,10 @@ GR2_file::GR2_file(std::istream& in)
 	read(in);
 }
 
-void GR2_file::apply_marshalling(std::istream& in)
+void GR2_file::apply_marshalling(std::istream&)
 {
-	for (unsigned i = 0; i < header.info.sections_count; ++i)
-		apply_marshalling(in, i);
+	// We don't expect to load GR2 files with an endianness that doesn't
+	// match the CPU endianness, so no need to apply marshalling.
 }
 
 void GR2_file::apply_marshalling(std::istream& in, unsigned index)
