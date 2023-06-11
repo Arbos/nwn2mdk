@@ -44,3 +44,17 @@ jobs:
     - name: Build
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=x86 ${{env.SOLUTION_FILE_PATH}}
+
+    - name: Prepare artifact
+      run: |
+        mkdir -p artifact/nwn2mdk
+        cp Release/*.exe artifact/nwn2mdk
+        cp config.yml artifact/nwn2mdk
+        cp blender-2.8-addon/__init__.py artifact/nwn2mdk
+        cp "C:/Program Files/Autodesk/FBX/FBX SDK/2018.0/lib/vs2015/x86/release/libfbxsdk.dll" artifact/nwn2mdk
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: nwn2mdk
+        path: artifact

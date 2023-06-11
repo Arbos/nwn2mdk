@@ -1,0 +1,15 @@
+# Intructions
+# ===========
+#
+# Comments start with hashtag (#).
+#
+# Optional properties are commented by default. Remove the hashtag at the
+# start of the line to use the property.
+#
+# A property has the following syntax:
+#
+#   property_name: value
+#
+
+# (Optional) Directory where NWN2 is installed.
+# nwn2_home: C:\Program Files\Atari\Neverwinter Nights 2
