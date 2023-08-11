@@ -1801,19 +1801,31 @@ static FbxDouble3 evaluate_translation(FbxNode& node, FbxTime time)
 	                           node.LclTranslation.EvaluateValue(time));
 }
 
-void import_position_DaK32fC32f(GR2_import_info& import_info, FbxNode* node,
-	GR2_transform_track& tt)
+static void remove_redundant_keyframes(std::vector<float>& knots,
+                                       std::vector<Vector3<float>>& controls)
+{
+	for (size_t i = 2; i < knots.size();) {
+		Vector3<float> c0 = controls[i - 2];
+		Vector3<float> c1 = controls[i - 1];
+		Vector3<float> c2 = controls[i - 0];
+
+		if (c1 == c0 && c1 == c2) {
+			knots.erase(knots.begin() + i - 1);
+			controls.erase(controls.begin() + i - 1);
+		}
+		else {
+			++i;
+		}
+	}
+}
+
+static std::pair<std::vector<float>, std::vector<Vector3<float>>>
+build_position_curve(GR2_import_info& import_info, FbxNode* node)
 {
 	cout << "  Positions:\n";
 
-	tt.position_curve.keys = DaK32fC32f_def;
-
-	auto& curve = import_info.da_curves.emplace_back();
-	curve.curve_data_header_DaK32fC32f.format = DaK32fC32f;
-	curve.curve_data_header_DaK32fC32f.degree = 1;
-
-	auto& knots = import_info.float_arrays.emplace_back();
-	auto& controls = import_info.float_arrays.emplace_back();
+	vector<float> knots;
+	vector<Vector3<float>> controls;
 
 	FbxTime time = import_info.anim_stack->LocalStart;
 	FbxTime dt;
@@ -1824,9 +1836,7 @@ void import_position_DaK32fC32f(GR2_import_info& import_info, FbxNode* node,
 		knots.push_back(t);
 
 		FbxDouble3 p = evaluate_translation(*node, time);
-		controls.push_back(float(p[0]));
-		controls.push_back(float(p[1]));
-		controls.push_back(float(p[2]));
+		controls.emplace_back(float(p[0]), float(p[1]), float(p[2]));
 
 		cout << "    " << knots.back() << ": " << p[0] << ' '
 			<< p[1] << ' ' << p[2] << endl;
@@ -1834,12 +1844,56 @@ void import_position_DaK32fC32f(GR2_import_info& import_info, FbxNode* node,
 		time += dt;
 	}
 
-	curve.knots_count = knots.size();
-	curve.knots = knots.data();
-	curve.controls_count = controls.size();
-	curve.controls = controls.data();
+	remove_redundant_keyframes(knots, controls);
+
+	return {knots, controls};
+}
+
+static void import_position_DaK32fC32f(
+    GR2_import_info& import_info, const std::vector<float>& knots,
+    const std::vector<Vector3<float>>& controls, GR2_transform_track& tt)
+{
+	tt.position_curve.keys = DaK32fC32f_def;
+
+	auto& curve = import_info.da_curves.emplace_back();
+	curve.curve_data_header_DaK32fC32f.format = DaK32fC32f;
+	curve.curve_data_header_DaK32fC32f.degree = 1;
+
+	auto& eknots = import_info.float_arrays.emplace_back();
+	eknots = knots;
+
+	auto& econtrols = import_info.float_arrays.emplace_back();
+
+	for (auto& p : controls) {
+		econtrols.push_back(p.x);
+		econtrols.push_back(p.y);
+		econtrols.push_back(p.z);
+	}
+
+	curve.knots_count = eknots.size();
+	curve.knots = eknots.data();
+	curve.controls_count = econtrols.size();
+	curve.controls = econtrols.data();
 
 	tt.position_curve.curve_data = reinterpret_cast<GR2_curve_data*>(&curve);
+}
+
+static void import_position_D3Constant32f(GR2_import_info& import_info,
+                                          const Vector3<float>& position,
+                                          GR2_transform_track& tt)
+{
+	tt.position_curve.keys = D3Constant32f_def;
+
+	auto& curve = import_info.d3c_curves.emplace_back();
+	curve.curve_data_header_D3Constant32f.format = D3Constant32f;
+	curve.curve_data_header_D3Constant32f.degree = 0;
+
+	curve.controls[0] = position.x;
+	curve.controls[1] = position.y;
+	curve.controls[2] = position.z;
+
+	tt.position_curve.curve_data =
+		reinterpret_cast<GR2_curve_data*>(&curve);
 }
 
 void import_position_D3Constant32f(GR2_import_info& import_info, FbxNode* node,
@@ -1864,7 +1918,12 @@ void import_position_anim(GR2_import_info& import_info, FbxNode* node,
 	FbxAnimLayer* layer, GR2_transform_track& tt)
 {	
 	if (node->LclTranslation.GetCurveNode(layer)) {
-		import_position_DaK32fC32f(import_info, node, tt);
+		auto [knots, controls] = build_position_curve(import_info, node);
+
+		if (knots.size() == 1 || (knots.size() == 2 && controls[0] == controls[1]))
+			import_position_D3Constant32f(import_info, controls[0], tt);
+		else
+			import_position_DaK32fC32f(import_info, knots, controls, tt);
 	}
 	else {
 		import_position_D3Constant32f(import_info, node, tt);
@@ -1881,19 +1940,31 @@ static FbxDouble3 evaluate_rotation(FbxNode& node, FbxTime time)
 	return r;
 }
 
-void import_rotation_anim(GR2_import_info& import_info, FbxNode* node,
-	FbxAnimLayer* layer, GR2_transform_track& tt)
+static void remove_redundant_keyframes(std::vector<float>& knots,
+                                       std::vector<Vector4<float>>& controls)
+{
+	for (size_t i = 2; i < knots.size();) {
+		Vector4<float> c0 = controls[i - 2];
+		Vector4<float> c1 = controls[i - 1];
+		Vector4<float> c2 = controls[i - 0];
+
+		if (c1 == c0 && c1 == c2) {
+			knots.erase(knots.begin() + i - 1);
+			controls.erase(controls.begin() + i - 1);
+		}
+		else {
+			++i;
+		}
+	}
+}
+
+static std::pair<std::vector<float>, std::vector<Vector4<float>>>
+build_rotation_curve(GR2_import_info& import_info, FbxNode* node)
 {
 	cout << "  Rotations:\n";
 
-	tt.orientation_curve.keys = DaK32fC32f_def;
-
-	auto& curve = import_info.da_curves.emplace_back();
-	curve.curve_data_header_DaK32fC32f.format = DaK32fC32f;
-	curve.curve_data_header_DaK32fC32f.degree = 1;
-
-	auto& knots = import_info.float_arrays.emplace_back();
-	auto& controls = import_info.float_arrays.emplace_back();
+	vector<float> knots;
+	vector<Vector4<float>> controls;
 
 	FbxTime time = import_info.anim_stack->LocalStart;
 	FbxTime dt;
@@ -1906,18 +1977,15 @@ void import_rotation_anim(GR2_import_info& import_info, FbxNode* node,
 		knots.push_back(t);
 
 		auto p = evaluate_rotation(*node, time);
-		
-		auto quat = euler_to_quaternion(p);		
+		auto quat = euler_to_quaternion(p);
 
 		// GR2 animation requires two consecutive quaternions have the
 		// shortest path.
 		if (quat.DotProduct(prev_quat) < 0)
 			quat = -quat;
 
-		controls.push_back(float(quat[0]));
-		controls.push_back(float(quat[1]));
-		controls.push_back(float(quat[2]));
-		controls.push_back(float(quat[3]));
+		controls.emplace_back(float(quat[0]), float(quat[1]),
+		                      float(quat[2]), float(quat[3]));
 		prev_quat = quat;
 
 		cout << "    " << knots.back() << ": ";
@@ -1927,10 +1995,38 @@ void import_rotation_anim(GR2_import_info& import_info, FbxNode* node,
 		time += dt;
 	}
 
-	curve.knots_count = knots.size();
-	curve.knots = knots.data();
-	curve.controls_count = controls.size();
-	curve.controls = controls.data();
+	remove_redundant_keyframes(knots, controls);
+
+	return {knots, controls};
+}
+
+void import_rotation_anim(GR2_import_info& import_info, FbxNode* node,
+	FbxAnimLayer* layer, GR2_transform_track& tt)
+{
+	auto [knots, controls] = build_rotation_curve(import_info, node);
+
+	tt.orientation_curve.keys = DaK32fC32f_def;
+
+	auto& curve = import_info.da_curves.emplace_back();
+	curve.curve_data_header_DaK32fC32f.format = DaK32fC32f;
+	curve.curve_data_header_DaK32fC32f.degree = 1;
+
+	auto& eknots = import_info.float_arrays.emplace_back();
+	eknots = knots;
+
+	auto& econtrols = import_info.float_arrays.emplace_back();
+
+	for (auto& p : controls) {
+		econtrols.push_back(p.x);
+		econtrols.push_back(p.y);
+		econtrols.push_back(p.z);
+		econtrols.push_back(p.w);
+	}
+
+	curve.knots_count = eknots.size();
+	curve.knots = eknots.data();
+	curve.controls_count = econtrols.size();
+	curve.controls = econtrols.data();
 
 	tt.orientation_curve.curve_data = reinterpret_cast<GR2_curve_data*>(&curve);
 }
@@ -1943,13 +2039,13 @@ static FbxDouble3 convert_scale(FbxNode& node, FbxDouble3 scale)
 		return scale;
 }
 
-void import_scaleshear_DaK32fC32f(GR2_import_info& import_info, FbxNode* node,
-	GR2_transform_track& tt)
+static std::pair<std::vector<float>, std::vector<Vector3<float>>>
+build_scale_curve(GR2_import_info& import_info, FbxNode* node)
 {
 	cout << "  Scaling:\n";
 
-	auto& knots = import_info.float_arrays.emplace_back();
-	auto& controls = import_info.float_arrays.emplace_back();
+	vector<float> knots;
+	vector<Vector3<float>> controls;
 
 	FbxTime time = import_info.anim_stack->LocalStart;
 	FbxTime dt;
@@ -1962,32 +2058,79 @@ void import_scaleshear_DaK32fC32f(GR2_import_info& import_info, FbxNode* node,
 		auto s = node->LclScaling.EvaluateValue(time);
 		s = convert_scale(*node, s);
 
-		controls.push_back(float(s[0]));
-		controls.push_back(0);
-		controls.push_back(0);
-		controls.push_back(0);
-		controls.push_back(float(s[1]));
-		controls.push_back(0);
-		controls.push_back(0);
-		controls.push_back(0);
-		controls.push_back(float(s[2]));
+		controls.emplace_back(float(s[0]), float(s[1]), float(s[2]));
 
 		cout << "    " << knots.back() << ": " << s[0] << ' '
 			<< s[1] << ' ' << s[2] << endl;
 
-		time += dt;		
+		time += dt;
+	}
+
+	remove_redundant_keyframes(knots, controls);
+
+	return {knots, controls};
+}
+
+void import_scaleshear_DaK32fC32f(GR2_import_info& import_info,
+                                  const std::vector<float>& knots,
+                                  const std::vector<Vector3<float>>& controls,
+                                  GR2_transform_track& tt)
+{
+	auto& eknots = import_info.float_arrays.emplace_back();
+	eknots = knots;
+
+	auto& econtrols = import_info.float_arrays.emplace_back();
+
+	for (auto& p : controls) {
+		econtrols.push_back(p.x);
+		econtrols.push_back(0);
+		econtrols.push_back(0);
+
+		econtrols.push_back(0);
+		econtrols.push_back(p.y);
+		econtrols.push_back(0);
+
+		econtrols.push_back(0);
+		econtrols.push_back(0);
+		econtrols.push_back(p.z);
 	}
 
 	auto& curve = import_info.da_curves.emplace_back();
 	curve.curve_data_header_DaK32fC32f.format = DaK32fC32f;
 	curve.curve_data_header_DaK32fC32f.degree = 1;
 	curve.padding = 0;
-	curve.knots_count = knots.size();
-	curve.knots = knots.data();
+	curve.knots_count = eknots.size();
+	curve.knots = eknots.data();
+	curve.controls_count = econtrols.size();
+	curve.controls = econtrols.data();
+
+	tt.scale_shear_curve.keys = DaK32fC32f_def;
+	tt.scale_shear_curve.curve_data = reinterpret_cast<GR2_curve_data*>(&curve);
+}
+
+static void import_scaleshear_DaConstant32f(GR2_import_info& import_info,
+                                            const Vector3<float>& scale,
+                                            GR2_transform_track& tt)
+{
+	auto& controls = import_info.float_arrays.emplace_back();
+	controls.push_back(scale.x);
+	controls.push_back(0);
+	controls.push_back(0);
+	controls.push_back(0);
+	controls.push_back(scale.y);
+	controls.push_back(0);
+	controls.push_back(0);
+	controls.push_back(0);
+	controls.push_back(scale.z);
+
+	auto& curve = import_info.dac_curves.emplace_back();
+	curve.curve_data_header_DaConstant32f.format = DaConstant32f;
+	curve.curve_data_header_DaConstant32f.degree = 0;
+	curve.padding = 0;
 	curve.controls_count = controls.size();
 	curve.controls = controls.data();
 
-	tt.scale_shear_curve.keys = DaK32fC32f_def;
+	tt.scale_shear_curve.keys = DaConstant32f_def;
 	tt.scale_shear_curve.curve_data = reinterpret_cast<GR2_curve_data*>(&curve);
 }
 
@@ -2032,12 +2175,27 @@ void import_scaleshear_DaIdentity(GR2_import_info& import_info, GR2_transform_tr
 void import_scaleshear(GR2_import_info& import_info, FbxNode* node,
 	FbxAnimLayer* layer, GR2_transform_track& tt)
 {
-	if (node->LclScaling.GetCurveNode(layer))
-		import_scaleshear_DaK32fC32f(import_info, node, tt);
-	else if (node->LclScaling.Get()[0] != 1 || node->LclScaling.Get()[1] != 1 || node->LclScaling.Get()[2] != 1)
-		import_scaleshear_DaConstant32f(import_info, node, tt);
-	else
-		import_scaleshear_DaIdentity(import_info, tt);
+	if (node->LclScaling.GetCurveNode(layer)) {
+		auto [knots, controls] = build_scale_curve(import_info, node);
+
+		if (knots.size() == 1 || (knots.size() == 2 && controls[0] == controls[1])) {
+			if (controls[0].x != 1 || controls[0].y != 1 || controls[0].z != 1)
+				import_scaleshear_DaConstant32f(import_info, controls[0], tt);
+			else
+				import_scaleshear_DaIdentity(import_info, tt);
+		}
+		else {
+			import_scaleshear_DaK32fC32f(import_info, knots, controls, tt);
+		}
+	}
+	else {
+		FbxDouble3 s = convert_scale(*node, node->LclScaling.Get());
+
+		if (s[0] != 1 || s[1] != 1 || s[2] != 1)
+			import_scaleshear_DaConstant32f(import_info, node, tt);
+		else
+			import_scaleshear_DaIdentity(import_info, tt);
+	}
 }
 
 void import_anim_layer(GR2_import_info& import_info, FbxAnimLayer* layer,
