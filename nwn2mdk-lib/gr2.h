@@ -143,6 +143,13 @@ struct GR2_curve_data_D3Constant32f {
 	float controls[3];
 };
 
+struct GR2_curve_data_D4Constant32f {
+	GR2_curve_data_header curve_data_header_D4Constant32f;
+	/// Unused. It's declared here to pad the header, forcing proper alignment.
+	int16_t padding;
+	float controls[4];
+};
+
 struct GR2_curve_data_D3K16uC16u {
 	GR2_curve_data_header curve_data_header_D3K16uC16u;
 	uint16_t one_over_knot_scale_trunc;

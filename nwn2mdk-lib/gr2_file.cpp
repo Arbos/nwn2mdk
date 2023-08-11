@@ -532,6 +532,9 @@ uint32_t export_curve_data(GR2_export_info& export_info, GR2_curve_data* cd)
 	else if (cd->curve_data_header.format == D3Constant32f) {
 		export_info.streams[6].write((char*)cd, sizeof(GR2_curve_data_D3Constant32f));
 	}
+	else if (cd->curve_data_header.format == D4Constant32f) {
+		export_info.streams[6].write((char*)cd, sizeof(GR2_curve_data_D4Constant32f));
+	}
 	else if (cd->curve_data_header.format == D4nK16uC15u) {
 		cout << "ERROR: Curve format D4nK16uC15u not supported\n";
 	}

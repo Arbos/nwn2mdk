@@ -562,6 +562,14 @@ void print_curve(GR2_curve& curve)
 		cout << "    Controls: [" << data->controls[0] << ", "
 		     << data->controls[1] << ", " << data->controls[2] << "]\n";
 	}
+	else if (curve.curve_data->curve_data_header.format == D4Constant32f) {
+		GR2_curve_data_D4Constant32f* data =
+		    (GR2_curve_data_D4Constant32f*)curve.curve_data.get();
+		cout << "    Padding: " << data->padding << endl;
+		cout << "    Controls: [" << data->controls[0] << ", "
+		     << data->controls[1] << ", " << data->controls[2] << ", "
+		     << data->controls[3] << "]\n";
+	}
 	else if (curve.curve_data->curve_data_header.format == D4nK16uC15u) {
 		GR2_curve_data_D4nK16uC15u* data =
 		    (GR2_curve_data_D4nK16uC15u*)curve.curve_data.get();

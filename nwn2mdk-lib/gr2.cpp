@@ -9,6 +9,7 @@ static_assert(sizeof(GR2_animation) == 24);
 static_assert(sizeof(GR2_art_tool_info) == 64);
 static_assert(sizeof(GR2_bone) == 156, "");
 static_assert(sizeof(GR2_curve_data_D3Constant32f) == 16, "");
+static_assert(sizeof(GR2_curve_data_D4Constant32f) == 20, "");
 static_assert(sizeof(GR2_curve_data_D4nK8uC7u) == 16, "");
 static_assert(sizeof(GR2_curve_data_DaIdentity) == 4, "");
 static_assert(sizeof(GR2_exporter_info) == 20);
@@ -518,6 +519,13 @@ GR2_curve_view::GR2_curve_view(float duration, GR2_curve& curve)
 		knots_.push_back(0.0f);
 		controls_.emplace_back(data->controls[0],
 			data->controls[1], data->controls[2], 1.0f);
+	}
+	else if (curve.curve_data->curve_data_header.format == D4Constant32f) {
+		GR2_curve_data_D4Constant32f* data =
+			(GR2_curve_data_D4Constant32f*)curve.curve_data.get();
+		knots_.push_back(0.0f);
+		controls_.emplace_back(data->controls[0], data->controls[1],
+		                       data->controls[2], data->controls[3]);
 	}
 	else if (curve.curve_data->curve_data_header.format == D4nK16uC15u) {
 		GR2_curve_data_D4nK16uC15u* data =
