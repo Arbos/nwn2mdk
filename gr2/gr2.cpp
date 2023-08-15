@@ -29,7 +29,7 @@ static int compress(int argc, char* argv[])
 		return 1;
 	}
 
-	if (fs::equivalent(argv[2], argv[3])) {
+	if (fs::exists(argv[3]) && fs::equivalent(argv[2], argv[3])) {
 		cout << "Cannot compress " << argv[2] << ": Source and target are the same\n";
 		return 1;
 	}
@@ -72,7 +72,7 @@ static int decompress(int argc, char* argv[])
 		return 1;
 	}
 
-	if (fs::equivalent(argv[2], argv[3])) {
+	if (fs::exists(argv[3]) && fs::equivalent(argv[2], argv[3])) {
 		cout << "Cannot decompress " << argv[2] << ": Source and target are the same\n";
 		return 1;
 	}
