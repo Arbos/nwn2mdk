@@ -743,7 +743,6 @@ void print_gr2(GR2_file& gr2)
 {
 	print_header(gr2);
 	print_sections(gr2);
-	print_keys(gr2.type_definition);
 	print_file_info(gr2.file_info);
 	print_art_tool_info(gr2.file_info->art_tool_info);
 	print_exporter_info(gr2.file_info->exporter_info);
