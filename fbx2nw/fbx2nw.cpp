@@ -4,6 +4,7 @@
 #include <list>
 #include <assert.h>
 #include <algorithm>
+#include <random>
 
 #include "app_info.h"
 #include "config.h"
@@ -13,6 +14,8 @@
 #include "mdb_file.h"
 #include "redirect_output_handle.h"
 #include "string_collection.h"
+
+#include "granny2dll_handle.h"
 
 enum class Output_type {
 	any,
@@ -1697,6 +1700,60 @@ void import_skeleton(GR2_import_info& import_info, FbxNode* node)
 	import_model(import_info, &import_info.skeletons.back());	
 }
 
+std::string gen_tmp_filename(const char* extension)
+{
+	string tmp_filename;
+	random_device rd;
+	mt19937 gen(rd());
+	uniform_int_distribution<int> dist(0, 99999);
+
+	do {
+		tmp_filename = "nwn2mdk-tmp";
+		tmp_filename += to_string(dist(gen));
+		tmp_filename += extension;
+	} while (exists(tmp_filename));
+
+	return tmp_filename;
+}
+
+static void write_gr2(const Import_info& import_info, GR2_import_info& gr2_import_info)
+{
+#ifdef _WIN32
+	Granny2dll_handle granny2dll(GR2_file::granny2dll_filename.c_str());
+
+	if (!granny2dll) {
+		Log::error() << "Cannot load library granny2.dll\n";
+		return;
+	}
+
+	if (!granny2dll.GrannyRecompressFile) {
+		Log::error() << "Cannot get address of GrannyRecompressFile";
+		return;
+	}
+
+	// Generate uncompressed temp GR2 file.
+	GR2_file gr2;
+	gr2.read(&gr2_import_info.file_info);
+	string tmp_filename = gen_tmp_filename(".gr2");
+	gr2.write(tmp_filename.c_str());
+
+	// Compress file.
+	string output_filename = string(import_info.output_path) + ".gr2";
+	int CompressorMapping[] = { 2, 2, 2 };
+	int CompressorMappingCount = sizeof(CompressorMapping) / sizeof(CompressorMapping[0]);
+	granny2dll.GrannyRecompressFile(tmp_filename.c_str(), output_filename.c_str(), CompressorMappingCount, CompressorMapping);
+	cout << "\nOutput is " << output_filename << endl;
+
+	filesystem::remove(tmp_filename);
+#else
+	GR2_file gr2;
+	gr2.read(&import_info.file_info);
+	string output_filename = string(info.output_path) + ".gr2";
+	gr2.write(output_filename.c_str());
+	cout << "\nOutput is " << output_filename << endl;
+#endif
+}
+
 void import_skeletons(FbxScene* scene, const Import_info& info)
 {
 	auto old_error_count = Log::error_count;
@@ -1731,11 +1788,7 @@ void import_skeletons(FbxScene* scene, const Import_info& info)
 		Log::error() << "GR2 not generated due to errors found during the conversion.\n";
 	}
 	else {
-		GR2_file gr2;
-		gr2.read(&import_info.file_info);
-		string output_filename = string(info.output_path) + ".gr2";
-		gr2.write(output_filename.c_str());
-		cout << "\nOutput is " << output_filename << endl;
+		write_gr2(info, import_info);
 	}
 }
 
@@ -2285,11 +2338,7 @@ void import_animation(FbxAnimStack *stack, const Import_info& info)
 		Log::error() << "GR2 not generated due to errors found during the conversion.\n";
 	}
 	else {
-		GR2_file gr2;
-		gr2.read(&import_info.file_info);
-		string output_filename = string(info.output_path) + ".gr2";
-		gr2.write(output_filename.c_str());
-		cout << "\nOutput is " << output_filename << endl;
+		write_gr2(info, import_info);
 	}
 }
 
