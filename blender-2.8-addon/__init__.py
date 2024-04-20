@@ -185,16 +185,19 @@ class ImportMDBGR2(bpy.types.Operator, ImportHelper):
             proc = subprocess.Popen(args, stdout=log, cwd=working_dir)
             proc.wait()
 
-        tmpfbx = os.path.join(working_dir, "nwn2mdk-tmp.fbx")
-        bpy.ops.import_scene.fbx(filepath=tmpfbx,
-                                 use_image_search=False,
-                                 automatic_bone_orientation=False,
-                                 primary_bone_axis='Z')
+            if proc.returncode > 0:
+                self.report({'ERROR'}, "Error during import. See log.txt for errors.")
 
-        import_custom_properties(context.selected_objects)
-        setup_objects(context.selected_objects)
+        tmpfbx = os.path.join(working_dir, "nwn2mdk-tmp.fbx")
 
         if os.path.exists(tmpfbx):
+            bpy.ops.import_scene.fbx(filepath=tmpfbx,
+                                     use_image_search=False,
+                                     automatic_bone_orientation=False,
+                                     primary_bone_axis='Z')
+
+            import_custom_properties(context.selected_objects)
+            setup_objects(context.selected_objects)
             os.remove(tmpfbx)
 
         return {'FINISHED'}
@@ -383,6 +386,9 @@ class ExportGR2(bpy.types.Operator, ExportHelper):
             import subprocess
             proc = subprocess.Popen(args, stdout=log, cwd=working_dir)
             proc.wait()
+
+            if proc.returncode > 0:
+                self.report({'ERROR'}, "Error during export. See log.txt for errors.")
 
         if os.path.exists(tmpfbx):
             os.remove(tmpfbx)
