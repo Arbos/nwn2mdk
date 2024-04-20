@@ -274,6 +274,11 @@ class ExportMDB(bpy.types.Operator, ExportHelper):
         working_dir = os.path.dirname(self.filepath)
         tmpfbx = os.path.join(working_dir, "nwn2mdk-tmp.fbx")
 
+        args = {}
+
+        if bpy.app.version >= (3, 2, 0):
+            args["use_triangles"] = True
+
         bpy.ops.export_scene.fbx(filepath=tmpfbx,
                                  use_selection=self.use_selection,
                                  axis_forward='-Z',
@@ -282,7 +287,8 @@ class ExportMDB(bpy.types.Operator, ExportHelper):
                                  use_custom_props=True,
                                  add_leaf_bones=False,
                                  primary_bone_axis='Z',
-                                 bake_anim=False)
+                                 bake_anim=False,
+                                 **args)
 
         import os
 
