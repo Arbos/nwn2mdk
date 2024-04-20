@@ -111,6 +111,9 @@ def setup_frame_range(ob):
 
 def setup_armature(objects, ob):
     for b in ob.pose.bones:
+        if b.name.lower().startswith("ap_"):
+            b.bone.use_deform = False
+
         n1 = "COLS_" + b.name
         n2 = n1 + "."
         l = [ob for ob in objects if ob.name == n1 or ob.name.startswith(n2)]
