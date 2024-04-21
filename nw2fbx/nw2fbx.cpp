@@ -35,9 +35,9 @@ using namespace std::filesystem;
 
 static void print_header(const MDB_file& mdb)
 {
-	cout << "Major Version: " << mdb.major_version() << endl;
-	cout << "Minor Version: " << mdb.minor_version() << endl;
-	cout << "Packet Count:  " << mdb.packet_count() << endl;
+	cout << "Version:      " << mdb.major_version() << '.'
+	     << mdb.minor_version() << endl;
+	cout << "Packet Count: " << mdb.packet_count() << endl;
 	cout << endl;
 }
 
@@ -323,11 +323,6 @@ static void print_packet(const MDB_file::Packet* packet)
 
 static void print_mdb(const MDB_file& mdb)
 {
-	cout << endl;
-	cout << "===\n";
-	cout << "MDB\n";
-	cout << "===\n";
-
 	print_header(mdb);
 
 	for (uint32_t i = 0; i < mdb.packet_count(); ++i)
@@ -384,6 +379,9 @@ static bool extract_arg(const Config& config, const char* arg,
 	}
 
 	static auto& archives = model_archives(config);
+
+	cout << '\n';
+
 	auto r = archives.find_file(arg);
 	if (r.matches != 1)
 		return false;
@@ -480,6 +478,11 @@ static bool export_skeletons(Export_info& export_info, vector<Input>& inputs)
 {
 	for (auto &input : inputs) {
 		if (input.gr2 && input.gr2->file_info->skeletons_count > 0) {
+			cout << '\n';
+			cout << "===\n";
+			cout << "GR2 " << path(input.filename).filename().string() << '\n';
+			cout << "===\n";
+
 			print_gr2_info(*input.gr2);
 
 			auto &dep = export_info.dependencies[input.filename];
@@ -509,6 +512,11 @@ static bool export_mdb_files(Export_info& export_info, vector<Input>& inputs)
 {
 	for (auto &input : inputs) {
 		if (input.mdb) {
+			cout << '\n';
+			cout << "===\n";
+			cout << "MDB " << path(input.filename).filename().string() << '\n';
+			cout << "===\n";
+
 			print_mdb(*input.mdb);
 
 			if (!export_mdb(export_info, *input.mdb)) {

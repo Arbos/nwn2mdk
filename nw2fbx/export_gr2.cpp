@@ -584,10 +584,6 @@ void export_gr2(Export_info& export_info, const char* filename)
 
 void print_gr2_info(GR2_file& gr2)
 {
-	cout << endl;
-	cout << "===\n";
-	cout << "GR2\n";
-	cout << "===\n";
 	cout << "Skeletons: " << gr2.file_info->skeletons_count << endl;
 	cout << "Models: " << gr2.file_info->models_count << endl;
 	cout << "Animations: " << gr2.file_info->animations_count << endl;
