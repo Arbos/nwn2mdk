@@ -5,7 +5,7 @@ bl_info = {
     "blender": (2, 93, 7),
     "location": "File > Import-Export",
     "description": "Neverwinter Nights 2 MDB/GR2 Import/Export",
-    "doc_url": "https://github.com/Arbos/nwn2mdk/wiki",
+    "doc_url": "https://arbos.github.io/nwn2/blender",
     "category": "Import-Export",
 }
 
