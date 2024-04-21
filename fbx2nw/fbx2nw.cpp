@@ -15,7 +15,9 @@
 #include "redirect_output_handle.h"
 #include "string_collection.h"
 
+#ifdef _WIN32
 #include "granny2dll_handle.h"
+#endif
 
 enum class Output_type {
 	any,
@@ -1747,8 +1749,8 @@ static void write_gr2(const Import_info& import_info, GR2_import_info& gr2_impor
 	filesystem::remove(tmp_filename);
 #else
 	GR2_file gr2;
-	gr2.read(&import_info.file_info);
-	string output_filename = string(info.output_path) + ".gr2";
+	gr2.read(&gr2_import_info.file_info);
+	string output_filename = string(import_info.output_path) + ".gr2";
 	gr2.write(output_filename.c_str());
 	cout << "\nOutput is " << output_filename << endl;
 #endif
