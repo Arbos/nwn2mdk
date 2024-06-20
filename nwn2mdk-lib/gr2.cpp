@@ -419,6 +419,51 @@ const std::vector<float>& GR2_DaK16uC16u_view::controls() const
 	return controls_;
 }
 
+GR2_DaK8uC8u_view::GR2_DaK8uC8u_view(GR2_curve_data_DaK8uC8u& data)
+{
+	int dimension = data.control_scale_offsets_count / 2;
+	int knots_count = data.knots_controls_count / (dimension + 1);
+
+	float one_over_knot_scale;
+	unsigned tmp = (unsigned)data.one_over_knot_scale_trunc << 16;
+	memcpy(&one_over_knot_scale, &tmp, sizeof(tmp));
+
+	for (int i = 0; i < knots_count; ++i) {
+		encoded_knots_.push_back(data.knots_controls[i]);
+		knots_.push_back(data.knots_controls[i] / one_over_knot_scale);
+	}
+
+	int controls_count = data.knots_controls_count - knots_count;
+	auto controls = data.knots_controls + knots_count;
+
+	for (int i = 0; i < controls_count; ++i) {
+		encoded_controls_.push_back(controls[i]);
+		int scale_index = i % dimension;
+		int offset_index = scale_index + dimension;
+		controls_.push_back(controls[i] * data.control_scale_offsets[scale_index] + data.control_scale_offsets[offset_index]);
+	}
+}
+
+const std::vector<uint8_t>& GR2_DaK8uC8u_view::encoded_knots() const
+{
+	return encoded_knots_;
+}
+
+const std::vector<float>& GR2_DaK8uC8u_view::knots() const
+{
+	return knots_;
+}
+
+const std::vector<uint8_t>& GR2_DaK8uC8u_view::encoded_controls() const
+{
+	return encoded_controls_;
+}
+
+const std::vector<float>& GR2_DaK8uC8u_view::controls() const
+{
+	return controls_;
+}
+
 GR2_DaK32fC32f_view::GR2_DaK32fC32f_view(GR2_curve_data_DaK32fC32f& data)
 {	
 	for (int i = 0; i < data.knots_count; ++i)

@@ -398,6 +398,11 @@ std::pair<std::vector<float>, std::vector<float>> scaleshear_curve_view(float du
 		for (int i = 0; i < data->controls_count; ++i)
 			controls.push_back(data->controls[i]);		
 	}
+	else if (transform_track.scale_shear_curve.curve_data->curve_data_header.format == DaK8uC8u) {
+		auto data = (GR2_curve_data_DaK8uC8u*)transform_track.scale_shear_curve.curve_data.get();
+		GR2_DaK8uC8u_view view(*data);
+		return { view.knots(), view.controls() };
+	}
 
 	return { knots, controls };
 }

@@ -412,6 +412,53 @@ void print_curve_data(GR2_curve_data_DaK16uC16u* data)
 		cout << "      - " << view.encoded_controls()[i] << " # " << view.controls()[i] << endl;
 }
 
+void print_curve_data(GR2_curve_data_DaK8uC8u* data)
+{
+	cout << "    OneOverKnotScaleTrunc: " << data->one_over_knot_scale_trunc << endl;
+	cout << "    ControlScaleOffsets: # " << data->control_scale_offsets_count << endl;
+
+	for (int i = 0; i < data->control_scale_offsets_count; ++i)
+		cout << "      - " << data->control_scale_offsets[i] << endl;
+
+	GR2_DaK8uC8u_view view(*data);
+
+	print_knots(view);
+
+	cout << "    Controls: # " << view.controls().size() << endl;
+
+	for (unsigned i = 0; i < view.controls().size(); i += 9) {
+		cout << "      - [";
+		cout << +view.encoded_controls()[i + 0] << '\t'
+		     << +view.encoded_controls()[i + 3] << '\t'
+		     << +view.encoded_controls()[i + 6] << '\n';
+
+		cout << "         ";
+		cout << +view.encoded_controls()[i + 1] << '\t'
+		     << +view.encoded_controls()[i + 4] << '\t'
+		     << +view.encoded_controls()[i + 7] << '\n';
+
+		cout << "         ";
+		cout << +view.encoded_controls()[i + 2] << '\t'
+		     << +view.encoded_controls()[i + 5] << '\t'
+		     << +view.encoded_controls()[i + 8] << "]\n";
+
+		cout << "        [";
+		cout << view.controls()[i + 0] << '\t'
+		     << view.controls()[i + 3] << '\t'
+		     << view.controls()[i + 6] << '\n';
+
+		cout << "         ";
+		cout << view.controls()[i + 1] << '\t'
+		     << view.controls()[i + 4] << '\t'
+		     << view.controls()[i + 7] << '\n';
+
+		cout << "         ";
+		cout << view.controls()[i + 2] << '\t'
+		     << view.controls()[i + 5] << '\t'
+		     << view.controls()[i + 8] << "]\n";
+	}
+}
+
 void print_curve_data(GR2_curve_data_D4nK16uC15u* data)
 {
 	cout << "    ScaleOffsetTableEntries: "
@@ -553,6 +600,11 @@ void print_curve(GR2_curve& curve)
 	else if (curve.curve_data->curve_data_header.format == DaK16uC16u) {
 		GR2_curve_data_DaK16uC16u* data =
 			(GR2_curve_data_DaK16uC16u*)curve.curve_data.get();
+		print_curve_data(data);
+	}
+	else if (curve.curve_data->curve_data_header.format == DaK8uC8u) {
+		GR2_curve_data_DaK8uC8u* data =
+			(GR2_curve_data_DaK8uC8u*)curve.curve_data.get();
 		print_curve_data(data);
 	}
 	else if (curve.curve_data->curve_data_header.format == D3Constant32f) {

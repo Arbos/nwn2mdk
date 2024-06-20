@@ -29,7 +29,7 @@ enum GR2_curve_format {
 	D3Constant32f = 4,
 	D4Constant32f = 5,
 	DaK16uC16u = 6,
-	DaK8uC8u = 7, // Not found in NWN2 files yet
+	DaK8uC8u = 7,
 	D4nK16uC15u = 8,
 	D4nK8uC7u = 9,
 	D3K16uC16u = 10,
@@ -291,6 +291,31 @@ private:
 	std::vector<uint16_t> encoded_knots_;
 	std::vector<float> knots_;
 	std::vector<uint16_t> encoded_controls_;
+	std::vector<float> controls_;
+};
+
+struct GR2_curve_data_DaK8uC8u {
+	GR2_curve_data_header curve_data_header_DaK8uC8u;
+	uint16_t one_over_knot_scale_trunc;
+	int32_t control_scale_offsets_count;
+	Virtual_ptr<float> control_scale_offsets;
+	int32_t knots_controls_count;
+	Virtual_ptr<uint8_t> knots_controls;
+};
+
+class GR2_DaK8uC8u_view {
+public:
+	GR2_DaK8uC8u_view(GR2_curve_data_DaK8uC8u& data);
+
+	const std::vector<uint8_t>& encoded_knots() const;
+	const std::vector<float>& knots() const;
+	const std::vector<uint8_t>& encoded_controls() const;
+	const std::vector<float>& controls() const;
+
+private:
+	std::vector<uint8_t> encoded_knots_;
+	std::vector<float> knots_;
+	std::vector<uint8_t> encoded_controls_;
 	std::vector<float> controls_;
 };
 
