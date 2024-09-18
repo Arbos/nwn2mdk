@@ -34,6 +34,9 @@ struct Import_info {
 
 const double time_step = 1 / 30.0;
 
+/// The maximum number of vertices that a converted mesh can have.
+const size_t max_vertices = 65536;
+
 static GR2_property_key CurveDataHeader_def[] = {
 	{ GR2_type_uint8, (char*)"Format", nullptr, 0, 0, 0, 0, 0},
 	{ GR2_type_uint8, (char*)"Degree", nullptr, 0, 0, 0, 0, 0 },
@@ -698,6 +701,14 @@ void import_collision_mesh(MDB_file& mdb, FbxNode* node)
 	for(int i = 0; i < mesh->GetPolygonCount(); ++i)
 		import_polygon(*col_mesh.get(), mesh, i);
 
+	if (col_mesh->verts.size() > max_vertices) {
+		Log::error()
+		    << "Converted COL2/COL3 mesh has " << col_mesh->verts.size()
+		    << " vertices, but the maximum supported is "
+		    << max_vertices << ".\n";
+		return;
+	}
+
 	mdb.add_packet(move(col_mesh));
 }
 
@@ -780,6 +791,14 @@ void import_walk_mesh(MDB_file& mdb, FbxNode* node)
 
 	for (int i = 0; i < mesh->GetPolygonCount(); ++i)
 		import_polygon(*walk_mesh, mesh, i);
+
+	if (walk_mesh->verts.size() > max_vertices) {
+		Log::error()
+		    << "Converted WALK mesh has " << walk_mesh->verts.size()
+		    << " vertices, but the maximum supported is "
+		    << max_vertices << ".\n";
+		return;
+	}
 
 	mdb.add_packet(move(walk_mesh));
 }
@@ -1177,6 +1196,14 @@ void import_rigid_mesh(MDB_file& mdb, FbxNode* node)
 	for(int i = 0; i < mesh->GetPolygonCount(); ++i)
 		import_polygon(*rigid_mesh.get(), mesh, i);
 
+	if (rigid_mesh->verts.size() > max_vertices) {
+		Log::error()
+		    << "Converted RIGD mesh has " << rigid_mesh->verts.size()
+		    << " vertices, but the maximum supported is "
+		    << max_vertices << ".\n";
+		return;
+	}
+
 	import_user_properties(node, rigid_mesh->header.material);
 
 	mdb.add_packet(move(rigid_mesh));
@@ -1308,6 +1335,14 @@ void import_skin(MDB_file& mdb, FbxNode* node)
 
 	for (int i = 0; i < mesh->GetPolygonCount(); ++i)
 		import_polygon(*skin.get(), fbx_bones, mesh, i);
+
+	if (skin->verts.size() > max_vertices) {
+		Log::error()
+		    << "Converted SKIN mesh has " << skin->verts.size()
+		    << " vertices, but the maximum supported is "
+		    << max_vertices << ".\n";
+		return;
+	}
 
 	import_user_properties(node, skin->header.material);
 
