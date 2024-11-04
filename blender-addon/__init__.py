@@ -131,7 +131,7 @@ def setup_armature(objects, ob):
 def setup_objects(objects):
     for obj in objects:
         if obj.type == 'MESH':
-            if obj.name.startswith("COLS_") or obj.name.endswith("_C2") or obj.name.endswith("_C3"):
+            if obj.name.startswith("COLS_") or obj.name.lower().endswith("_c2") or obj.name.lower().endswith("_c3"):
                 for ms in obj.material_slots:
                     ms.material.blend_method = 'BLEND'
                     ms.material.diffuse_color[3] = 0.5
