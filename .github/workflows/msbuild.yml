@@ -51,6 +51,7 @@ jobs:
         cp Release/*.exe artifact/nwn2mdk
         cp config.yml artifact/nwn2mdk
         cp blender-addon/__init__.py artifact/nwn2mdk
+        cp blender-addon/blender_manifest.toml artifact/nwn2mdk
         cp "C:/Program Files/Autodesk/FBX/FBX SDK/2018.0/lib/vs2015/x86/release/libfbxsdk.dll" artifact/nwn2mdk
 
     - name: Upload artifact

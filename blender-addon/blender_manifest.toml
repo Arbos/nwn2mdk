@@ -1,0 +1,21 @@
+schema_version = "1.0.0"
+
+id = "nwn2mdk"
+version = "0.19.0"
+name = "Neverwinter Nights 2 MDB/GR2 formats (NWN2MDK)"
+tagline = "Neverwinter Nights 2 MDB/GR2 Import/Export"
+maintainer = "FreshLook"
+type = "add-on"
+website = "https://arbos.github.io/nwn2/blender"
+
+# Optional list defined by Blender and server, see:
+# https://docs.blender.org/manual/en/dev/advanced/extensions/tags.html
+tags = ["Import-Export"]
+
+blender_version_min = "4.2.0"
+
+# License conforming to https://spdx.org/licenses/ (use "SPDX: prefix)
+# https://docs.blender.org/manual/en/dev/advanced/extensions/licenses.html
+license = [
+  "SPDX:MIT",
+]
