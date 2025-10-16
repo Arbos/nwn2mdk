@@ -55,7 +55,8 @@ static bool find_nwn2_home_in_list(Config& config)
 	const char* nwn2_dirs[] = {
 		"C:\\Program Files\\Atari\\Neverwinter Nights 2",
 		"C:\\Program Files (x86)\\Atari\\Neverwinter Nights 2",
-		"C:\\GOG Games\\Neverwinter Nights 2 Complete" };
+		"C:\\GOG Games\\Neverwinter Nights 2 Complete",
+		"C:\\Program Files (x86)\\Steam\\steamapps\\common\\NWN2 Enhanced Edition" };
 #else
 	char* home = getenv("HOME");
 
