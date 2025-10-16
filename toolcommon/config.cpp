@@ -51,10 +51,22 @@ static bool find_nwn2_home_in_config(Config& config, YAML::Node& config_file)
 
 static bool find_nwn2_home_in_list(Config& config)
 {
-	static const char* nwn2_dirs[] = {
+#ifdef _WIN32
+	const char* nwn2_dirs[] = {
 		"C:\\Program Files\\Atari\\Neverwinter Nights 2",
 		"C:\\Program Files (x86)\\Atari\\Neverwinter Nights 2",
 		"C:\\GOG Games\\Neverwinter Nights 2 Complete" };
+#else
+	char* home = getenv("HOME");
+
+	if (!home)
+		return false;
+
+	string dir = home;
+	dir += "/.wine/drive_c/GOG Games/Neverwinter Nights 2 Complete";
+
+	const char* nwn2_dirs[] = { dir.c_str() };
+#endif
 
 	for (size_t i = 0; i < size(nwn2_dirs); ++i) {
 		if (exists(nwn2_dirs[i])) {
