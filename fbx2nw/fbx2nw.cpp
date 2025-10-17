@@ -1753,6 +1753,37 @@ std::string gen_tmp_filename(const char* extension)
 	return tmp_filename;
 }
 
+#ifdef _WIN32
+static bool patch_file(const char* filename, size_t offset, const char* data,
+                       size_t size)
+{
+	fstream s(filename, ios_base::in | ios_base::out | ios_base::binary);
+
+	if (!s) {
+		Log::error() << "Cannot patch file: Failed to open file "
+		             << filename << '\n';
+		return false;
+	}
+
+	s.seekp(offset);
+
+	if (!s) {
+		Log::error() << "Cannot patch file: Failed to seek to "
+		             << offset << '\n';
+		return false;
+	}
+
+	s.write(data, size);
+
+	if (!s) {
+		Log::error() << "Cannot patch file: Failed to write data\n";
+		return false;
+	}
+
+	return true;
+}
+#endif
+
 static void write_gr2(const Import_info& import_info, GR2_import_info& gr2_import_info)
 {
 #ifdef _WIN32
@@ -1782,6 +1813,11 @@ static void write_gr2(const Import_info& import_info, GR2_import_info& gr2_impor
 	cout << "\nOutput is " << output_filename << endl;
 
 	filesystem::remove(tmp_filename);
+
+	// Patch output file to restore type offset lost in compression.
+	char type_offset[4];
+	memcpy(&type_offset, &gr2.header.info.type_offset, 4);
+	patch_file(output_filename.c_str(), 14*4, type_offset, 4);
 #else
 	GR2_file gr2;
 	gr2.read(&gr2_import_info.file_info);
