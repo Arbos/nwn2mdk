@@ -56,7 +56,9 @@ static bool find_nwn2_home_in_list(Config& config)
 		"C:\\Program Files\\Atari\\Neverwinter Nights 2",
 		"C:\\Program Files (x86)\\Atari\\Neverwinter Nights 2",
 		"C:\\GOG Games\\Neverwinter Nights 2 Complete",
-		"C:\\Program Files (x86)\\Steam\\steamapps\\common\\NWN2 Enhanced Edition" };
+		"C:\\Program Files (x86)\\GOG Galaxy\\Games\\NWN2 Complete",
+		"C:\\Program Files (x86)\\Steam\\steamapps\\common\\NWN2 Enhanced Edition",
+		"C:\\Program Files (x86)\\GOG Galaxy\\Games\\NWN2 Enhanced Edition" };
 #else
 	char* home = getenv("HOME");
 
@@ -79,13 +81,13 @@ static bool find_nwn2_home_in_list(Config& config)
 	return false;
 }
 
-static bool find_nwn2_home_in_registry(Config& config)
+static bool find_nwn2_home_in_registry(Config& config, const char* subkey,
+                                       std::initializer_list<const char*> names)
 {
 #ifdef _WIN32
 	HKEY key;
 
-	LSTATUS status = RegOpenKeyExA(HKEY_LOCAL_MACHINE,
-		"SOFTWARE\\Obsidian\\NWN 2\\Neverwinter",
+	LSTATUS status = RegOpenKeyExA(HKEY_LOCAL_MACHINE, subkey,
 		REG_OPTION_RESERVED,
 #ifdef _WIN64
 		KEY_QUERY_VALUE | KEY_WOW64_32KEY,
@@ -100,14 +102,9 @@ static bool find_nwn2_home_in_registry(Config& config)
 	char path[MAX_PATH + 1];
 	DWORD path_size = MAX_PATH;
 
-	static const char* names[] = {
-		"Location", // Steam & GOG NWN2
-		"Path" // Retail NWN2
-	};
-
-	for (size_t i = 0; i < size(names); ++i) {
+	for (auto name : names) {
 		status = RegQueryValueExA(
-			key, names[i], NULL, NULL,
+			key, name, NULL, NULL,
 			reinterpret_cast<LPBYTE>(path), &path_size);
 
 		if (status == NO_ERROR) {
@@ -128,6 +125,76 @@ static bool find_nwn2_home_in_registry(Config& config)
 #endif
 
 	return false;
+}
+
+static bool find_nwn2_home_in_steam(Config& config)
+{
+#ifdef _WIN32
+	HKEY key;
+
+	LSTATUS status = RegOpenKeyExA(HKEY_LOCAL_MACHINE,
+		"SOFTWARE\\Valve\\Steam",
+		REG_OPTION_RESERVED,
+#ifdef _WIN64
+		KEY_QUERY_VALUE | KEY_WOW64_32KEY,
+#else
+		KEY_QUERY_VALUE,
+#endif
+		&key);
+
+	if (status != NO_ERROR)
+		return false;
+
+	char path[MAX_PATH + 1];
+	DWORD path_size = MAX_PATH;
+	status = RegQueryValueExA(key, "InstallPath", NULL, NULL,
+	                          reinterpret_cast<LPBYTE>(path), &path_size);
+
+	if (status == NO_ERROR) {
+		// A registry value may not have been stored with the proper
+		// terminating null character. Ensure the path is null-terminated.
+		if (path_size == 0 || path[path_size - 1] != '\0')
+			path[path_size] = '\0';
+
+		string nwn2_home = path;
+		nwn2_home += "\\steamapps\\common\\NWN2 Enhanced Edition";
+
+		if (exists(nwn2_home)) {
+			RegCloseKey(key);
+			config.nwn2_home = move(nwn2_home);
+			return true;
+		}
+	}
+
+	RegCloseKey(key);
+#endif
+
+	return false;
+}
+
+static bool find_nwn2_home_in_registry(Config& config)
+{
+	if (find_nwn2_home_in_registry(config,
+	                               "SOFTWARE\\Obsidian\\NWN 2\\Neverwinter",
+	                               {"Location", /* Steam & GOG NWN2 */
+	                                "Path" /* Retail NWN2 */ }))
+		return true;
+	else if (find_nwn2_home_in_registry(config,
+	                                    "SOFTWARE\\GOG.com\\GOGNWN2COMPLETE",
+	                                    { "Path" }))
+		return true;
+	else if (find_nwn2_home_in_registry(config,
+	                                    "SOFTWARE\\GOG.com\\Games\\1207659162", // NWN2
+	                                    { "path" }))
+		return true;
+	else if (find_nwn2_home_in_steam(config))
+		return true;
+	else if (find_nwn2_home_in_registry(config,
+	                                    "SOFTWARE\\GOG.com\\Games\\1993442013", // NWN2:EE
+	                                    { "path" }))
+		return true;
+	else
+		return false;
 }
 
 static void find_nwn2_home(Config& config, YAML::Node& config_file)
