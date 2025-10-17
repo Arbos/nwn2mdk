@@ -55,7 +55,7 @@ jobs:
         cp "C:/Program Files/Autodesk/FBX/FBX SDK/2018.0/lib/vs2015/x86/release/libfbxsdk.dll" artifact/nwn2mdk
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: nwn2mdk
         path: artifact
