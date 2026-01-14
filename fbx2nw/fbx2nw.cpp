@@ -35,7 +35,7 @@ struct Import_info {
 const double time_step = 1 / 30.0;
 
 /// The maximum number of vertices that a converted mesh can have.
-const size_t max_vertices = 65536;
+const size_t max_vertices = 65535;
 
 static GR2_property_key CurveDataHeader_def[] = {
 	{ GR2_type_uint8, (char*)"Format", nullptr, 0, 0, 0, 0, 0},
