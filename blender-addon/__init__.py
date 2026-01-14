@@ -102,11 +102,9 @@ def import_custom_properties(objects):
 def setup_frame_range(ob):
     anim = ob.animation_data
 
-    if (anim is not None and anim.action is not None
-            and anim.action.fcurves
-            and anim.action.fcurves[0].keyframe_points):
+    if anim is not None and anim.action is not None:
         bpy.context.scene.frame_start = 1
-        bpy.context.scene.frame_end = max(math.ceil(anim.action.fcurves[0].keyframe_points[-1].co[0]) - 1, 1)
+        bpy.context.scene.frame_end = max(math.ceil(anim.action.frame_range[1]) - 1, 1)
 
 
 def setup_armature(objects, ob):
