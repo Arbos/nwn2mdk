@@ -1,3 +1,3 @@
 #pragma once
 
-const char* app_string = "NWN2 MDK 0.19";
+const char* app_string = "NWN2 MDK 0.20";
